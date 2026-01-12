@@ -14,5 +14,5 @@ Execute the sql script:
 ```bash
 cd sql
 
-psql -U postgres -f script.sql
+psql -U postgres -f Taxi_brousse.sql
 ```
