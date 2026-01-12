@@ -1,4 +1,4 @@
-DROP IF EXISTS DATABASE taxibroussedb;
+DROP DATABASE IF EXISTS taxibroussedb;
 CREATE DATABASE taxibroussedb;
 \c taxibroussedb;
 
