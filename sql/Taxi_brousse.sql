@@ -30,7 +30,7 @@ CREATE TABLE Gare(
 CREATE TABLE BusClasse(
    id_busClasse SERIAL,
    libelle VARCHAR(50) ,
-   prix_additif DOUBLE PRECISION,
+   prix_classe DOUBLE PRECISION,
    PRIMARY KEY(id_busClasse)
 );
 
@@ -44,6 +44,7 @@ CREATE TABLE BusConf(
 CREATE TABLE HistoriquePrixClasse(
    id_histoPrixClasse SERIAL,
    date_ecriture TIMESTAMP,
+   prix_classe DOUBLE PRECISION,
    id_busClasse INTEGER NOT NULL,
    PRIMARY KEY(id_histoPrixClasse),
    FOREIGN KEY(id_busClasse) REFERENCES BusClasse(id_busClasse)
@@ -61,7 +62,7 @@ CREATE TABLE Bus(
 CREATE TABLE Voyage(
    id_voyage SERIAL,
    duree DOUBLE PRECISION,
-   prix_additif DOUBLE PRECISION,
+   prix_voyage DOUBLE PRECISION,
    id_gare_1 INTEGER NOT NULL,
    id_gare_2 INTEGER NOT NULL,
    PRIMARY KEY(id_voyage),
@@ -83,6 +84,7 @@ CREATE TABLE Client(
 CREATE TABLE HistoriquePrixVoyage(
    id_histoPrixVoyage SERIAL,
    date_ecriture TIMESTAMP,
+   prix_voyage DOUBLE PRECISION,
    id_voyage INTEGER NOT NULL,
    PRIMARY KEY(id_histoPrixVoyage),
    FOREIGN KEY(id_voyage) REFERENCES Voyage(id_voyage)
@@ -92,11 +94,21 @@ CREATE TABLE Bus_Voyage(
    id_bus_voyage SERIAL,
    heure_depart TIME,
    date_depart DATE,
+   prix_specifique DOUBLE PRECISION,
    id_bus INTEGER NOT NULL,
    id_voyage INTEGER NOT NULL,
    PRIMARY KEY(id_bus_voyage),
    FOREIGN KEY(id_bus) REFERENCES Bus(id_bus),
    FOREIGN KEY(id_voyage) REFERENCES Voyage(id_voyage)
+);
+
+CREATE TABLE HistoriquePrixSpecifique(
+   id_histoPrixSpecifique SERIAL,
+   date_ecriture TIMESTAMP,
+   prix_specifique DOUBLE PRECISION,
+   id_bus_voyage INTEGER NOT NULL,
+   PRIMARY KEY(id_histoPrixSpecifique),
+   FOREIGN KEY(id_bus_voyage) REFERENCES Bus_Voyage(id_bus_voyage)
 );
 
 CREATE TABLE Reservation(

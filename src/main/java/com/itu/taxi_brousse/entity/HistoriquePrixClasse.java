@@ -18,6 +18,9 @@ public class HistoriquePrixClasse {
     
     @Column(name = "date_ecriture")
     private LocalDateTime dateEcriture;
+
+    @Column(name = "prix_classe")
+    private Double prixClasse;
     
     @ManyToOne
     @JoinColumn(name = "id_busclasse", nullable = false)

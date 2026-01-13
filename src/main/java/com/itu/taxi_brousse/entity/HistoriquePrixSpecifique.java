@@ -5,24 +5,24 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "historiqueprixvoyage")
+@Table(name = "historiqueprixspecifique")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class HistoriquePrixVoyage {
+public class HistoriquePrixSpecifique {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_histoprixvoyage")
+    @Column(name = "id_histoprixspecifique")
     private Integer id;
     
     @Column(name = "date_ecriture")
     private LocalDateTime dateEcriture;
 
-    @Column(name = "prix_voyage")
-    private Double prixVoyage;
+    @Column(name = "prix_specifique")
+    private Double prixSpecifique;
     
     @ManyToOne
-    @JoinColumn(name = "id_voyage", nullable = false)
-    private Voyage voyage;
+    @JoinColumn(name = "id_bus_voyage", nullable = false)
+    private BusVoyage busVoyage;
 }

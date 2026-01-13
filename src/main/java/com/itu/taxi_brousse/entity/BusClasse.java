@@ -20,8 +20,8 @@ public class BusClasse {
     @Column(name = "libelle", length = 50)
     private String libelle;
     
-    @Column(name = "prix_additif")
-    private Double prixAdditif;
+    @Column(name = "prix_classe")
+    private Double prixClasse;
     
     @OneToMany(mappedBy = "busClasse")
     @Builder.Default

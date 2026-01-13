@@ -24,6 +24,9 @@ public class BusVoyage {
     
     @Column(name = "date_depart")
     private LocalDate dateDepart;
+
+    @Column(name = "prix_specifique")
+    private Double prixSpecifique;
     
     @ManyToOne
     @JoinColumn(name = "id_bus", nullable = false)

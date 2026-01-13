@@ -20,8 +20,8 @@ public class Voyage {
     @Column(name = "duree")
     private Double duree;
     
-    @Column(name = "prix_additif")
-    private Double prixAdditif;
+    @Column(name = "prix_voyage")
+    private Double prixVoyage;
     
     @ManyToOne
     @JoinColumn(name = "id_gare_1", nullable = false)
