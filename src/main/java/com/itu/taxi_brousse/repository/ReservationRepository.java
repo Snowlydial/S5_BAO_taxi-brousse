@@ -1,6 +1,7 @@
 package com.itu.taxi_brousse.repository;
 
 import com.itu.taxi_brousse.entity.BusVoyage;
+import com.itu.taxi_brousse.entity.Client;
 import com.itu.taxi_brousse.entity.Reservation;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +15,5 @@ public interface ReservationRepository extends JpaRepository<Reservation, Intege
     List<Reservation> findByBusVoyageId(Integer busVoyageId);
     List<Reservation> findByBusVoyage(BusVoyage busVoyage);
     Long countByBusVoyage(BusVoyage busVoyage);
+    List<Reservation> findByClient(Client client);
 }
