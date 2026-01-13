@@ -1,3 +1,7 @@
+# Considering adding:
+- With BusVoyage, the same bus can redo the same voyage on the same day but different hour
+    - Condition: when creating BusVoyage, take into account of the 1st heureDepart, the bus becomes available for service again after heureDepart+Voyage.getDuree*2 (multiply by 2 cuz it has to come back to where it began)...mayde
+
 # Week of [09/01/26]
 1. Regle de gestion
 - We have many cars
