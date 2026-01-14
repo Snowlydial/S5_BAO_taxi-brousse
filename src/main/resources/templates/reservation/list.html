@@ -3,144 +3,311 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout}">
 <head>
-    <title>Reservations List</title>
+    <title>Liste des Reservations</title>
+    <link rel="stylesheet" th:href="@{/vendors/simple-datatables/style.css}">
 </head>
 <body>
     <div layout:fragment="content">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Liste des Réservations</h1>
-            <a href="/busvoyage/search" class="btn btn-primary">+ Nouvelle Réservation</a>
-        </div>
-        
-        <div th:if="${#lists.isEmpty(reservations)}" class="alert alert-info">
-            Aucune réservation trouvée.
-        </div>
-        
-        <div th:if="${!#lists.isEmpty(reservations)}" class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Client</th>
-                                <th>Trajet</th>
-                                <th>Bus</th>
-                                <th>Date/Heure</th>
-                                <th>Place N°</th>
-                                <th>Prix</th>
-                                <th>Statut</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="reservation : ${reservations}"
-                                th:with="statut=${reservationStatutService.getLatestStatut(reservation)}">
-                                <td th:text="${reservation.id}">1</td>
-                                <td>
-                                    <strong th:text="${reservation.client.nom + ' ' + reservation.client.prenom}">Client</strong><br>
-                                    <small class="text-muted" th:text="${reservation.client.categorieGroupeAge.libelle}">Age</small>
-                                </td>
-                                <td>
-                                    <span th:text="${reservation.busVoyage.voyage.gareDepart.libelle}">Départ</span>
-                                    →
-                                    <span th:text="${reservation.busVoyage.voyage.gareArrivee.libelle}">Arrivée</span>
-                                </td>
-                                <td>
-                                    <span th:text="${reservation.busVoyage.bus.immatriculation}">Bus</span><br>
-                                    <span class="badge bg-info" th:text="${reservation.busVoyage.bus.busClasse.libelle}">Classe</span>
-                                </td>
-                                <td>
-                                    <span th:text="${#temporals.format(reservation.busVoyage.dateDepart, 'dd/MM/yyyy')}">Date</span><br>
-                                    <span th:text="${#temporals.format(reservation.busVoyage.heureDepart, 'HH:mm')}">Heure</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-primary" th:text="${reservation.numeroPlace}">1</span>
-                                </td>
-                                <td>
-                                    <span class="text-success fw-bold">
-                                        <span th:with="price=${reservation.busVoyage.prixSpecifique != null ? reservation.busVoyage.prixSpecifique : (reservation.busVoyage.voyage.prixVoyage != null ? reservation.busVoyage.voyage.prixVoyage : reservation.busVoyage.bus.busClasse.prixClasse)}"
-                                              th:text="${#numbers.formatDecimal(price, 0, 'COMMA', 0, 'POINT')}">0</span>
-                                    </span> Ar
-                                </td>
-                                <td>
-                                    <span th:if="${statut != null && statut.isAnnule()}" 
-                                          class="badge bg-danger">
-                                        Annulé
-                                        <br><small th:text="'le ' + ${#temporals.format(statut.dateAnnulation, 'dd/MM/yyyy')}"></small>
-                                    </span>
-                                    <span th:if="${statut != null && !statut.isAnnule()}" 
-                                          class="badge bg-success">
-                                        Actif
-                                    </span>
-                                    <span th:if="${statut == null}" 
-                                          class="badge bg-warning">
-                                        Inconnu
-                                    </span>
-                                </td>
-                                <td>
-                                    <button th:if="${statut != null && !statut.isAnnule()}"
-                                            type="button" 
-                                            class="btn btn-sm btn-danger"
-                                            data-bs-toggle="modal"
-                                            th:data-bs-target="'#cancelModal' + ${reservation.id}"
-                                            th:attr="data-reservation-id=${reservation.id}, data-date-depart=${reservation.busVoyage.dateDepart}">
-                                        Annuler
-                                    </button>
-                                    <span th:if="${statut != null && statut.isAnnule()}" 
-                                          class="text-muted">
-                                        -
-                                    </span>
-                                    
-                                    <!-- Cancel Modal for each reservation -->
-                                    <div class="modal fade" th:id="'cancelModal' + ${reservation.id}" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Annuler Réservation</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <form th:action="@{/reservation/cancel/{id}(id=${reservation.id})}" method="post">
-                                                    <div class="modal-body">
-                                                        <p>Êtes-vous sûr de vouloir annuler cette réservation?</p>
-                                                        <div class="mb-3">
-                                                            <label class="form-label">Date d'annulation *</label>
-                                                            <input type="date" 
-                                                                   name="dateAnnulation" 
-                                                                   class="form-control" 
-                                                                   required
-                                                                   th:value="${reservation.busVoyage.dateDepart}"
-                                                                   th:max="${reservation.busVoyage.dateDepart}">
-                                                            <small class="form-text text-muted">
-                                                                La date doit être avant le départ 
-                                                                (<span th:text="${#temporals.format(reservation.busVoyage.dateDepart, 'dd/MM/yyyy')}"></span>)
-                                                            </small>
-                                                        </div>
-                                                        <div class="alert alert-warning">
-                                                            <strong>Informations:</strong><br>
-                                                            Client: <span th:text="${reservation.client.nom + ' ' + reservation.client.prenom}"></span><br>
-                                                            Place N°: <span th:text="${reservation.numeroPlace}"></span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                                                        <button type="submit" class="btn btn-danger">Confirmer l'annulation</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <div class="page-heading">
+            <div class="page-title">
+                <div class="row">
+                    <div class="col-12 col-md-6 order-md-1 order-last">
+                        <h3>Liste des Reservations</h3>
+                        <p class="text-subtitle text-muted">Gerez toutes les reservations de Taxi Brousse</p>
+                    </div>
+                    <div class="col-12 col-md-6 order-md-2 order-first">
+                        <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de Bord</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Liste Reservations</li>
+                            </ol>
+                        </nav>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div class="mt-4">
-            <a href="/dashboard" class="btn btn-secondary">← Retour au Tableau de Bord</a>
-        </div>
+
+        <section class="section">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">Reservations</h4>
+                    <a th:href="@{/busvoyage/search}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-circle me-1"></i> Nouvelle Reservation
+                    </a>
+                </div>
+                <div class="card-content">
+                    <div class="card-body">
+                        <!-- Filters -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card shadow-sm">
+                                    <div class="card-header py-2">
+                                        <h6 class="mb-0"><i class="bi bi-funnel me-1"></i> Filtres</h6>
+                                    </div>
+                                    <div class="card-body py-3">
+                                        <div class="row g-2">
+                                            <div class="col-md-3">
+                                                <label class="form-label">Client</label>
+                                                <input type="text" id="filterClient" class="form-control form-control-sm" placeholder="Rechercher client...">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Bus</label>
+                                                <select id="filterBus" class="form-select form-select-sm">
+                                                    <option value="">Tous les bus</option>
+                                                    <option th:each="bus : ${uniqueBuses}" 
+                                                            th:value="${bus.immatriculation}" 
+                                                            th:text="${bus.immatriculation}"></option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Trajet</label>
+                                                <select id="filterTrajet" class="form-select form-select-sm">
+                                                    <option value="">Tous les trajets</option>
+                                                    <option th:each="voyage : ${uniqueVoyages}" 
+                                                            th:value="${voyage.gareDepart.libelle + ' -> ' + voyage.gareArrivee.libelle}"
+                                                            th:text="${voyage.gareDepart.libelle + ' -> ' + voyage.gareArrivee.libelle}">
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Classe Bus</label>
+                                                <select id="filterClasse" class="form-select form-select-sm">
+                                                    <option value="">Toutes les classes</option>
+                                                    <option th:each="classe : ${uniqueClasses}" 
+                                                            th:value="${classe.libelle}"
+                                                            th:text="${classe.libelle}">
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Statut</label>
+                                                <select id="filterStatut" class="form-select form-select-sm">
+                                                    <option value="">Tous les statuts</option>
+                                                    <option value="Actif">Actif</option>
+                                                    <option value="Annule">Annule</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-1 d-flex align-items-end">
+                                                <button id="clearFilters" class="btn btn-light-secondary btn-sm w-100" title="Effacer les filtres">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- No reservations message -->
+                        <div th:if="${#lists.isEmpty(reservations)}" class="alert alert-light-info">
+                            <div class="alert-body">
+                                <i class="bi bi-info-circle me-2"></i>
+                                Aucune reservation trouvee. <a th:href="@{/busvoyage/search}">Creer une nouvelle reservation</a>.
+                            </div>
+                        </div>
+
+                        <!-- DataTable -->
+                        <div th:if="${!#lists.isEmpty(reservations)}">
+                            <table class="table table-striped" id="reservationsTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Client</th>
+                                        <th>Trajet</th>
+                                        <th>Bus</th>
+                                        <th>Date Depart</th>
+                                        <th>Date Reservation</th>
+                                        <th>Place</th>
+                                        <th>Prix</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="reservation : ${reservations}"
+                                        th:with="statut=${reservationStatutService.getLatestStatut(reservation)},
+                                                price=${reservation.busVoyage.prixSpecifique != null ? reservation.busVoyage.prixSpecifique : (reservation.busVoyage.voyage.prixVoyage != null ? reservation.busVoyage.voyage.prixVoyage : reservation.busVoyage.bus.busClasse.prixClasse)},
+                                                firstPaiement=${reservation.paiements.isEmpty() ? null : reservation.paiements.get(0)}">
+                                        <td th:text="${reservation.id}"></td>
+                                        <td>
+                                            <strong th:text="${reservation.client.nom + ' ' + reservation.client.prenom}"></strong><br>
+                                            <small class="text-muted" th:text="${reservation.client.categorieGroupeAge.libelle}"></small>
+                                        </td>
+                                        <td>
+                                            <div style="min-width: 180px;">
+                                                <span th:text="${reservation.busVoyage.voyage.gareDepart.libelle + ' -> ' + reservation.busVoyage.voyage.gareArrivee.libelle}"></span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span th:text="${reservation.busVoyage.bus.immatriculation}"></span><br>
+                                            <span class="badge bg-info" th:text="${reservation.busVoyage.bus.busClasse.libelle}"></span>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <span th:text="${#temporals.format(reservation.busVoyage.dateDepart, 'dd/MM/yy')}"></span>
+                                            </div>
+                                            <small class="text-muted" th:text="${#temporals.format(reservation.busVoyage.heureDepart, 'HH:mm')}"></small>
+                                        </td>
+                                        <td>
+                                            <div th:if="${firstPaiement != null}">
+                                                <span th:text="${#temporals.format(firstPaiement.datePaiement, 'dd/MM/yy')}"></span>
+                                            </div>
+                                            <small class="text-muted" th:if="${firstPaiement != null}" th:text="${#temporals.format(firstPaiement.datePaiement, 'HH:mm')}"></small>
+                                            <span th:if="${firstPaiement == null}" class="text-muted">-</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary" th:text="${reservation.numeroPlace}"></span>
+                                        </td>
+                                        <td>
+                                            <span class="text-success fw-bold">
+                                                <span th:text="${#numbers.formatDecimal(price, 0, 'COMMA', 0, 'POINT')}"></span> Ar
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${statut != null && statut.isAnnule()}" 
+                                                  class="badge bg-danger">
+                                                Annule
+                                                <br><small th:text="'le ' + ${#temporals.format(statut.dateAnnulation, 'dd/MM/yy')}"></small>
+                                            </span>
+                                            <span th:if="${statut != null && !statut.isAnnule()}" 
+                                                  class="badge bg-success">
+                                                Actif
+                                            </span>
+                                            <span th:if="${statut == null}" 
+                                                  class="badge bg-warning">
+                                                Inconnu
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button th:if="${statut != null && !statut.isAnnule()}"
+                                                    type="button" 
+                                                    class="btn btn-danger btn-sm"
+                                                    data-bs-toggle="modal"
+                                                    th:data-bs-target="'#cancelModal' + ${reservation.id}">
+                                                <i class="bi bi-x-circle me-1"></i> Annuler
+                                            </button>
+                                            <span th:if="${statut != null && statut.isAnnule()}" 
+                                                  class="text-muted small">
+                                                Deja annule
+                                            </span>
+                                            
+                                            <!-- Cancel Modal -->
+                                            <div class="modal fade" th:id="'cancelModal' + ${reservation.id}" tabindex="-1">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Annuler Reservation</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <form th:action="@{/reservation/cancel/{id}(id=${reservation.id})}" method="post">
+                                                            <div class="modal-body">
+                                                                <p>Etes-vous sur de vouloir annuler cette reservation?</p>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label">Date d'annulation *</label>
+                                                                    <input type="date" 
+                                                                           name="dateAnnulation" 
+                                                                           class="form-control" 
+                                                                           required
+                                                                           th:value="${reservation.busVoyage.dateDepart}"
+                                                                           th:max="${reservation.busVoyage.dateDepart}">
+                                                                    <small class="form-text text-muted">
+                                                                        La date doit etre avant le depart 
+                                                                        (<span th:text="${#temporals.format(reservation.busVoyage.dateDepart, 'dd/MM/yyyy')}"></span>)
+                                                                    </small>
+                                                                </div>
+                                                                <div class="alert alert-warning">
+                                                                    <strong>Informations:</strong><br>
+                                                                    Client: <span th:text="${reservation.client.nom + ' ' + reservation.client.prenom}"></span><br>
+                                                                    Place N°: <span th:text="${reservation.numeroPlace}"></span><br>
+                                                                    Trajet: <span th:text="${reservation.busVoyage.voyage.gareDepart.libelle + ' -> ' + reservation.busVoyage.voyage.gareArrivee.libelle}"></span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                                                                <button type="submit" class="btn btn-danger">Confirmer l'annulation</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script th:src="@{/vendors/simple-datatables/simple-datatables.js}"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const table = document.querySelector('#reservationsTable');
+                if (!table) return;
+                
+                //*-- Simple initialization like the template
+                const dataTable = new simpleDatatables.DataTable(table, {
+                    searchable: true,
+                    paging: false,
+                    labels: {
+                        placeholder: "Rechercher...",
+                    }
+                });
+
+                //*-- Custom filter function
+                function applyFilters() {
+                    const clientFilter = document.getElementById('filterClient').value.toLowerCase().trim();
+                    const busFilter = document.getElementById('filterBus').value.trim();
+                    const trajetFilter = document.getElementById('filterTrajet').value.trim();
+                    const classeFilter = document.getElementById('filterClasse').value.trim();
+                    const statutFilter = document.getElementById('filterStatut').value.trim();
+                    
+                    const rows = table.querySelectorAll('tbody tr');
+                    rows.forEach(row => {
+                        const clientText = row.cells[1].textContent.toLowerCase();
+                        const trajetText = row.cells[2].textContent.trim();
+                        const busImmat = row.cells[3].querySelector('span:first-child').textContent.trim();
+                        const classeText = row.cells[3].querySelector('.badge').textContent.trim();
+                        const statutText = row.cells[8].textContent.trim();
+                        
+                        const clientMatch = !clientFilter || clientText.includes(clientFilter);
+                        const busMatch = !busFilter || busImmat === busFilter;
+                        const trajetMatch = !trajetFilter || trajetText === trajetFilter;
+                        const classeMatch = !classeFilter || classeText === classeFilter;
+                        const statutMatch = !statutFilter || statutText.includes(statutFilter);
+                        
+                        if (clientMatch && busMatch && trajetMatch && classeMatch && statutMatch) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                }
+
+                //*-- Attach filter event listeners
+                document.getElementById('filterClient').addEventListener('input', applyFilters);
+                document.getElementById('filterBus').addEventListener('change', applyFilters);
+                document.getElementById('filterTrajet').addEventListener('change', applyFilters);
+                document.getElementById('filterClasse').addEventListener('change', applyFilters);
+                document.getElementById('filterStatut').addEventListener('change', applyFilters);
+
+                //*-- Clear all filters
+                document.getElementById('clearFilters').addEventListener('click', function() {
+                    document.getElementById('filterClient').value = '';
+                    document.getElementById('filterBus').value = '';
+                    document.getElementById('filterTrajet').value = '';
+                    document.getElementById('filterClasse').value = '';
+                    document.getElementById('filterStatut').value = '';
+                    
+                    // Show all rows
+                    const rows = table.querySelectorAll('tbody tr');
+                    rows.forEach(row => row.style.display = '');
+                });
+            });
+        </script>
     </div>
 </body>
 </html>

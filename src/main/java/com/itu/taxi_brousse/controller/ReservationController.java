@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/reservation")
@@ -36,10 +37,30 @@ public class ReservationController {
     public String listReservations(Model model) {
         List<Reservation> allReservations = reservationRepository.findAll();
         
-        //*-- Attach latest status to each reservation for display
-        model.addAttribute("pageTitle", "Liste des Réservations");
+        //*-- Get unique values for filters (avoiding duplicates)
+        List<Bus> uniqueBuses = allReservations.stream()
+            .map(r -> r.getBusVoyage().getBus())
+            .distinct()
+            .sorted((b1, b2) -> b1.getImmatriculation().compareTo(b2.getImmatriculation()))
+            .collect(Collectors.toList());
+        
+        List<Voyage> uniqueVoyages = allReservations.stream()
+            .map(r -> r.getBusVoyage().getVoyage())
+            .distinct()
+            .collect(Collectors.toList());
+        
+        List<BusClasse> uniqueClasses = allReservations.stream()
+            .map(r -> r.getBusVoyage().getBus().getBusClasse())
+            .distinct()
+            .sorted((c1, c2) -> c1.getLibelle().compareTo(c2.getLibelle()))
+            .collect(Collectors.toList());
+        
+        model.addAttribute("pageTitle", "Liste des Reservations");
         model.addAttribute("reservations", allReservations);
         model.addAttribute("reservationStatutService", reservationStatutService);
+        model.addAttribute("uniqueBuses", uniqueBuses);
+        model.addAttribute("uniqueVoyages", uniqueVoyages);
+        model.addAttribute("uniqueClasses", uniqueClasses);
         
         return "reservation/list";
     }

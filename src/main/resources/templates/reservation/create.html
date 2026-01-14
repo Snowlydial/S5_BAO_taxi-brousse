@@ -3,170 +3,278 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout}">
 <head>
-    <title>Create Reservation</title>
+    <title>Créer Réservation</title>
 </head>
 <body>
     <div layout:fragment="content">
-        <h1 class="mb-4">Nouvelle Réservation</h1>
-        
-        <!-- Bus Voyage Info -->
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Détails du Voyage</h5>
-            </div>
-            <div class="card-body">
+        <div class="page-heading">
+            <div class="page-title">
                 <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Trajet:</strong> 
-                            <span th:text="${busVoyage.voyage.gareDepart.libelle}"></span> → 
-                            <span th:text="${busVoyage.voyage.gareArrivee.libelle}"></span>
-                        </p>
-                        <p><strong>Bus:</strong> <span th:text="${busVoyage.bus.immatriculation}"></span></p>
-                        <p><strong>Classe:</strong> <span th:text="${busVoyage.bus.busClasse.libelle}"></span></p>
+                    <div class="col-12 col-md-6 order-md-1 order-last">
+                        <h3>Nouvelle Réservation</h3>
+                        <p class="text-subtitle text-muted">Créer une nouvelle réservation de voyage</p>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Date:</strong> <span th:text="${#temporals.format(busVoyage.dateDepart, 'dd/MM/yyyy')}"></span></p>
-                        <p><strong>Heure:</strong> <span th:text="${#temporals.format(busVoyage.heureDepart, 'HH:mm')}"></span></p>
-                        <p><strong>Durée:</strong> <span th:text="${busVoyage.voyage.duree}"></span>h</p>
-                        <p><strong>Prix/place:</strong> 
-                            <span class="text-success fw-bold" th:text="${#numbers.formatDecimal(price, 0, 'COMMA', 0, 'POINT')}"></span> Ar
-                        </p>
+                    <div class="col-12 col-md-6 order-md-2 order-first">
+                        <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de Bord</a></li>
+                                <li class="breadcrumb-item"><a th:href="@{/busvoyage/search}">Rechercher Voyage</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Nouvelle Réservation</li>
+                            </ol>
+                        </nav>
                     </div>
                 </div>
             </div>
         </div>
-        
+
+        <!-- Bus Voyage Info -->
+        <section class="section">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Détails du Voyage</h4>
+                </div>
+                <div class="card-content">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="avatar avatar-lg bg-light-primary p-3 me-3">
+                                        <i class="bi bi-geo-alt-fill fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Trajet</h6>
+                                        <p class="mb-0">
+                                            <span th:text="${busVoyage.voyage.gareDepart.libelle}"></span>
+                                            <i class="bi bi-arrow-right mx-2 text-muted"></i>
+                                            <span th:text="${busVoyage.voyage.gareArrivee.libelle}"></span>
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="avatar avatar-lg bg-light-info p-3 me-3">
+                                        <i class="bi bi-bus-front fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Bus</h6>
+                                        <p class="mb-0" th:text="${busVoyage.bus.immatriculation}"></p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="avatar avatar-lg bg-light-success p-3 me-3">
+                                        <i class="bi bi-calendar-date fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Date & Heure</h6>
+                                        <p class="mb-0">
+                                            <span th:text="${#temporals.format(busVoyage.dateDepart, 'dd/MM/yyyy')}"></span>
+                                            à <span th:text="${#temporals.format(busVoyage.heureDepart, 'HH:mm')}"></span>
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-lg bg-light-warning p-3 me-3">
+                                        <i class="bi bi-cash-stack fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Prix / Place</h6>
+                                        <p class="mb-0 text-success fw-bold">
+                                            <span th:text="${#numbers.formatDecimal(price, 0, 'COMMA', 0, 'POINT')}"></span> Ar
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between border-top pt-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-clock-history text-primary me-2"></i>
+                                        <span>Durée: <span th:text="${busVoyage.voyage.duree}"></span>h</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-tag text-primary me-2"></i>
+                                        <span>Classe: <span th:text="${busVoyage.bus.busClasse.libelle}"></span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Reservation Form -->
         <form action="/reservation/create" method="post" id="reservationForm">
             <input type="hidden" name="busVoyageId" th:value="${busVoyage.id}">
             
             <!-- Client Selection -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Sélectionner Client</h5>
+            <section class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Sélectionner Client</h4>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-body">
+                            <div class="form-group">
+                                <select name="clientId" class="form-select" required id="clientSelect">
+                                    <option value="">-- Choisir un client --</option>
+                                    <option th:each="client : ${clients}" 
+                                            th:value="${client.id}" 
+                                            th:text="${client.nom + ' ' + client.prenom}"></option>
+                                </select>
+                                <div class="form-text text-muted mt-2">
+                                    Pas dans la liste?
+                                    <button type="button" class="btn btn-link p-0 text-primary" data-bs-toggle="modal" data-bs-target="#createClientModal">
+                                        <i class="bi bi-plus-circle me-1"></i> Créer nouveau client
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <select name="clientId" class="form-select" required id="clientSelect">
-                        <option value="">-- Choisir un client --</option>
-                        <option th:each="client : ${clients}" 
-                                th:value="${client.id}" 
-                                th:text="${client.nom + ' ' + client.prenom}"></option>
-                    </select>
-                    <small class="form-text text-muted">
-                        Pas dans la liste? 
-                        <button type="button" class="btn btn-link p-0 text-primary" data-bs-toggle="modal" data-bs-target="#createClientModal">
-                            Créer nouveau client
-                        </button>
-                    </small>
-                </div>
-            </div>
+            </section>
             
             <!-- Date & Time Reservation -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Date & Heure de Réservation</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label class="form-label">Date de Réservation *</label>
-                            <input type="date" name="dateReservation" class="form-control" 
-                                   required id="dateReservation"
-                                   th:max="${busVoyage.dateDepart}">
-                            <small class="form-text text-muted">La date doit être avant le départ</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Heure de Réservation</label>
-                            <input type="time" name="heureReservation" class="form-control" id="heureReservation">
-                            <small class="form-text text-muted">Optionnel (par défaut: heure actuelle)</small>
+            <section class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Date & Heure de Réservation</h4>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Date de Réservation *</label>
+                                    <input type="date" name="dateReservation" class="form-control" 
+                                           required id="dateReservation"
+                                           th:max="${busVoyage.dateDepart}">
+                                    <div class="form-text text-muted">La date doit être avant le départ</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Heure de Réservation</label>
+                                    <input type="time" name="heureReservation" class="form-control" id="heureReservation">
+                                    <div class="form-text text-muted">Optionnel (par défaut: heure actuelle)</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
             
             <!-- Seat Selection -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Sélectionner Place(s)</h5>
-                </div>
-                <div class="card-body">
-                    <p class="mb-3">
-                        <strong>Places disponibles:</strong> <span th:text="${#lists.size(availableSeats)}">0</span>
-                    </p>
-                    
-                    <div class="seat-grid mb-3" style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px;">
-                        <div th:each="i : ${#numbers.sequence(1, capacity)}" class="text-center">
-                            <input type="checkbox" 
-                                   th:id="'seat-' + ${i}"
-                                   name="selectedSeats" 
-                                   th:value="${i}" 
-                                   th:disabled="${!#lists.contains(availableSeats, i)}"
-                                   class="btn-check seat-checkbox">
-                            <label th:for="'seat-' + ${i}" 
-                                   class="btn btn-sm w-100"
-                                   th:classappend="${#lists.contains(availableSeats, i) ? 'btn-outline-success' : 'btn-secondary disabled'}">
-                                <span th:text="${i}">1</span>
-                            </label>
+            <section class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Sélectionner Place(s)</h4>
+                        <p class="text-subtitle text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <span>Places disponibles: <span th:text="${#lists.size(availableSeats)}" class="fw-bold"></span></span>
+                        </p>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-body">
+                            <div class="seat-grid mb-4" style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px;">
+                                <div th:each="i : ${#numbers.sequence(1, capacity)}" class="text-center">
+                                    <input type="checkbox" 
+                                           th:id="'seat-' + ${i}"
+                                           name="selectedSeats" 
+                                           th:value="${i}" 
+                                           th:disabled="${!#lists.contains(availableSeats, i)}"
+                                           class="btn-check seat-checkbox">
+                                    <label th:for="'seat-' + ${i}" 
+                                           class="btn btn-sm w-100 d-flex align-items-center justify-content-center"
+                                           th:classappend="${#lists.contains(availableSeats, i) ? 'btn-outline-primary' : 'btn-light disabled'}"
+                                           style="height: 40px;">
+                                        <span th:text="${i}">1</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div id="selectedSeatsInfo" class="alert alert-light-info" style="display: none;">
+                                <div class="alert-body">
+                                    <i class="bi bi-check-circle text-info me-2"></i>
+                                    <div>
+                                        <strong>Place(s) sélectionnée(s):</strong> <span id="selectedSeatsList" class="fw-bold"></span><br>
+                                        <strong>Montant total:</strong> <span id="totalAmount" class="text-success fw-bold"></span> Ar
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div id="selectedSeatsInfo" class="alert alert-info" style="display: none;">
-                        <strong>Place(s) sélectionnée(s):</strong> <span id="selectedSeatsList"></span><br>
-                        <strong>Montant total:</strong> <span id="totalAmount"></span> Ar
-                    </div>
                 </div>
-            </div>
+            </section>
             
             <!-- Payment Method -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Mode de Paiement</h5>
-                </div>
-                <div class="card-body">
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="multiplePaymentToggle" name="multiplePayment">
-                        <label class="form-check-label" for="multiplePaymentToggle">
-                            Paiement multiple (split)
-                        </label>
+            <section class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Mode de Paiement</h4>
                     </div>
-                    
-                    <!-- Single Payment -->
-                    <div id="singlePayment">
-                        <select name="caisseIds" class="form-select single-caisse" required>
-                            <option value="">-- Choisir mode de paiement --</option>
-                            <option th:each="caisse : ${caisses}" 
-                                    th:value="${caisse.id}" 
-                                    th:text="${caisse.libelle}"></option>
-                        </select>
-                    </div>
-                    
-                    <!-- Multiple Payment (hidden by default) -->
-                    <div id="multiplePayment" style="display: none;">
-                        <div id="paymentMethods">
-                            <div class="row mb-2 payment-row">
-                                <div class="col-md-6">
-                                    <select name="caisseIds" class="form-select" disabled>
-                                        <option value="">-- Mode paiement --</option>
+                    <div class="card-content">
+                        <div class="card-body">
+                            <div class="form-check form-switch mb-4">
+                                <input class="form-check-input" type="checkbox" id="multiplePaymentToggle" name="multiplePayment">
+                                <label class="form-check-label fw-medium" for="multiplePaymentToggle">
+                                    <i class="bi bi-wallet2 me-1"></i> Paiement multiple (split)
+                                </label>
+                            </div>
+                            
+                            <!-- Single Payment -->
+                            <div id="singlePayment">
+                                <div class="form-group">
+                                    <label class="form-label">Mode de paiement *</label>
+                                    <select name="caisseIds" class="form-select single-caisse" required>
+                                        <option value="">-- Choisir mode de paiement --</option>
                                         <option th:each="caisse : ${caisses}" 
                                                 th:value="${caisse.id}" 
                                                 th:text="${caisse.libelle}"></option>
                                     </select>
                                 </div>
-                                <div class="col-md-6">
-                                    <input type="number" name="montants" class="form-control montant-input" 
-                                           placeholder="Montant (Ar)" step="0.01" min="0" disabled>
+                            </div>
+                            
+                            <!-- Multiple Payment (hidden by default) -->
+                            <div id="multiplePayment" style="display: none;">
+                                <h6 class="mb-3">Détails des paiements</h6>
+                                <div id="paymentMethods">
+                                    <div class="row mb-2 payment-row">
+                                        <div class="col-md-7 mb-2">
+                                            <select name="caisseIds" class="form-select" disabled>
+                                                <option value="">-- Mode paiement --</option>
+                                                <option th:each="caisse : ${caisses}" 
+                                                        th:value="${caisse.id}" 
+                                                        th:text="${caisse.libelle}"></option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-5 mb-2">
+                                            <input type="number" name="montants" class="form-control montant-input" 
+                                                   placeholder="Montant (Ar)" step="0.01" min="0" disabled>
+                                        </div>
+                                    </div>
                                 </div>
+                                <button type="button" class="btn btn-sm btn-light-primary" id="addPaymentMethod">
+                                    <i class="bi bi-plus-circle me-1"></i> Ajouter mode
+                                </button>
+                                <div id="remainingAmount" class="mt-3" style="display: none;"></div>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-sm btn-secondary" id="addPaymentMethod">+ Ajouter mode</button>
-                        <div id="remainingAmount" class="mt-2" style="display: none;"></div>
                     </div>
                 </div>
-            </div>
+            </section>
             
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Confirmer Réservation</button>
-                <a href="/busvoyage/search" class="btn btn-secondary">Annuler</a>
+            <!-- Form Actions -->
+            <div class="d-flex gap-2 mb-5">
+                <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                    <i class="bi bi-check-circle me-1"></i> Confirmer Réservation
+                </button>
+                <a href="/busvoyage/search" class="btn btn-light-secondary">
+                    <i class="bi bi-x-circle me-1"></i> Annuler
+                </a>
             </div>
         </form>
         
@@ -175,20 +283,20 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Creer Nouveau Client</h5>
+                        <h5 class="modal-title">Créer Nouveau Client</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <form id="createClientForm">
                         <div class="modal-body">
-                            <div class="mb-3">
+                            <div class="form-group mb-3">
                                 <label class="form-label">Nom *</label>
                                 <input type="text" name="nom" class="form-control" required>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Prenom *</label>
+                            <div class="form-group mb-3">
+                                <label class="form-label">Prénom *</label>
                                 <input type="text" name="prenom" class="form-control" required>
                             </div>
-                            <div class="mb-3">
+                            <div class="form-group mb-3">
                                 <label class="form-label">Genre *</label>
                                 <select name="categorieGenreId" class="form-select" required>
                                     <option value="">-- Choisir --</option>
@@ -197,8 +305,8 @@
                                             th:text="${genre.libelle}"></option>
                                 </select>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Groupe d'age *</label>
+                            <div class="form-group mb-3">
+                                <label class="form-label">Groupe d'âge *</label>
                                 <select name="categorieGroupeAgeId" class="form-select" required>
                                     <option value="">-- Choisir --</option>
                                     <option th:each="groupeAge : ${groupesAge}" 
@@ -208,8 +316,8 @@
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                            <button type="submit" class="btn btn-primary">Creer Client</button>
+                            <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-primary">Créer Client</button>
                         </div>
                     </form>
                 </div>
@@ -218,6 +326,7 @@
     </div>
     
     <div layout:fragment="scripts">
+        <!-- Your existing JavaScript remains unchanged -->
         <script th:inline="javascript">
             const pricePerSeat = /*[[${price}]]*/ 0;
             const busVoyageDate = /*[[${busVoyage.dateDepart}]]*/ '';
@@ -338,12 +447,12 @@
                     remainingDiv.style.display = 'block';
                     
                     if (remaining > 0) {
-                        remainingDiv.className = 'mt-2 alert alert-warning';
-                        remainingDiv.innerHTML = '<strong>Reste à payer:</strong> ' + 
+                        remainingDiv.className = 'mt-3 alert alert-light-warning';
+                        remainingDiv.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>Reste à payer:</strong> ' + 
                             remaining.toLocaleString('fr-FR', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' Ar';
                     } else {
-                        remainingDiv.className = 'mt-2 alert alert-success';
-                        remainingDiv.innerHTML = '<strong>✓ Paiement complet!</strong>';
+                        remainingDiv.className = 'mt-3 alert alert-light-success';
+                        remainingDiv.innerHTML = '<i class="bi bi-check-circle me-2"></i><strong>✓ Paiement complet!</strong>';
                     }
                 } else {
                     remainingDiv.style.display = 'none';

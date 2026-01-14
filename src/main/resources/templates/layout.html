@@ -25,7 +25,7 @@
                 <div class="sidebar-header">
                     <div class="d-flex justify-content-between">
                         <div class="logo">
-                            <a th:href="@{/dashboard}"><img th:src="@{/images/logo/x.png}" alt="TaxiBrousse"></a>
+                            <a th:href="@{/dashboard}"><img th:src="@{/images/logo/x.png}" alt="Taxi Buh :["></a>
                         </div>
                         <div class="toggler">
                             <a href="#" class="sidebar-hide d-xl-none d-block"><i class="bi bi-x bi-middle"></i></a>
@@ -89,22 +89,6 @@
                                 </li>
                             </ul>
                         </li>
-
-                        <li class="sidebar-title">Compte</li>
-
-                        <li class="sidebar-item">
-                            <a th:href="@{/profile}" class='sidebar-link'>
-                                <i class="bi bi-person-circle"></i>
-                                <span>Profil</span>
-                            </a>
-                        </li>
-
-                        <li class="sidebar-item">
-                            <a th:href="@{/logout}" class='sidebar-link'>
-                                <i class="bi bi-box-arrow-right"></i>
-                                <span>Déconnexion</span>
-                            </a>
-                        </li>
                     </ul>
                 </div>
                 <button class="sidebar-toggler btn x"><i data-feather="x"></i></button>
@@ -117,9 +101,6 @@
                 </a>
             </header>
 
-            <div class="page-heading">
-                <h3 th:text="${pageTitle} ?: 'Tableau de Bord'">Tableau de Bord</h3>
-            </div>
             <div class="page-content">
                 <!-- Flash Messages -->
                 <div th:if="${success}" class="alert alert-success alert-dismissible fade show mx-3" role="alert">
