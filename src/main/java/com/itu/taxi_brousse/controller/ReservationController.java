@@ -98,7 +98,7 @@ public class ReservationController {
             );
             
             // Process payment for each reservation
-            // Double pricePerSeat = pricingService.calculatePrice(busVoyage);
+            Double pricePerSeat = pricingService.calculatePrice(busVoyage);
             
             // Clean up caisseIds and montants - remove nulls and empty values
             List<Integer> validCaisseIds = new ArrayList<>();
@@ -117,13 +117,35 @@ public class ReservationController {
             }
             
             if (Boolean.TRUE.equals(multiplePayment) && validMontants.size() > 1) {
-                // Multiple payment methods for each reservation
-                for (Reservation reservation : reservations) {
-                    List<Caisse> caisses = new ArrayList<>();
-                    for (Integer caisseId : validCaisseIds) {
-                        caisseRepository.findById(caisseId).ifPresent(caisses::add);
+                // Multiple payment methods - split across ALL reservations
+                List<Caisse> caisses = new ArrayList<>();
+                for (Integer caisseId : validCaisseIds) {
+                    caisseRepository.findById(caisseId).ifPresent(caisses::add);
+                }
+                
+                //*-- Calculate total price for all seats
+                Double totalPrice = pricePerSeat * reservations.size();
+                Double totalPaid = validMontants.stream().mapToDouble(Double::doubleValue).sum();
+                
+                //*-- Validate total matches
+                if (Math.abs(totalPaid - totalPrice) > 0.01) {
+                    throw new RuntimeException(
+                        String.format("Le montant total %.2f ne correspond pas au prix total %.2f", 
+                            totalPaid, totalPrice)
+                    );
+                }
+                
+                //*-- Distribute payments proportionally across reservations
+                for (int i = 0; i < reservations.size(); i++) {
+                    Reservation reservation = reservations.get(i);
+                    
+                    //*-- Each reservation gets the split payment proportionally
+                    List<Double> proportionalMontants = new ArrayList<>();
+                    for (Double montant : validMontants) {
+                        proportionalMontants.add(montant / reservations.size());
                     }
-                    paiementService.createMultiplePayments(reservation, caisses, validMontants, datePaiement);
+                    
+                    paiementService.createMultiplePayments(reservation, caisses, proportionalMontants, datePaiement);
                 }
             } else {
                 // Single payment method for each reservation
