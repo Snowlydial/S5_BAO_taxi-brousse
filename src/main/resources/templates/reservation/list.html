@@ -1,123 +1,80 @@
-<div th:fragment="content">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Liste des Réservations</h1>
-        <a th:href="@{/bus-voyages/search}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Nouvelle Réservation
-        </a>
-    </div>
-
-    <!-- Filters -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form class="row g-3">
-                <div class="col-md-3">
-                    <input type="date" class="form-control" placeholder="Date">
-                </div>
-                <div class="col-md-3">
-                    <select class="form-select">
-                        <option>Tous les statuts</option>
-                        <option>Payé</option>
-                        <option>En attente</option>
-                        <option>Annulé</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <input type="text" class="form-control" placeholder="Rechercher par client...">
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">Filtrer</button>
-                </div>
-            </form>
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Reservations List</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Liste des Réservations</h1>
+            <a href="/busvoyage/search" class="btn btn-primary">+ Nouvelle Réservation</a>
         </div>
-    </div>
-
-    <!-- Reservations Table -->
-    <div class="card">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Client</th>
-                            <th>Trajet</th>
-                            <th>Date/Heure</th>
-                            <th>Place</th>
-                            <th>Montant</th>
-                            <th>Statut</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>RES001</td>
-                            <td>Rakoto Jean</td>
-                            <td>Fasankarana → Ambolomadinika</td>
-                            <td>14/01/2025 14h00</td>
-                            <td>12</td>
-                            <td>10,000 Ar</td>
-                            <td><span class="badge bg-success">Payé</span></td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>RES002</td>
-                            <td>Rasoa Marie</td>
-                            <td>Antananarivo → Toamasina</td>
-                            <td>14/01/2025 08h30</td>
-                            <td>5</td>
-                            <td>25,000 Ar</td>
-                            <td><span class="badge bg-warning">En attente</span></td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>RES003</td>
-                            <td>Rabe Paul</td>
-                            <td>Ambolomadinika → Fasankarana</td>
-                            <td>14/01/2025 16h00</td>
-                            <td>8, 9</td>
-                            <td>20,000 Ar</td>
-                            <td><span class="badge bg-success">Payé</span></td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+        
+        <div th:if="${#lists.isEmpty(reservations)}" class="alert alert-info">
+            Aucune réservation trouvée.
+        </div>
+        
+        <div th:if="${!#lists.isEmpty(reservations)}" class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Client</th>
+                                <th>Trajet</th>
+                                <th>Bus</th>
+                                <th>Date/Heure</th>
+                                <th>Place N°</th>
+                                <th>Prix</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="reservation : ${reservations}">
+                                <td th:text="${reservation.id}">1</td>
+                                <td>
+                                    <strong th:text="${reservation.client.nom + ' ' + reservation.client.prenom}">Client</strong><br>
+                                    <small class="text-muted" th:text="${reservation.client.categorieGroupeAge.libelle}">Age</small>
+                                </td>
+                                <td>
+                                    <span th:text="${reservation.busVoyage.voyage.gareDepart.libelle}">Départ</span>
+                                    →
+                                    <span th:text="${reservation.busVoyage.voyage.gareArrivee.libelle}">Arrivée</span>
+                                </td>
+                                <td>
+                                    <span th:text="${reservation.busVoyage.bus.immatriculation}">Bus</span><br>
+                                    <span class="badge bg-info" th:text="${reservation.busVoyage.bus.busClasse.libelle}">Classe</span>
+                                </td>
+                                <td>
+                                    <span th:text="${#temporals.format(reservation.busVoyage.dateDepart, 'dd/MM/yyyy')}">Date</span><br>
+                                    <span th:text="${#temporals.format(reservation.busVoyage.heureDepart, 'HH:mm')}">Heure</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary" th:text="${reservation.numeroPlace}">1</span>
+                                </td>
+                                <td>
+                                    <span class="text-success fw-bold" th:text="${#numbers.formatDecimal(reservation.busVoyage.voyage.prixVoyage ?: reservation.busVoyage.bus.busClasse.prixClasse, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                </td>
+                                <td>
+                                    <form th:action="@{/reservation/cancel/{id}(id=${reservation.id})}" 
+                                          method="post" style="display: inline;"
+                                          onsubmit="return confirm('Confirmer l\'annulation de cette réservation?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">Annuler</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            
-            <!-- Pagination -->
-            <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item disabled">
-                        <a class="page-link" href="#" tabindex="-1">Précédent</a>
-                    </li>
-                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item">
-                        <a class="page-link" href="#">Suivant</a>
-                    </li>
-                </ul>
-            </nav>
+        </div>
+        
+        <div class="mt-4">
+            <a href="/dashboard" class="btn btn-secondary">← Retour au Tableau de Bord</a>
         </div>
     </div>
-</div>
+</body>
+</html>
