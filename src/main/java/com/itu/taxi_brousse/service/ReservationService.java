@@ -4,6 +4,7 @@ import com.itu.taxi_brousse.entity.*;
 import com.itu.taxi_brousse.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,6 +17,7 @@ public class ReservationService {
     
     private final ReservationRepository reservationRepository;
     private final DisponibilitePlaceService availabilityService;
+    private final ReservationStatutService reservationStatutService;
     
     //?=== Create a single reservation with seat selection
     @Transactional
@@ -32,7 +34,12 @@ public class ReservationService {
                 .numeroPlace(seatNumber)
                 .build();
         
-        return reservationRepository.save(reservation);
+        reservation = reservationRepository.save(reservation);
+        
+        //*-- Create initial active status
+        reservationStatutService.createActiveStatus(reservation);
+        
+        return reservation;
     }
     
     //?=== Create multiple reservations (group booking)
@@ -55,13 +62,25 @@ public class ReservationService {
             reservations.add(reservation);
         }
         
-        return reservationRepository.saveAll(reservations);
+        //*-- Save all reservations
+        reservations = reservationRepository.saveAll(reservations);
+        
+        //*-- Create active status for each reservation
+        for (Reservation reservation : reservations) {
+            reservationStatutService.createActiveStatus(reservation);
+        }
+        
+        return reservations;
     }
     
-    //?=== Cancel a reservation
+    //?=== Cancel a reservation with specific date
     @Transactional
-    public void cancelReservation(Integer reservationId) {
-        reservationRepository.deleteById(reservationId);
+    public void cancelReservation(Integer reservationId, LocalDate dateAnnulation) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+        
+        //*-- Create cancellation status
+        reservationStatutService.cancelReservation(reservation, dateAnnulation);
     }
     
     //?=== Get all reservations for a client

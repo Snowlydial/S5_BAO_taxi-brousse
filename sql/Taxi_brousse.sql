@@ -132,6 +132,14 @@ CREATE TABLE Paiement(
    FOREIGN KEY(id_reservation) REFERENCES Reservation(id_reservation)
 );
 
+CREATE TABLE ReservationStatut(
+   id_reservationStatut SERIAL,
+   date_annulation DATE,
+   id_reservation INTEGER NOT NULL,
+   PRIMARY KEY(id_reservationStatut),
+   FOREIGN KEY(id_reservation) REFERENCES Reservation(id_reservation)
+);
+
 CREATE TABLE Bus_BusConf(
    id_bus_busConf SERIAL,
    id_bus INTEGER,

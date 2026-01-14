@@ -9,6 +9,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,6 +22,7 @@ public class ReservationController {
     
     private final ReservationService reservationService;
     private final PaiementService paiementService;
+    private final ReservationStatutService reservationStatutService;
     private final ClientRepository clientRepository;
     private final BusVoyageRepository busVoyageRepository;
     private final CaisseRepository caisseRepository;
@@ -28,8 +32,13 @@ public class ReservationController {
     
     @GetMapping("/list")
     public String listReservations(Model model) {
+        List<Reservation> allReservations = reservationRepository.findAll();
+        
+        //*-- Attach latest status to each reservation for display
         model.addAttribute("pageTitle", "Liste des Réservations");
-        model.addAttribute("reservations", reservationRepository.findAll());
+        model.addAttribute("reservations", allReservations);
+        model.addAttribute("reservationStatutService", reservationStatutService);
+        
         return "reservation/list";
     }
     
@@ -54,20 +63,30 @@ public class ReservationController {
     }
     
     @PostMapping("/create")
-    public String createReservation(
-            @RequestParam Integer busVoyageId,
-            @RequestParam Integer clientId,
-            @RequestParam List<Integer> selectedSeats,
-            @RequestParam(required = false) Boolean multiplePayment,
-            @RequestParam(required = false) List<Integer> caisseIds,
-            @RequestParam(required = false) List<Double> montants,
-            RedirectAttributes redirectAttributes) {
+    public String createReservation(@RequestParam Integer busVoyageId, 
+                                    @RequestParam Integer clientId,
+                                    @RequestParam List<Integer> selectedSeats, 
+                                    @RequestParam LocalDate dateReservation,
+                                    @RequestParam(required = false) LocalTime heureReservation,
+                                    @RequestParam(required = false) Boolean multiplePayment,
+                                    @RequestParam(required = false) List<Integer> caisseIds, 
+                                    @RequestParam(required = false) List<Double> montants,
+                                    RedirectAttributes redirectAttributes) {
         
         try {
             Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new RuntimeException("Client not found"));
             BusVoyage busVoyage = busVoyageRepository.findById(busVoyageId)
                 .orElseThrow(() -> new RuntimeException("Bus voyage not found"));
+            
+            //*-- Validate reservation date is before departure date
+            if (dateReservation.isAfter(busVoyage.getDateDepart())) {
+                throw new RuntimeException("La date de réservation ne peut pas être après la date de départ");
+            }
+            
+            //*-- Create LocalDateTime for payment
+            LocalTime timeToUse = heureReservation != null ? heureReservation : LocalTime.now();
+            LocalDateTime datePaiement = LocalDateTime.of(dateReservation, timeToUse);
             
             // Create reservations for each selected seat
             List<Reservation> reservations = reservationService.createMultipleReservations(
@@ -100,7 +119,7 @@ public class ReservationController {
                     for (Integer caisseId : validCaisseIds) {
                         caisseRepository.findById(caisseId).ifPresent(caisses::add);
                     }
-                    paiementService.createMultiplePayments(reservation, caisses, validMontants);
+                    paiementService.createMultiplePayments(reservation, caisses, validMontants, datePaiement);
                 }
             } else {
                 // Single payment method for each reservation
@@ -111,7 +130,7 @@ public class ReservationController {
                 Caisse caisse = caisseRepository.findById(caisseId)
                     .orElseThrow(() -> new RuntimeException("Caisse not found"));
                 for (Reservation reservation : reservations) {
-                    paiementService.createSinglePayment(reservation, caisse);
+                    paiementService.createSinglePayment(reservation, caisse, datePaiement);
                 }
             }
             
@@ -127,9 +146,11 @@ public class ReservationController {
     }
     
     @PostMapping("/cancel/{id}")
-    public String cancelReservation(@PathVariable Integer id, RedirectAttributes redirectAttributes) {
+    public String cancelReservation(@PathVariable Integer id, 
+                                     @RequestParam LocalDate dateAnnulation,
+                                     RedirectAttributes redirectAttributes) {
         try {
-            reservationService.cancelReservation(id);
+            reservationService.cancelReservation(id, dateAnnulation);
             redirectAttributes.addFlashAttribute("success", "Réservation annulée avec succès!");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Erreur: " + e.getMessage());

@@ -18,14 +18,14 @@ public class PaiementService {
     private final PaiementRepository paiementRepository;
     private final PricingService pricingService;
     
-    //?=== Create single payment for a reservation
+    //?=== Create single payment for a reservation with custom date
     @Transactional
-    public Paiement createSinglePayment(Reservation reservation, Caisse caisse) {
+    public Paiement createSinglePayment(Reservation reservation, Caisse caisse, LocalDateTime datePaiement) {
         //*-- Calculate price at payment time
         Double prixTotal = pricingService.calculatePrice(reservation.getBusVoyage());
         
         Paiement paiement = Paiement.builder()
-                .datePaiement(LocalDateTime.now())
+                .datePaiement(datePaiement)
                 .montantPaye(prixTotal)
                 .caisse(caisse)
                 .reservation(reservation)
@@ -34,9 +34,9 @@ public class PaiementService {
         return paiementRepository.save(paiement);
     }
     
-    //?=== Create multiple payments for a reservation (split payment)
+    //?=== Create multiple payments for a reservation (split payment) with custom date
     @Transactional
-    public List<Paiement> createMultiplePayments(Reservation reservation, List<Caisse> caisses, List<Double> montants) {
+    public List<Paiement> createMultiplePayments(Reservation reservation, List<Caisse> caisses, List<Double> montants, LocalDateTime datePaiement) {
         //*-- Calculate expected total price
         Double prixTotal = pricingService.calculatePrice(reservation.getBusVoyage());
         Double totalMontant = montants.stream().mapToDouble(Double::doubleValue).sum();
@@ -57,7 +57,7 @@ public class PaiementService {
         
         for (int i = 0; i < caisses.size(); i++) {
             Paiement paiement = Paiement.builder()
-                    .datePaiement(LocalDateTime.now())
+                    .datePaiement(datePaiement)
                     .montantPaye(montants.get(i))
                     .caisse(caisses.get(i))
                     .reservation(reservation)

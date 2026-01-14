@@ -61,6 +61,29 @@
                 </div>
             </div>
             
+            <!-- Date & Time Reservation -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Date & Heure de Réservation</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Date de Réservation *</label>
+                            <input type="date" name="dateReservation" class="form-control" 
+                                   required id="dateReservation"
+                                   th:max="${busVoyage.dateDepart}">
+                            <small class="form-text text-muted">La date doit être avant le départ</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Heure de Réservation</label>
+                            <input type="time" name="heureReservation" class="form-control" id="heureReservation">
+                            <small class="form-text text-muted">Optionnel (par défaut: heure actuelle)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Seat Selection -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -198,6 +221,7 @@
     <div layout:fragment="scripts">
         <script th:inline="javascript">
             const pricePerSeat = /*[[${price}]]*/ 0;
+            const busVoyageDate = /*[[${busVoyage.dateDepart}]]*/ '';
             const seatCheckboxes = document.querySelectorAll('.seat-checkbox');
             const selectedSeatsInfo = document.getElementById('selectedSeatsInfo');
             const selectedSeatsList = document.getElementById('selectedSeatsList');
@@ -206,6 +230,11 @@
             const multiplePaymentToggle = document.getElementById('multiplePaymentToggle');
             const singlePayment = document.getElementById('singlePayment');
             const multiplePayment = document.getElementById('multiplePayment');
+            const dateReservationInput = document.getElementById('dateReservation');
+            
+            //*-- Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            dateReservationInput.value = today;
             
             function updateSelectedSeats() {
                 const selected = Array.from(seatCheckboxes)
@@ -311,10 +340,9 @@
                     
                     if (remaining > 0) {
                         remainingDiv.className = 'mt-2 alert alert-warning';
-                        remainingDiv.innerHTML = '<strong>⚠️ Reste à payer:</strong> ' + 
+                        remainingDiv.innerHTML = '<strong>Reste à payer:</strong> ' + 
                             remaining.toLocaleString('fr-FR', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' Ar';
                     } else {
-                        // This shouldn't happen with our input validation, but just in case
                         remainingDiv.className = 'mt-2 alert alert-success';
                         remainingDiv.innerHTML = '<strong>✓ Paiement complet!</strong>';
                     }
@@ -323,7 +351,6 @@
                 }
             }
             
-            // Form validation for split payment
             document.getElementById('reservationForm').addEventListener('submit', function(e) {
                 if (multiplePaymentToggle.checked) {
                     const selected = Array.from(seatCheckboxes).filter(cb => cb.checked && !cb.disabled);

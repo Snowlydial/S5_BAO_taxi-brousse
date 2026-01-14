@@ -29,11 +29,13 @@
                                 <th>Date/Heure</th>
                                 <th>Place N°</th>
                                 <th>Prix</th>
+                                <th>Statut</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="reservation : ${reservations}">
+                            <tr th:each="reservation : ${reservations}"
+                                th:with="statut=${reservationStatutService.getLatestStatut(reservation)}">
                                 <td th:text="${reservation.id}">1</td>
                                 <td>
                                     <strong th:text="${reservation.client.nom + ' ' + reservation.client.prenom}">Client</strong><br>
@@ -62,11 +64,72 @@
                                     </span> Ar
                                 </td>
                                 <td>
-                                    <form th:action="@{/reservation/cancel/{id}(id=${reservation.id})}" 
-                                          method="post" style="display: inline;"
-                                          onsubmit="return confirm('Confirmer l\'annulation de cette réservation?');">
-                                        <button type="submit" class="btn btn-sm btn-danger">Annuler</button>
-                                    </form>
+                                    <span th:if="${statut != null && statut.isAnnule()}" 
+                                          class="badge bg-danger">
+                                        Annulé
+                                        <br><small th:text="'le ' + ${#temporals.format(statut.dateAnnulation, 'dd/MM/yyyy')}"></small>
+                                    </span>
+                                    <span th:if="${statut != null && !statut.isAnnule()}" 
+                                          class="badge bg-success">
+                                        Actif
+                                    </span>
+                                    <span th:if="${statut == null}" 
+                                          class="badge bg-warning">
+                                        Inconnu
+                                    </span>
+                                </td>
+                                <td>
+                                    <button th:if="${statut != null && !statut.isAnnule()}"
+                                            type="button" 
+                                            class="btn btn-sm btn-danger"
+                                            data-bs-toggle="modal"
+                                            th:data-bs-target="'#cancelModal' + ${reservation.id}"
+                                            th:attr="data-reservation-id=${reservation.id}, data-date-depart=${reservation.busVoyage.dateDepart}">
+                                        Annuler
+                                    </button>
+                                    <span th:if="${statut != null && statut.isAnnule()}" 
+                                          class="text-muted">
+                                        -
+                                    </span>
+                                    
+                                    <!-- Cancel Modal for each reservation -->
+                                    <div class="modal fade" th:id="'cancelModal' + ${reservation.id}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Annuler Réservation</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <form th:action="@{/reservation/cancel/{id}(id=${reservation.id})}" method="post">
+                                                    <div class="modal-body">
+                                                        <p>Êtes-vous sûr de vouloir annuler cette réservation?</p>
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Date d'annulation *</label>
+                                                            <input type="date" 
+                                                                   name="dateAnnulation" 
+                                                                   class="form-control" 
+                                                                   required
+                                                                   th:value="${reservation.busVoyage.dateDepart}"
+                                                                   th:max="${reservation.busVoyage.dateDepart}">
+                                                            <small class="form-text text-muted">
+                                                                La date doit être avant le départ 
+                                                                (<span th:text="${#temporals.format(reservation.busVoyage.dateDepart, 'dd/MM/yyyy')}"></span>)
+                                                            </small>
+                                                        </div>
+                                                        <div class="alert alert-warning">
+                                                            <strong>Informations:</strong><br>
+                                                            Client: <span th:text="${reservation.client.nom + ' ' + reservation.client.prenom}"></span><br>
+                                                            Place N°: <span th:text="${reservation.numeroPlace}"></span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                        <button type="submit" class="btn btn-danger">Confirmer l'annulation</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
