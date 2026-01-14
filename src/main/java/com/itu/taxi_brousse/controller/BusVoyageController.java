@@ -28,9 +28,18 @@ public class BusVoyageController {
     
     @GetMapping("/search")
     public String searchPage(Model model) {
+        LocalDate today = LocalDate.now();
+        List<BusVoyageWithAvailability> defaultResults = busVoyageService.searchWithAvailability(
+            null, null, today, null, null, null, null
+        );
+        
         model.addAttribute("pageTitle", "Rechercher un Voyage");
         model.addAttribute("gares", gareRepository.findAll());
         model.addAttribute("classes", busClasseRepository.findAll());
+        model.addAttribute("results", defaultResults);
+        model.addAttribute("searchPerformed", true);
+        model.addAttribute("selectedDate", today);
+        
         return "busvoyage/search";
     }
     
@@ -48,8 +57,11 @@ public class BusVoyageController {
         Gare depart = gareDepart != null ? gareRepository.findById(gareDepart).orElse(null) : null;
         Gare arrivee = gareArrivee != null ? gareRepository.findById(gareArrivee).orElse(null) : null;
         
+        // If no date specified, default to today
+        LocalDate searchDate = dateDepart != null ? dateDepart : LocalDate.now();
+        
         List<BusVoyageWithAvailability> results = busVoyageService.searchWithAvailability(
-            depart, arrivee, dateDepart, heureMin, classeId, prixMin, prixMax
+            depart, arrivee, searchDate, heureMin, classeId, prixMin, prixMax
         );
         
         model.addAttribute("pageTitle", "Résultats de Recherche");
@@ -61,7 +73,7 @@ public class BusVoyageController {
         // Keep search params
         model.addAttribute("selectedGareDepart", gareDepart);
         model.addAttribute("selectedGareArrivee", gareArrivee);
-        model.addAttribute("selectedDate", dateDepart);
+        model.addAttribute("selectedDate", searchDate);
         model.addAttribute("selectedHeureMin", heureMin);
         model.addAttribute("selectedClasse", classeId);
         model.addAttribute("selectedPrixMin", prixMin);

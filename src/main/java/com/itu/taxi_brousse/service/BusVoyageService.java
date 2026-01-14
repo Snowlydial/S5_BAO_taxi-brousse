@@ -72,12 +72,14 @@ public class BusVoyageService {
     //?=== Convert BusVoyage to DTO with availability info
     private BusVoyageWithAvailability toBusVoyageWithAvailability(BusVoyage busVoyage) {
         Double price = pricingService.calculatePrice(busVoyage);
+        Integer capacity = availabilityService.getBusCapacity(busVoyage.getBus().getId());
         Integer availableSeats = availabilityService.getAvailableSeatCount(busVoyage);
         List<Integer> availableSeatNumbers = availabilityService.getAvailableSeats(busVoyage);
         
         return BusVoyageWithAvailability.builder()
                 .busVoyage(busVoyage)
                 .price(price)
+                .capacity(capacity)
                 .availableSeats(availableSeats)
                 .availableSeatNumbers(availableSeatNumbers)
                 .busClasse(busVoyage.getBus().getBusClasse())
