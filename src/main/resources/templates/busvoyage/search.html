@@ -1,0 +1,150 @@
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Rechercher un Voyage</h1>
+        <a th:href="@{/}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Retour
+        </a>
+    </div>
+
+    <!-- Search Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Critères de Recherche</h5>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/bus-voyages/search}" method="post">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="gareDepart" class="form-label">Gare de Départ</label>
+                        <select class="form-select" id="gareDepart" name="gareDepartId">
+                            <option value="">Toutes les gares</option>
+                            <option th:each="gare : ${gares}" 
+                                    th:value="${gare.id}"
+                                    th:text="${gare.libelle}"
+                                    th:selected="${selectedGareDepartId == gare.id}">
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="gareArrivee" class="form-label">Gare d'Arrivée</label>
+                        <select class="form-select" id="gareArrivee" name="gareArriveeId">
+                            <option value="">Toutes les gares</option>
+                            <option th:each="gare : ${gares}" 
+                                    th:value="${gare.id}"
+                                    th:text="${gare.libelle}"
+                                    th:selected="${selectedGareArriveeId == gare.id}">
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="dateDepart" class="form-label">Date de Départ</label>
+                        <input type="date" class="form-control" id="dateDepart" name="dateDepartStr"
+                               th:value="${selectedDateDepart}" th:min="${today}">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="heureDepart" class="form-label">Heure Minimum de Départ</label>
+                        <input type="time" class="form-control" id="heureDepart" name="heureDepartStr"
+                               th:value="${selectedHeureDepart}">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="busClasse" class="form-label">Classe de Bus</label>
+                        <select class="form-select" id="busClasse" name="busClasseId">
+                            <option value="">Toutes les classes</option>
+                            <option th:each="classe : ${classes}" 
+                                    th:value="${classe.id}"
+                                    th:text="${classe.libelle}"
+                                    th:selected="${selectedBusClasseId == classe.id}">
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="prixMin" class="form-label">Prix Minimum (Ar)</label>
+                        <input type="number" class="form-control" id="prixMin" name="prixMin" 
+                               th:value="${selectedPrixMin}" min="0" step="100">
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="prixMax" class="form-label">Prix Maximum (Ar)</label>
+                        <input type="number" class="form-control" id="prixMax" name="prixMax"
+                               th:value="${selectedPrixMax}" min="0" step="100">
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Rechercher
+                    </button>
+                    <button type="reset" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-redo me-2"></i>Réinitialiser
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div th:if="${results != null}">
+        <h4 class="mb-3" th:text="'Résultats (' + ${#lists.size(results)} + ')'"></h4>
+        
+        <div th:if="${#lists.isEmpty(results)}" class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>Aucun voyage trouvé avec ces critères.
+        </div>
+        
+        <div th:each="result : ${results}" class="card mb-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h5 class="card-title">
+                            <span th:text="${result.busVoyage.voyage.gareDepart.libelle}"></span> 
+                            → 
+                            <span th:text="${result.busVoyage.voyage.gareArrivee.libelle}"></span>
+                        </h5>
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Date: <span th:text="${#temporals.format(result.busVoyage.dateDepart, 'dd/MM/yyyy')}"></span>
+                                </small>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>
+                                    Heure: <span th:text="${result.busVoyage.heureDepart}"></span>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <small class="text-muted">
+                                    <i class="fas fa-bus me-1"></i>
+                                    Classe: <span th:text="${result.busClasse.libelle}"></span>
+                                </small>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">
+                                    <i class="fas fa-chair me-1"></i>
+                                    Places: <span th:text="${result.availableSeats}"></span>/?? disponibles
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="mb-3">
+                            <h4 class="text-primary" th:text="${result.price} + ' Ar'"></h4>
+                            <small class="text-muted">par personne</small>
+                        </div>
+                        <a th:href="@{'/reservations/new?busVoyageId=' + ${result.busVoyage.id}}" 
+                           class="btn btn-success" th:disabled="${result.availableSeats == 0}">
+                            <i class="fas fa-ticket-alt me-2"></i>Réserver
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
