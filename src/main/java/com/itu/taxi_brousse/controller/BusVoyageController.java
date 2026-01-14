@@ -2,21 +2,23 @@ package com.itu.taxi_brousse.controller;
 
 import com.itu.taxi_brousse.dto.BusVoyageWithAvailability;
 import com.itu.taxi_brousse.entity.Gare;
-import com.itu.taxi_brousse.entity.BusClasse;
-import com.itu.taxi_brousse.service.BusVoyageService;
-import com.itu.taxi_brousse.repository.GareRepository;
 import com.itu.taxi_brousse.repository.BusClasseRepository;
+import com.itu.taxi_brousse.repository.GareRepository;
+import com.itu.taxi_brousse.service.BusVoyageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
 @Controller
-@RequestMapping("/bus-voyages")
+@RequestMapping("/busvoyage")
 @RequiredArgsConstructor
 public class BusVoyageController {
     
@@ -26,76 +28,45 @@ public class BusVoyageController {
     
     @GetMapping("/search")
     public String searchPage(Model model) {
-        List<Gare> gares = gareRepository.findAll();
-        List<BusClasse> classes = busClasseRepository.findAll();
-        
-        model.addAttribute("pageTitle", "Rechercher Bus Voyage");
-        model.addAttribute("gares", gares);
-        model.addAttribute("classes", classes);
-        model.addAttribute("today", LocalDate.now());
+        model.addAttribute("pageTitle", "Rechercher un Voyage");
+        model.addAttribute("gares", gareRepository.findAll());
+        model.addAttribute("classes", busClasseRepository.findAll());
         return "busvoyage/search";
     }
     
-    @PostMapping("/search")
-    public String search(@RequestParam(required = false) Integer gareDepartId, @RequestParam(required = false) Integer gareArriveeId,
-                         @RequestParam(required = false) String dateDepartStr, @RequestParam(required = false) String heureDepartStr,
-                         @RequestParam(required = false) Integer busClasseId, @RequestParam(required = false) Double prixMin,
-                         @RequestParam(required = false) Double prixMax, Model model) {
+    @GetMapping("/search/results")
+    public String searchResults(
+            @RequestParam(required = false) Integer gareDepart,
+            @RequestParam(required = false) Integer gareArrivee,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDepart,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime heureMin,
+            @RequestParam(required = false) Integer classeId,
+            @RequestParam(required = false) Double prixMin,
+            @RequestParam(required = false) Double prixMax,
+            Model model) {
         
-        // Parse date and time
-        LocalDate dateDepart = null;
-        LocalTime heureDepart = null;
+        Gare depart = gareDepart != null ? gareRepository.findById(gareDepart).orElse(null) : null;
+        Gare arrivee = gareArrivee != null ? gareRepository.findById(gareArrivee).orElse(null) : null;
         
-        if (dateDepartStr != null && !dateDepartStr.isEmpty()) {
-            dateDepart = LocalDate.parse(dateDepartStr);
-        }
-        
-        if (heureDepartStr != null && !heureDepartStr.isEmpty()) {
-            heureDepart = LocalTime.parse(heureDepartStr);
-        }
-        
-        // Get gares
-        Gare gareDepart = null;
-        Gare gareArrivee = null;
-        
-        if (gareDepartId != null) {
-            gareDepart = gareRepository.findById(gareDepartId).orElse(null);
-        }
-        
-        if (gareArriveeId != null) {
-            gareArrivee = gareRepository.findById(gareArriveeId).orElse(null);
-        }
-        
-        // Search bus voyages
         List<BusVoyageWithAvailability> results = busVoyageService.searchWithAvailability(
-                gareDepart, gareArrivee, dateDepart, heureDepart, busClasseId, prixMin, prixMax);
-        
-        // Get all gares and classes for the form
-        List<Gare> gares = gareRepository.findAll();
-        List<BusClasse> classes = busClasseRepository.findAll();
+            depart, arrivee, dateDepart, heureMin, classeId, prixMin, prixMax
+        );
         
         model.addAttribute("pageTitle", "Résultats de Recherche");
+        model.addAttribute("gares", gareRepository.findAll());
+        model.addAttribute("classes", busClasseRepository.findAll());
         model.addAttribute("results", results);
-        model.addAttribute("gares", gares);
-        model.addAttribute("classes", classes);
-        model.addAttribute("today", LocalDate.now());
-        model.addAttribute("selectedGareDepartId", gareDepartId);
-        model.addAttribute("selectedGareArriveeId", gareArriveeId);
-        model.addAttribute("selectedDateDepart", dateDepartStr);
-        model.addAttribute("selectedHeureDepart", heureDepartStr);
-        model.addAttribute("selectedBusClasseId", busClasseId);
+        model.addAttribute("searchPerformed", true);
+        
+        // Keep search params
+        model.addAttribute("selectedGareDepart", gareDepart);
+        model.addAttribute("selectedGareArrivee", gareArrivee);
+        model.addAttribute("selectedDate", dateDepart);
+        model.addAttribute("selectedHeureMin", heureMin);
+        model.addAttribute("selectedClasse", classeId);
         model.addAttribute("selectedPrixMin", prixMin);
         model.addAttribute("selectedPrixMax", prixMax);
         
         return "busvoyage/search";
-    }
-    
-    @GetMapping("/{id}")
-    public String viewDetails(@PathVariable Integer id, Model model) {
-        // This would fetch a specific bus voyage details
-        // For now, we'll just show a placeholder
-        model.addAttribute("pageTitle", "Détails du Voyage");
-        model.addAttribute("busVoyageId", id);
-        return "busvoyage/details";
     }
 }

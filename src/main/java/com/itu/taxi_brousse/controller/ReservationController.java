@@ -1,73 +1,119 @@
 package com.itu.taxi_brousse.controller;
 
 import com.itu.taxi_brousse.entity.*;
+import com.itu.taxi_brousse.repository.*;
 import com.itu.taxi_brousse.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
-@RequestMapping("/reservations")
+@RequestMapping("/reservation")
 @RequiredArgsConstructor
 public class ReservationController {
     
     private final ReservationService reservationService;
-    private final ClientService clientService;
-    private final DisponibilitePlaceService availabilityService;
-    private final PricingService pricingService;
     private final PaiementService paiementService;
+    private final ClientRepository clientRepository;
+    private final BusVoyageRepository busVoyageRepository;
+    private final CaisseRepository caisseRepository;
+    private final ReservationRepository reservationRepository;
+    private final PricingService pricingService;
+    private final DisponibilitePlaceService disponibilitePlaceService;
     
-    @GetMapping
+    @GetMapping("/list")
     public String listReservations(Model model) {
-        // For now, we'll show all reservations
-        // In a real app, you might want pagination or filters
         model.addAttribute("pageTitle", "Liste des Réservations");
+        model.addAttribute("reservations", reservationRepository.findAll());
         return "reservation/list";
     }
     
-    @GetMapping("/new")
-    public String createReservationForm(@RequestParam Integer busVoyageId, Model model) {
-        // This would fetch bus voyage details and show reservation form
-        // For now, we'll just show the form structure
+    @GetMapping("/create")
+    public String createForm(@RequestParam Integer busVoyageId, Model model) {
+        BusVoyage busVoyage = busVoyageRepository.findById(busVoyageId)
+            .orElseThrow(() -> new RuntimeException("Bus voyage not found"));
         
-        List<Client> clients = clientService.getAllClients();
+        Double price = pricingService.calculatePrice(busVoyage);
+        List<Integer> availableSeats = disponibilitePlaceService.getAvailableSeats(busVoyage);
+        Integer capacity = disponibilitePlaceService.getBusCapacity(busVoyage.getBus().getId());
         
         model.addAttribute("pageTitle", "Nouvelle Réservation");
-        model.addAttribute("busVoyageId", busVoyageId);
-        model.addAttribute("clients", clients);
-        model.addAttribute("multiplePayment", false);
+        model.addAttribute("busVoyage", busVoyage);
+        model.addAttribute("price", price);
+        model.addAttribute("availableSeats", availableSeats);
+        model.addAttribute("capacity", capacity);
+        model.addAttribute("clients", clientRepository.findAll());
+        model.addAttribute("caisses", caisseRepository.findAll());
         
         return "reservation/create";
     }
     
-    @PostMapping("/new")
+    @PostMapping("/create")
     public String createReservation(
             @RequestParam Integer busVoyageId,
             @RequestParam Integer clientId,
-            @RequestParam Integer seatNumber,
-            @RequestParam(required = false) String paymentMode,
-            Model model) {
+            @RequestParam List<Integer> selectedSeats,
+            @RequestParam(required = false) Boolean multiplePayment,
+            @RequestParam List<Integer> caisseIds,
+            @RequestParam(required = false) List<Double> montants,
+            RedirectAttributes redirectAttributes) {
         
-        // This would create the reservation
-        // For now, we'll just redirect to list
-        
-        return "redirect:/reservations";
+        try {
+            Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("Client not found"));
+            BusVoyage busVoyage = busVoyageRepository.findById(busVoyageId)
+                .orElseThrow(() -> new RuntimeException("Bus voyage not found"));
+            
+            // Create reservations for each selected seat
+            List<Reservation> reservations = reservationService.createMultipleReservations(
+                client, busVoyage, selectedSeats
+            );
+            
+            // Process payment for each reservation
+            Double pricePerSeat = pricingService.calculatePrice(busVoyage);
+            
+            if (Boolean.TRUE.equals(multiplePayment) && montants != null && !montants.isEmpty()) {
+                // Multiple payment methods for each reservation
+                for (Reservation reservation : reservations) {
+                    List<Caisse> caisses = new ArrayList<>();
+                    for (Integer caisseId : caisseIds) {
+                        caisseRepository.findById(caisseId).ifPresent(caisses::add);
+                    }
+                    paiementService.createMultiplePayments(reservation, caisses, montants);
+                }
+            } else {
+                // Single payment method for each reservation
+                Caisse caisse = caisseRepository.findById(caisseIds.get(0))
+                    .orElseThrow(() -> new RuntimeException("Caisse not found"));
+                for (Reservation reservation : reservations) {
+                    paiementService.createSinglePayment(reservation, caisse);
+                }
+            }
+            
+            redirectAttributes.addFlashAttribute("success", 
+                selectedSeats.size() + " réservation(s) créée(s) avec succès!");
+            return "redirect:/reservation/list";
+            
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", 
+                "Erreur lors de la création: " + e.getMessage());
+            return "redirect:/busvoyage/search";
+        }
     }
     
-    @GetMapping("/{id}")
-    public String viewReservation(@PathVariable Integer id, Model model) {
-        // This would show reservation details
-        model.addAttribute("pageTitle", "Détails de la Réservation");
-        model.addAttribute("reservationId", id);
-        return "reservation/details";
-    }
-    
-    @PostMapping("/{id}/cancel")
-    public String cancelReservation(@PathVariable Integer id) {
-        reservationService.cancelReservation(id);
-        return "redirect:/reservations";
+    @PostMapping("/cancel/{id}")
+    public String cancelReservation(@PathVariable Integer id, RedirectAttributes redirectAttributes) {
+        try {
+            reservationService.cancelReservation(id);
+            redirectAttributes.addFlashAttribute("success", "Réservation annulée avec succès!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Erreur: " + e.getMessage());
+        }
+        return "redirect:/reservation/list";
     }
 }
