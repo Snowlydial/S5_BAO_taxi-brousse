@@ -38,8 +38,8 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="d-flex align-items-center mb-3">
-                                    <div class="avatar avatar-lg bg-light-primary p-3 me-3">
-                                        <i class="bi bi-geo-alt-fill fs-4"></i>
+                                    <div class="avatar avatar-lg bg-light-primary p-3 me-3 d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-geo-alt-fill fs-4 d-flex align-items-center justify-content-center"></i>
                                     </div>
                                     <div>
                                         <h6 class="mb-0">Trajet</h6>
@@ -50,10 +50,10 @@
                                         </p>
                                     </div>
                                 </div>
-                                
+
                                 <div class="d-flex align-items-center mb-3">
-                                    <div class="avatar avatar-lg bg-light-info p-3 me-3">
-                                        <i class="bi bi-bus-front fs-4"></i>
+                                    <div class="avatar avatar-lg bg-light-info p-3 me-3 d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-bus-front fs-4 d-flex align-items-center justify-content-center"></i>
                                     </div>
                                     <div>
                                         <h6 class="mb-0">Bus</h6>
@@ -64,11 +64,11 @@
                             
                             <div class="col-md-6">
                                 <div class="d-flex align-items-center mb-3">
-                                    <div class="avatar avatar-lg bg-light-success p-3 me-3">
-                                        <i class="bi bi-calendar-date fs-4"></i>
+                                    <div class="avatar avatar-lg bg-light-success p-3 me-3 d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-calendar-date fs-4 d-flex align-items-center justify-content-center"></i>
                                     </div>
                                     <div>
-                                        <h6 class="mb-0">Date & Heure</h6>
+                                        <h6 class="mb-0">Date & Heure de Depart</h6>
                                         <p class="mb-0">
                                             <span th:text="${#temporals.format(busVoyage.dateDepart, 'dd/MM/yyyy')}"></span>
                                             à <span th:text="${#temporals.format(busVoyage.heureDepart, 'HH:mm')}"></span>
@@ -77,8 +77,8 @@
                                 </div>
                                 
                                 <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-lg bg-light-warning p-3 me-3">
-                                        <i class="bi bi-cash-stack fs-4"></i>
+                                    <div class="avatar avatar-lg bg-light-warning p-3 me-3 d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-cash-stack fs-4 d-flex align-items-center justify-content-center"></i>
                                     </div>
                                     <div>
                                         <h6 class="mb-0">Prix / Place</h6>
