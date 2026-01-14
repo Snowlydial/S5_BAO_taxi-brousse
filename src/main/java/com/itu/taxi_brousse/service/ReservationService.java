@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReservationService {
     
     private final ReservationRepository reservationRepository;
-    private final AvailabilityService availabilityService;
+    private final DisponibilitePlaceService availabilityService;
     
     //?=== Create a single reservation with seat selection
     @Transactional

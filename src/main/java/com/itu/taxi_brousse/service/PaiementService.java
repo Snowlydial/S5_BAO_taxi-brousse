@@ -13,7 +13,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class PaymentService {
+public class PaiementService {
     
     private final PaiementRepository paiementRepository;
     private final PricingService pricingService;

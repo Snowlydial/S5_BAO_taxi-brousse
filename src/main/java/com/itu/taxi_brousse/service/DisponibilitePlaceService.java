@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class AvailabilityService {
+public class DisponibilitePlaceService {
     
     private final ReservationRepository reservationRepository;
     private final BusBusConfRepository busBusConfRepository;

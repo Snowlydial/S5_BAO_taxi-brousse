@@ -20,7 +20,7 @@ public class BusVoyageService {
     
     private final BusVoyageRepository busVoyageRepository;
     private final PricingService pricingService;
-    private final AvailabilityService availabilityService;
+    private final DisponibilitePlaceService availabilityService;
     
     @Transactional
     public BusVoyage createBusVoyage(BusVoyage busVoyage) {
