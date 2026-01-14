@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Create Reservation</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <h1 class="mb-4">Nouvelle Réservation</h1>
+        
+        <!-- Bus Voyage Info -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Détails du Voyage</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Trajet:</strong> 
+                            <span th:text="${busVoyage.voyage.gareDepart.libelle}"></span> → 
+                            <span th:text="${busVoyage.voyage.gareArrivee.libelle}"></span>
+                        </p>
+                        <p><strong>Bus:</strong> <span th:text="${busVoyage.bus.immatriculation}"></span></p>
+                        <p><strong>Classe:</strong> <span th:text="${busVoyage.bus.busClasse.libelle}"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Date:</strong> <span th:text="${#temporals.format(busVoyage.dateDepart, 'dd/MM/yyyy')}"></span></p>
+                        <p><strong>Heure:</strong> <span th:text="${#temporals.format(busVoyage.heureDepart, 'HH:mm')}"></span></p>
+                        <p><strong>Durée:</strong> <span th:text="${busVoyage.voyage.duree}"></span>h</p>
+                        <p><strong>Prix/place:</strong> 
+                            <span class="text-success fw-bold" th:text="${#numbers.formatDecimal(price, 0, 'COMMA', 0, 'POINT')}"></span> Ar
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reservation Form -->
+        <form action="/reservation/create" method="post" id="reservationForm">
+            <input type="hidden" name="busVoyageId" th:value="${busVoyage.id}">
+            
+            <!-- Client Selection -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Sélectionner Client</h5>
+                </div>
+                <div class="card-body">
+                    <select name="clientId" class="form-select" required id="clientSelect">
+                        <option value="">-- Choisir un client --</option>
+                        <option th:each="client : ${clients}" 
+                                th:value="${client.id}" 
+                                th:text="${client.nom + ' ' + client.prenom}"></option>
+                    </select>
+                    <small class="form-text text-muted">
+                        Pas dans la liste? 
+                        <button type="button" class="btn btn-link p-0 text-primary" data-bs-toggle="modal" data-bs-target="#createClientModal">
+                            Créer nouveau client
+                        </button>
+                    </small>
+                </div>
+            </div>
+            
+            <!-- Seat Selection -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Sélectionner Place(s)</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">
+                        <strong>Places disponibles:</strong> <span th:text="${#lists.size(availableSeats)}">0</span>
+                    </p>
+                    
+                    <div class="seat-grid mb-3" style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px;">
+                        <div th:each="i : ${#numbers.sequence(1, capacity)}" class="text-center">
+                            <input type="checkbox" 
+                                   th:id="'seat-' + ${i}"
+                                   name="selectedSeats" 
+                                   th:value="${i}" 
+                                   th:disabled="${!#lists.contains(availableSeats, i)}"
+                                   class="btn-check seat-checkbox">
+                            <label th:for="'seat-' + ${i}" 
+                                   class="btn btn-sm w-100"
+                                   th:classappend="${#lists.contains(availableSeats, i) ? 'btn-outline-success' : 'btn-secondary disabled'}">
+                                <span th:text="${i}">1</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="selectedSeatsInfo" class="alert alert-info" style="display: none;">
+                        <strong>Place(s) sélectionnée(s):</strong> <span id="selectedSeatsList"></span><br>
+                        <strong>Montant total:</strong> <span id="totalAmount"></span> Ar
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payment Method -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Mode de Paiement</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="multiplePaymentToggle" name="multiplePayment">
+                        <label class="form-check-label" for="multiplePaymentToggle">
+                            Paiement multiple (split)
+                        </label>
+                    </div>
+                    
+                    <!-- Single Payment -->
+                    <div id="singlePayment">
+                        <select name="caisseIds" class="form-select single-caisse" required>
+                            <option value="">-- Choisir mode de paiement --</option>
+                            <option th:each="caisse : ${caisses}" 
+                                    th:value="${caisse.id}" 
+                                    th:text="${caisse.libelle}"></option>
+                        </select>
+                    </div>
+                    
+                    <!-- Multiple Payment (hidden by default) -->
+                    <div id="multiplePayment" style="display: none;">
+                        <div id="paymentMethods">
+                            <div class="row mb-2 payment-row">
+                                <div class="col-md-6">
+                                    <select name="caisseIds" class="form-select" disabled>
+                                        <option value="">-- Mode paiement --</option>
+                                        <option th:each="caisse : ${caisses}" 
+                                                th:value="${caisse.id}" 
+                                                th:text="${caisse.libelle}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="number" name="montants" class="form-control montant-input" 
+                                           placeholder="Montant (Ar)" step="0.01" min="0" disabled>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" id="addPaymentMethod">+ Ajouter mode</button>
+                        <div id="remainingAmount" class="mt-2" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Confirmer Réservation</button>
+                <a href="/busvoyage/search" class="btn btn-secondary">Annuler</a>
+            </div>
+        </form>
+        
+        <!-- Create Client Modal -->
+        <div class="modal fade" id="createClientModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Créer Nouveau Client</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="createClientForm">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Nom *</label>
+                                <input type="text" name="nom" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Prénom *</label>
+                                <input type="text" name="prenom" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Genre *</label>
+                                <select name="categorieGenreId" class="form-select" required>
+                                    <option value="">-- Choisir --</option>
+                                    <option value="1">Homme</option>
+                                    <option value="2">Femme</option>
+                                    <option value="3">Autre</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Groupe d'âge *</label>
+                                <select name="categorieGroupeAgeId" class="form-select" required>
+                                    <option value="">-- Choisir --</option>
+                                    <option value="1">Enfant (0-12 ans)</option>
+                                    <option value="2">Adolescent (13-17 ans)</option>
+                                    <option value="3">Adulte (18-59 ans)</option>
+                                    <option value="4">Senior (60+ ans)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-primary">Créer Client</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div layout:fragment="scripts">
+        <script th:inline="javascript">
+            const pricePerSeat = /*[[${price}]]*/ 0;
+            const seatCheckboxes = document.querySelectorAll('.seat-checkbox');
+            const selectedSeatsInfo = document.getElementById('selectedSeatsInfo');
+            const selectedSeatsList = document.getElementById('selectedSeatsList');
+            const totalAmountSpan = document.getElementById('totalAmount');
+            const submitBtn = document.getElementById('submitBtn');
+            const multiplePaymentToggle = document.getElementById('multiplePaymentToggle');
+            const singlePayment = document.getElementById('singlePayment');
+            const multiplePayment = document.getElementById('multiplePayment');
+            
+            function updateSelectedSeats() {
+                const selected = Array.from(seatCheckboxes)
+                    .filter(cb => cb.checked && !cb.disabled)
+                    .map(cb => cb.value);
+                
+                if (selected.length > 0) {
+                    selectedSeatsInfo.style.display = 'block';
+                    selectedSeatsList.textContent = selected.join(', ');
+                    const total = selected.length * pricePerSeat;
+                    totalAmountSpan.textContent = total.toLocaleString('fr-FR', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                    submitBtn.disabled = false;
+                } else {
+                    selectedSeatsInfo.style.display = 'none';
+                    submitBtn.disabled = true;
+                }
+                
+                updateRemainingAmount();
+            }
+            
+            seatCheckboxes.forEach(cb => {
+                cb.addEventListener('change', updateSelectedSeats);
+            });
+            
+            multiplePaymentToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    singlePayment.style.display = 'none';
+                    multiplePayment.style.display = 'block';
+                    // Disable single payment select
+                    document.querySelector('.single-caisse').disabled = true;
+                    document.querySelector('.single-caisse').removeAttribute('required');
+                    // Enable multiple payment inputs
+                    document.querySelectorAll('.payment-row select').forEach(s => s.disabled = false);
+                    document.querySelectorAll('.payment-row input').forEach(i => i.disabled = false);
+                } else {
+                    singlePayment.style.display = 'block';
+                    multiplePayment.style.display = 'none';
+                    // Enable single payment select
+                    document.querySelector('.single-caisse').disabled = false;
+                    document.querySelector('.single-caisse').setAttribute('required', '');
+                    // Disable multiple payment inputs so they won't be submitted
+                    document.querySelectorAll('.payment-row select').forEach(s => s.disabled = true);
+                    document.querySelectorAll('.payment-row input').forEach(i => i.disabled = true);
+                }
+            });
+            
+            document.getElementById('addPaymentMethod').addEventListener('click', function() {
+                const paymentMethods = document.getElementById('paymentMethods');
+                const newRow = paymentMethods.querySelector('.payment-row').cloneNode(true);
+                newRow.querySelectorAll('input').forEach(input => input.value = '');
+                newRow.querySelectorAll('select').forEach(select => select.value = '');
+                paymentMethods.appendChild(newRow);
+                updateRemainingAmount();
+            });
+            
+            // Validate payment amounts - no negatives, enforce limits
+            document.getElementById('paymentMethods').addEventListener('input', function(e) {
+                if (e.target.classList.contains('montant-input')) {
+                    const selected = Array.from(seatCheckboxes).filter(cb => cb.checked && !cb.disabled);
+                    const totalPrice = selected.length * pricePerSeat;
+                    
+                    let value = parseFloat(e.target.value) || 0;
+                    
+                    // No negatives
+                    if (value < 0) {
+                        value = 0;
+                        e.target.value = 0;
+                    }
+                    
+                    // Calculate current total from all inputs
+                    const montantInputs = Array.from(document.querySelectorAll('.montant-input'));
+                    const currentTotal = montantInputs.reduce((sum, input) => {
+                        if (input === e.target) return sum; // Skip current input being edited
+                        return sum + (parseFloat(input.value) || 0);
+                    }, 0);
+                    
+                    // Max this input can be is: totalPrice - otherInputsTotal
+                    const maxAllowed = totalPrice - currentTotal;
+                    
+                    if (value > maxAllowed) {
+                        e.target.value = Math.max(0, maxAllowed).toFixed(2);
+                    }
+                }
+                updateRemainingAmount();
+            });
+            
+            function updateRemainingAmount() {
+                if (!multiplePaymentToggle.checked) return;
+                
+                const selected = Array.from(seatCheckboxes).filter(cb => cb.checked && !cb.disabled);
+                const totalPrice = selected.length * pricePerSeat;
+                
+                const montantInputs = Array.from(document.querySelectorAll('.montant-input'));
+                const totalPaid = montantInputs.reduce((sum, input) => {
+                    return sum + (parseFloat(input.value) || 0);
+                }, 0);
+                
+                const remaining = totalPrice - totalPaid;
+                const remainingDiv = document.getElementById('remainingAmount');
+                
+                if (Math.abs(remaining) > 0.01) {
+                    remainingDiv.style.display = 'block';
+                    
+                    if (remaining > 0) {
+                        remainingDiv.className = 'mt-2 alert alert-warning';
+                        remainingDiv.innerHTML = '<strong>⚠️ Reste à payer:</strong> ' + 
+                            remaining.toLocaleString('fr-FR', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' Ar';
+                    } else {
+                        // This shouldn't happen with our input validation, but just in case
+                        remainingDiv.className = 'mt-2 alert alert-success';
+                        remainingDiv.innerHTML = '<strong>✓ Paiement complet!</strong>';
+                    }
+                } else {
+                    remainingDiv.style.display = 'none';
+                }
+            }
+            
+            // Form validation for split payment
+            document.getElementById('reservationForm').addEventListener('submit', function(e) {
+                if (multiplePaymentToggle.checked) {
+                    const selected = Array.from(seatCheckboxes).filter(cb => cb.checked && !cb.disabled);
+                    const totalPrice = selected.length * pricePerSeat;
+                    const montantInputs = Array.from(document.querySelectorAll('.montant-input'));
+                    const totalPaid = montantInputs.reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
+                    
+                    if (Math.abs(totalPaid - totalPrice) > 0.01) {
+                        e.preventDefault();
+                        alert('Le montant total des paiements doit être égal au prix total: ' + totalPrice.toLocaleString('fr-FR') + ' Ar');
+                        return false;
+                    }
+                }
+            });
+            
+            // Handle client creation
+            document.getElementById('createClientForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const data = Object.fromEntries(formData);
+                
+                try {
+                    const response = await fetch('/client/create', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (response.ok) {
+                        const client = await response.json();
+                        // Add to dropdown
+                        const option = new Option(client.nom + ' ' + client.prenom, client.id, true, true);
+                        document.getElementById('clientSelect').add(option);
+                        // Close modal
+                        bootstrap.Modal.getInstance(document.getElementById('createClientModal')).hide();
+                        this.reset();
+                    } else {
+                        alert('Erreur lors de la création du client');
+                    }
+                } catch (error) {
+                    alert('Erreur: ' + error.message);
+                }
+            });
+        </script>
+    </div>
+</body>
+</html>

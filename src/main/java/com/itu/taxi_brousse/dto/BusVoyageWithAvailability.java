@@ -12,6 +12,7 @@ public class BusVoyageWithAvailability {
     private BusVoyage busVoyage;
     private Double price;
     private Integer availableSeats;
+    private Integer capacity;
     private List<Integer> availableSeatNumbers;
     private BusClasse busClasse;
     

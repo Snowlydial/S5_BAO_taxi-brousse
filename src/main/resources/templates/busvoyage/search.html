@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Search Bus Voyage</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <h1 class="mb-4">Rechercher un Voyage</h1>
+        
+        <!-- Search Form -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form action="/busvoyage/search/results" method="get">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Gare Départ</label>
+                            <select name="gareDepart" class="form-select">
+                                <option value="">-- Choisir --</option>
+                                <option th:each="gare : ${gares}" 
+                                        th:value="${gare.id}" 
+                                        th:text="${gare.libelle}"
+                                        th:selected="${gare.id == selectedGareDepart}"></option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label class="form-label">Gare Arrivée</label>
+                            <select name="gareArrivee" class="form-select">
+                                <option value="">-- Choisir --</option>
+                                <option th:each="gare : ${gares}" 
+                                        th:value="${gare.id}" 
+                                        th:text="${gare.libelle}"
+                                        th:selected="${gare.id == selectedGareArrivee}"></option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">Date Départ</label>
+                            <input type="date" name="dateDepart" class="form-control" 
+                                   th:value="${selectedDate != null ? selectedDate : #temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">Heure Min</label>
+                            <input type="time" name="heureMin" class="form-control" th:value="${selectedHeureMin}">
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">Classe Bus</label>
+                            <select name="classeId" class="form-select">
+                                <option value="">-- Toutes --</option>
+                                <option th:each="classe : ${classes}" 
+                                        th:value="${classe.id}" 
+                                        th:text="${classe.libelle}"
+                                        th:selected="${classe.id == selectedClasse}"></option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">Prix Min (Ar)</label>
+                            <input type="number" name="prixMin" class="form-control" placeholder="0" th:value="${selectedPrixMin}">
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">Prix Max (Ar)</label>
+                            <input type="number" name="prixMax" class="form-control" placeholder="100000" th:value="${selectedPrixMax}">
+                        </div>
+                        
+                        <div class="col-md-8 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">🔍 Rechercher</button>
+                            <a href="/busvoyage/search" class="btn btn-secondary">Réinitialiser</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Results -->
+        <div th:if="${searchPerformed}">
+            <h3 class="mb-3">Résultats (<span th:text="${#lists.size(results)}">0</span> voyage(s) trouvé(s))</h3>
+            
+            <div th:if="${#lists.isEmpty(results)}" class="alert alert-info">
+                Aucun voyage trouvé pour ces critères.
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-md-6" th:each="result : ${results}">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <strong th:text="${result.busVoyage.voyage.gareDepart.libelle}">Départ</strong>
+                            →
+                            <strong th:text="${result.busVoyage.voyage.gareArrivee.libelle}">Arrivée</strong>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2">
+                                <strong>Bus:</strong> <span th:text="${result.busVoyage.bus.immatriculation}"></span>
+                                <span class="badge bg-info ms-2" th:text="${result.busClasse.libelle}">Classe</span>
+                            </p>
+                            <p class="mb-2">
+                                <strong>Date:</strong> <span th:text="${#temporals.format(result.busVoyage.dateDepart, 'dd/MM/yyyy')}"></span>
+                                à <span th:text="${#temporals.format(result.busVoyage.heureDepart, 'HH:mm')}"></span>
+                            </p>
+                            <p class="mb-2">
+                                <strong>Durée:</strong> <span th:text="${result.busVoyage.voyage.duree}"></span>h
+                            </p>
+                            <p class="mb-2">
+                                <strong>Prix/personne:</strong> 
+                                <span class="text-success fw-bold" th:text="${#numbers.formatDecimal(result.price, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                            </p>
+                            <p class="mb-3">
+                                <strong>Places disponibles:</strong> 
+                                <span class="badge" th:classappend="${result.availableSeats > 10 ? 'bg-success' : (result.availableSeats > 5 ? 'bg-warning' : 'bg-danger')}">
+                                    <span th:text="${result.availableSeats}">0</span>/<span th:text="${result.capacity}">0</span>
+                                </span>
+                            </p>
+                            
+                            <a th:if="${result.availableSeats > 0}" 
+                               th:href="@{/reservation/create(busVoyageId=${result.busVoyage.id})}" 
+                               class="btn btn-primary btn-sm">Réserver</a>
+                            <button th:if="${result.availableSeats == 0}" 
+                                    class="btn btn-secondary btn-sm" disabled>Complet</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
