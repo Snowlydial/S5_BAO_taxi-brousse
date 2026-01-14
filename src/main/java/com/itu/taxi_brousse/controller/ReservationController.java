@@ -29,6 +29,8 @@ public class ReservationController {
     private final ReservationRepository reservationRepository;
     private final PricingService pricingService;
     private final DisponibilitePlaceService disponibilitePlaceService;
+    private final CategorieGenreRepository categorieGenreRepository;
+    private final CategorieGroupeAgeRepository categorieGroupeAgeRepository;
     
     @GetMapping("/list")
     public String listReservations(Model model) {
@@ -58,6 +60,8 @@ public class ReservationController {
         model.addAttribute("capacity", capacity);
         model.addAttribute("clients", clientRepository.findAll());
         model.addAttribute("caisses", caisseRepository.findAll());
+        model.addAttribute("genres", categorieGenreRepository.findAll());
+        model.addAttribute("groupesAge", categorieGroupeAgeRepository.findAll());
         
         return "reservation/create";
     }

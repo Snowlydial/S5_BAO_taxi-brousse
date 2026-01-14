@@ -175,7 +175,7 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Créer Nouveau Client</h5>
+                        <h5 class="modal-title">Creer Nouveau Client</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <form id="createClientForm">
@@ -185,32 +185,31 @@
                                 <input type="text" name="nom" class="form-control" required>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Prénom *</label>
+                                <label class="form-label">Prenom *</label>
                                 <input type="text" name="prenom" class="form-control" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Genre *</label>
                                 <select name="categorieGenreId" class="form-select" required>
                                     <option value="">-- Choisir --</option>
-                                    <option value="1">Homme</option>
-                                    <option value="2">Femme</option>
-                                    <option value="3">Autre</option>
+                                    <option th:each="genre : ${genres}" 
+                                            th:value="${genre.id}" 
+                                            th:text="${genre.libelle}"></option>
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Groupe d'âge *</label>
+                                <label class="form-label">Groupe d'age *</label>
                                 <select name="categorieGroupeAgeId" class="form-select" required>
                                     <option value="">-- Choisir --</option>
-                                    <option value="1">Enfant (0-12 ans)</option>
-                                    <option value="2">Adolescent (13-17 ans)</option>
-                                    <option value="3">Adulte (18-59 ans)</option>
-                                    <option value="4">Senior (60+ ans)</option>
+                                    <option th:each="groupeAge : ${groupesAge}" 
+                                            th:value="${groupeAge.id}" 
+                                            th:text="${groupeAge.libelle}"></option>
                                 </select>
                             </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                            <button type="submit" class="btn btn-primary">Créer Client</button>
+                            <button type="submit" class="btn btn-primary">Creer Client</button>
                         </div>
                     </form>
                 </div>
