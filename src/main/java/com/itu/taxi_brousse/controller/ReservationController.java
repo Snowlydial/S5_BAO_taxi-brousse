@@ -94,7 +94,7 @@ public class ReservationController {
             );
             
             // Process payment for each reservation
-            Double pricePerSeat = pricingService.calculatePrice(busVoyage);
+            // Double pricePerSeat = pricingService.calculatePrice(busVoyage);
             
             // Clean up caisseIds and montants - remove nulls and empty values
             List<Integer> validCaisseIds = new ArrayList<>();
