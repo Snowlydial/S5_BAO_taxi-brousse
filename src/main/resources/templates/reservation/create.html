@@ -46,7 +46,7 @@
                     <h5 class="mb-0">Sélectionner Client</h5>
                 </div>
                 <div class="card-body">
-                    <select name="clientId" class="form-select" required>
+                    <select name="clientId" class="form-select" required id="clientSelect">
                         <option value="">-- Choisir un client --</option>
                         <option th:each="client : ${clients}" 
                                 th:value="${client.id}" 
@@ -54,7 +54,9 @@
                     </select>
                     <small class="form-text text-muted">
                         Pas dans la liste? 
-                        <a href="#" class="text-primary">Créer nouveau client</a>
+                        <button type="button" class="btn btn-link p-0 text-primary" data-bs-toggle="modal" data-bs-target="#createClientModal">
+                            Créer nouveau client
+                        </button>
                     </small>
                 </div>
             </div>
@@ -107,7 +109,7 @@
                     
                     <!-- Single Payment -->
                     <div id="singlePayment">
-                        <select name="caisseIds" class="form-select" required>
+                        <select name="caisseIds" class="form-select single-caisse" required>
                             <option value="">-- Choisir mode de paiement --</option>
                             <option th:each="caisse : ${caisses}" 
                                     th:value="${caisse.id}" 
@@ -120,7 +122,7 @@
                         <div id="paymentMethods">
                             <div class="row mb-2 payment-row">
                                 <div class="col-md-6">
-                                    <select name="caisseIds" class="form-select">
+                                    <select name="caisseIds" class="form-select" disabled>
                                         <option value="">-- Mode paiement --</option>
                                         <option th:each="caisse : ${caisses}" 
                                                 th:value="${caisse.id}" 
@@ -129,14 +131,12 @@
                                 </div>
                                 <div class="col-md-6">
                                     <input type="number" name="montants" class="form-control montant-input" 
-                                           placeholder="Montant (Ar)" step="0.01" min="0">
+                                           placeholder="Montant (Ar)" step="0.01" min="0" disabled>
                                 </div>
                             </div>
                         </div>
                         <button type="button" class="btn btn-sm btn-secondary" id="addPaymentMethod">+ Ajouter mode</button>
-                        <div id="remainingAmount" class="mt-2 text-danger" style="display: none;">
-                            <strong>Reste à payer:</strong> <span id="remaining"></span> Ar
-                        </div>
+                        <div id="remainingAmount" class="mt-2" style="display: none;"></div>
                     </div>
                 </div>
             </div>
@@ -146,6 +146,53 @@
                 <a href="/busvoyage/search" class="btn btn-secondary">Annuler</a>
             </div>
         </form>
+        
+        <!-- Create Client Modal -->
+        <div class="modal fade" id="createClientModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Créer Nouveau Client</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="createClientForm">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Nom *</label>
+                                <input type="text" name="nom" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Prénom *</label>
+                                <input type="text" name="prenom" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Genre *</label>
+                                <select name="categorieGenreId" class="form-select" required>
+                                    <option value="">-- Choisir --</option>
+                                    <option value="1">Homme</option>
+                                    <option value="2">Femme</option>
+                                    <option value="3">Autre</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Groupe d'âge *</label>
+                                <select name="categorieGroupeAgeId" class="form-select" required>
+                                    <option value="">-- Choisir --</option>
+                                    <option value="1">Enfant (0-12 ans)</option>
+                                    <option value="2">Adolescent (13-17 ans)</option>
+                                    <option value="3">Adulte (18-59 ans)</option>
+                                    <option value="4">Senior (60+ ans)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-primary">Créer Client</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
     
     <div layout:fragment="scripts">
@@ -187,11 +234,21 @@
                 if (this.checked) {
                     singlePayment.style.display = 'none';
                     multiplePayment.style.display = 'block';
-                    singlePayment.querySelector('select').removeAttribute('required');
+                    // Disable single payment select
+                    document.querySelector('.single-caisse').disabled = true;
+                    document.querySelector('.single-caisse').removeAttribute('required');
+                    // Enable multiple payment inputs
+                    document.querySelectorAll('.payment-row select').forEach(s => s.disabled = false);
+                    document.querySelectorAll('.payment-row input').forEach(i => i.disabled = false);
                 } else {
                     singlePayment.style.display = 'block';
                     multiplePayment.style.display = 'none';
-                    singlePayment.querySelector('select').setAttribute('required', '');
+                    // Enable single payment select
+                    document.querySelector('.single-caisse').disabled = false;
+                    document.querySelector('.single-caisse').setAttribute('required', '');
+                    // Disable multiple payment inputs so they won't be submitted
+                    document.querySelectorAll('.payment-row select').forEach(s => s.disabled = true);
+                    document.querySelectorAll('.payment-row input').forEach(i => i.disabled = true);
                 }
             });
             
@@ -201,9 +258,39 @@
                 newRow.querySelectorAll('input').forEach(input => input.value = '');
                 newRow.querySelectorAll('select').forEach(select => select.value = '');
                 paymentMethods.appendChild(newRow);
+                updateRemainingAmount();
             });
             
-            document.getElementById('paymentMethods').addEventListener('input', updateRemainingAmount);
+            // Validate payment amounts - no negatives, enforce limits
+            document.getElementById('paymentMethods').addEventListener('input', function(e) {
+                if (e.target.classList.contains('montant-input')) {
+                    const selected = Array.from(seatCheckboxes).filter(cb => cb.checked && !cb.disabled);
+                    const totalPrice = selected.length * pricePerSeat;
+                    
+                    let value = parseFloat(e.target.value) || 0;
+                    
+                    // No negatives
+                    if (value < 0) {
+                        value = 0;
+                        e.target.value = 0;
+                    }
+                    
+                    // Calculate current total from all inputs
+                    const montantInputs = Array.from(document.querySelectorAll('.montant-input'));
+                    const currentTotal = montantInputs.reduce((sum, input) => {
+                        if (input === e.target) return sum; // Skip current input being edited
+                        return sum + (parseFloat(input.value) || 0);
+                    }, 0);
+                    
+                    // Max this input can be is: totalPrice - otherInputsTotal
+                    const maxAllowed = totalPrice - currentTotal;
+                    
+                    if (value > maxAllowed) {
+                        e.target.value = Math.max(0, maxAllowed).toFixed(2);
+                    }
+                }
+                updateRemainingAmount();
+            });
             
             function updateRemainingAmount() {
                 if (!multiplePaymentToggle.checked) return;
@@ -218,15 +305,68 @@
                 
                 const remaining = totalPrice - totalPaid;
                 const remainingDiv = document.getElementById('remainingAmount');
-                const remainingSpan = document.getElementById('remaining');
                 
-                if (remaining !== 0) {
+                if (Math.abs(remaining) > 0.01) {
                     remainingDiv.style.display = 'block';
-                    remainingSpan.textContent = remaining.toLocaleString('fr-FR', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                    
+                    if (remaining > 0) {
+                        remainingDiv.className = 'mt-2 alert alert-warning';
+                        remainingDiv.innerHTML = '<strong>⚠️ Reste à payer:</strong> ' + 
+                            remaining.toLocaleString('fr-FR', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' Ar';
+                    } else {
+                        // This shouldn't happen with our input validation, but just in case
+                        remainingDiv.className = 'mt-2 alert alert-success';
+                        remainingDiv.innerHTML = '<strong>✓ Paiement complet!</strong>';
+                    }
                 } else {
                     remainingDiv.style.display = 'none';
                 }
             }
+            
+            // Form validation for split payment
+            document.getElementById('reservationForm').addEventListener('submit', function(e) {
+                if (multiplePaymentToggle.checked) {
+                    const selected = Array.from(seatCheckboxes).filter(cb => cb.checked && !cb.disabled);
+                    const totalPrice = selected.length * pricePerSeat;
+                    const montantInputs = Array.from(document.querySelectorAll('.montant-input'));
+                    const totalPaid = montantInputs.reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
+                    
+                    if (Math.abs(totalPaid - totalPrice) > 0.01) {
+                        e.preventDefault();
+                        alert('Le montant total des paiements doit être égal au prix total: ' + totalPrice.toLocaleString('fr-FR') + ' Ar');
+                        return false;
+                    }
+                }
+            });
+            
+            // Handle client creation
+            document.getElementById('createClientForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const data = Object.fromEntries(formData);
+                
+                try {
+                    const response = await fetch('/client/create', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (response.ok) {
+                        const client = await response.json();
+                        // Add to dropdown
+                        const option = new Option(client.nom + ' ' + client.prenom, client.id, true, true);
+                        document.getElementById('clientSelect').add(option);
+                        // Close modal
+                        bootstrap.Modal.getInstance(document.getElementById('createClientModal')).hide();
+                        this.reset();
+                    } else {
+                        alert('Erreur lors de la création du client');
+                    }
+                } catch (error) {
+                    alert('Erreur: ' + error.message);
+                }
+            });
         </script>
     </div>
 </body>

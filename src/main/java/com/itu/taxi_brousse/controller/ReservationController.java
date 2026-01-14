@@ -59,7 +59,7 @@ public class ReservationController {
             @RequestParam Integer clientId,
             @RequestParam List<Integer> selectedSeats,
             @RequestParam(required = false) Boolean multiplePayment,
-            @RequestParam List<Integer> caisseIds,
+            @RequestParam(required = false) List<Integer> caisseIds,
             @RequestParam(required = false) List<Double> montants,
             RedirectAttributes redirectAttributes) {
         
@@ -77,18 +77,38 @@ public class ReservationController {
             // Process payment for each reservation
             Double pricePerSeat = pricingService.calculatePrice(busVoyage);
             
-            if (Boolean.TRUE.equals(multiplePayment) && montants != null && !montants.isEmpty()) {
+            // Clean up caisseIds and montants - remove nulls and empty values
+            List<Integer> validCaisseIds = new ArrayList<>();
+            List<Double> validMontants = new ArrayList<>();
+            
+            if (caisseIds != null) {
+                for (int i = 0; i < caisseIds.size(); i++) {
+                    Integer caisseId = caisseIds.get(i);
+                    if (caisseId != null && caisseId > 0) {
+                        validCaisseIds.add(caisseId);
+                        if (montants != null && i < montants.size()) {
+                            validMontants.add(montants.get(i));
+                        }
+                    }
+                }
+            }
+            
+            if (Boolean.TRUE.equals(multiplePayment) && validMontants.size() > 1) {
                 // Multiple payment methods for each reservation
                 for (Reservation reservation : reservations) {
                     List<Caisse> caisses = new ArrayList<>();
-                    for (Integer caisseId : caisseIds) {
+                    for (Integer caisseId : validCaisseIds) {
                         caisseRepository.findById(caisseId).ifPresent(caisses::add);
                     }
-                    paiementService.createMultiplePayments(reservation, caisses, montants);
+                    paiementService.createMultiplePayments(reservation, caisses, validMontants);
                 }
             } else {
                 // Single payment method for each reservation
-                Caisse caisse = caisseRepository.findById(caisseIds.get(0))
+                Integer caisseId = validCaisseIds.isEmpty() ? null : validCaisseIds.get(0);
+                if (caisseId == null) {
+                    throw new RuntimeException("Aucun mode de paiement sélectionné");
+                }
+                Caisse caisse = caisseRepository.findById(caisseId)
                     .orElseThrow(() -> new RuntimeException("Caisse not found"));
                 for (Reservation reservation : reservations) {
                     paiementService.createSinglePayment(reservation, caisse);

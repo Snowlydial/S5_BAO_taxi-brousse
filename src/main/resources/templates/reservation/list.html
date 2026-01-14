@@ -56,7 +56,10 @@
                                     <span class="badge bg-primary" th:text="${reservation.numeroPlace}">1</span>
                                 </td>
                                 <td>
-                                    <span class="text-success fw-bold" th:text="${#numbers.formatDecimal(reservation.busVoyage.voyage.prixVoyage ?: reservation.busVoyage.bus.busClasse.prixClasse, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                    <span class="text-success fw-bold">
+                                        <span th:with="price=${reservation.busVoyage.prixSpecifique != null ? reservation.busVoyage.prixSpecifique : (reservation.busVoyage.voyage.prixVoyage != null ? reservation.busVoyage.voyage.prixVoyage : reservation.busVoyage.bus.busClasse.prixClasse)}"
+                                              th:text="${#numbers.formatDecimal(price, 0, 'COMMA', 0, 'POINT')}">0</span>
+                                    </span> Ar
                                 </td>
                                 <td>
                                     <form th:action="@{/reservation/cancel/{id}(id=${reservation.id})}" 
