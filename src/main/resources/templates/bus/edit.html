@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Modifier Bus</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-heading">
+            <div class="page-title">
+                <div class="row">
+                    <div class="col-12 col-md-6 order-md-1 order-last">
+                        <h3>Modifier Bus</h3>
+                        <p class="text-subtitle text-muted">Modifier les informations du bus</p>
+                    </div>
+                    <div class="col-12 col-md-6 order-md-2 order-first">
+                        <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de Bord</a></li>
+                                <li class="breadcrumb-item"><a th:href="@{/bus/list}">Bus</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Modifier</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section class="section">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Informations du Bus #<span th:text="${bus.id}"></span></h4>
+                </div>
+                <div class="card-content">
+                    <div class="card-body">
+                        <form th:action="@{/bus/edit/{id}(id=${bus.id})}" method="post">
+                            <div class="row">
+                                <!-- Immatriculation -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Immatriculation *</label>
+                                    <input type="text" 
+                                           name="immatriculation" 
+                                           class="form-control" 
+                                           th:value="${bus.immatriculation}"
+                                           required>
+                                    <small class="form-text text-muted">
+                                        Format: XXXX TAA (doit être unique)
+                                    </small>
+                                </div>
+
+                                <!-- Classe Bus -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Classe de Bus *</label>
+                                    <select name="busClasseId" class="form-select" required>
+                                        <option value="">-- Choisir une classe --</option>
+                                        <option th:each="classe : ${classes}" 
+                                                th:value="${classe.id}" 
+                                                th:text="${classe.libelle + ' (' + #numbers.formatDecimal(classe.prixClasse, 0, 'COMMA', 0, 'POINT') + ' Ar)'}"
+                                                th:selected="${classe.id == bus.busClasse.id}">
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Configurations -->
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">Configurations du Bus</label>
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div th:each="confType : ${confTypes}" class="mb-3">
+                                                <h6 class="text-capitalize mb-2" th:text="${confType}"></h6>
+                                                <div class="row">
+                                                    <div th:each="conf : ${allConfs}" 
+                                                         th:if="${conf.libelle == confType}"
+                                                         class="col-md-4">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" 
+                                                                   type="checkbox" 
+                                                                   name="busConfIds" 
+                                                                   th:value="${conf.id}" 
+                                                                   th:id="'conf' + ${conf.id}"
+                                                                   th:checked="${#lists.contains(selectedConfIds, conf.id)}">
+                                                            <label class="form-check-label" th:for="'conf' + ${conf.id}">
+                                                                <span th:text="${conf.valeur}"></span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <hr th:if="${!confTypeStat.last}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Sélectionnez les configurations applicables à ce bus
+                                    </small>
+                                </div>
+
+                                <!-- Warning Box -->
+                                <div class="col-12 mb-3">
+                                    <div class="alert alert-light-warning">
+                                        <h6><i class="bi bi-exclamation-triangle me-2"></i>Attention</h6>
+                                        <p class="mb-0">
+                                            La modification de la classe ou de la capacité peut affecter les Bus_Voyage futurs.
+                                            Les réservations existantes ne seront pas impactées.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Buttons -->
+                                <div class="col-12">
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-save me-1"></i> Enregistrer les modifications
+                                        </button>
+                                        <a th:href="@{/bus/list}" class="btn btn-secondary">
+                                            <i class="bi bi-x-circle me-1"></i> Annuler
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

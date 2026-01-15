@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Gestion des Bus</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-heading">
+            <div class="page-title">
+                <div class="row">
+                    <div class="col-12 col-md-6 order-md-1 order-last">
+                        <h3>Gestion des Bus</h3>
+                        <p class="text-subtitle text-muted">Gérer la flotte de bus</p>
+                    </div>
+                    <div class="col-12 col-md-6 order-md-2 order-first">
+                        <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de Bord</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Bus</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section class="section">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">Liste des Bus</h4>
+                    <a th:href="@{/bus/create}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i> Nouveau Bus
+                    </a>
+                </div>
+                <div class="card-content">
+                    <div class="card-body">
+                        <!-- No buses message -->
+                        <div th:if="${#lists.isEmpty(buses)}" class="alert alert-light-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Aucun bus trouvé. <a th:href="@{/bus/create}">Créer un nouveau bus</a>.
+                        </div>
+
+                        <!-- Buses grid -->
+                        <div th:if="${!#lists.isEmpty(buses)}" class="row">
+                            <div class="col-md-6 col-lg-4" th:each="bus : ${buses}">
+                                <div class="card shadow-sm mb-3">
+                                    <div class="card-header bg-light-primary">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0">
+                                                <i class="bi bi-bus-front me-2"></i>
+                                                <span th:text="${bus.immatriculation}"></span>
+                                            </h5>
+                                            <span class="badge bg-info" th:text="${bus.busClasse.libelle}"></span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body" style="padding-top: 24px;">
+                                        <h6 class="text-muted mb-2">Configurations:</h6>
+                                        <div th:with="configs=${busBusConfRepository.findByBus(bus)}">
+                                            <div th:if="${!#lists.isEmpty(configs)}">
+                                                <div th:each="config : ${configs}" class="mb-2">
+                                                    <span class="badge bg-secondary me-1" th:text="${config.busConf.libelle}"></span>
+                                                    <span class="text-muted">:</span>
+                                                    <strong th:text="${config.busConf.valeur}"></strong>
+                                                </div>
+                                            </div>
+                                            <div th:if="${#lists.isEmpty(configs)}" class="text-muted fst-italic">
+                                                Aucune configuration
+                                            </div>
+                                        </div>
+                                        
+                                        <hr>
+                                        
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <small class="text-muted">Prix Classe:</small><br>
+                                                <span class="text-success fw-bold">
+                                                    <span th:text="${#numbers.formatDecimal(bus.busClasse.prixClasse, 0, 'COMMA', 0, 'POINT')}"></span> Ar
+                                                </span>
+                                            </div>
+                                            <div class="btn-group" role="group">
+                                                <a th:href="@{/bus/edit/{id}(id=${bus.id})}" 
+                                                   class="btn btn-sm btn-warning">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </a>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-danger"
+                                                        data-bs-toggle="modal"
+                                                        th:data-bs-target="'#deleteModal' + ${bus.id}">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Delete Modal -->
+                                    <div class="modal fade" th:id="'deleteModal' + ${bus.id}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Confirmer la suppression</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>Êtes-vous sûr de vouloir supprimer ce bus ?</p>
+                                                    <div class="alert alert-warning">
+                                                        <strong>Immatriculation :</strong>
+                                                        <span th:text="${bus.immatriculation}"></span><br>
+                                                        <strong>Classe :</strong>
+                                                        <span th:text="${bus.busClasse.libelle}"></span>
+                                                    </div>
+                                                    <p class="text-danger">
+                                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                                        Cette action est irréversible et peut échouer si le bus est utilisé dans des Bus_Voyage.
+                                                    </p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                    <form th:action="@{/bus/delete/{id}(id=${bus.id})}" method="post" style="display: inline;">
+                                                        <button type="submit" class="btn btn-danger">Supprimer</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>
