@@ -30,5 +30,5 @@ public interface BusVoyageRepository extends JpaRepository<BusVoyage, Integer> {
                                           @Param("busClasseId") Integer busClasseId);
 
        
-    
+       List<BusVoyage> findByDateDepartBetween(LocalDate start, LocalDate end);
 }
