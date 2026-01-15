@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Controller
@@ -149,12 +150,10 @@ public class BusController {
             }
             
             // Check if immatriculation exists for another bus
-            busRepository.findByImmatriculation(immatriculation.trim())
-                    .ifPresent(existingBus -> {
-                        if (!existingBus.getId().equals(id)) {
-                            throw new RuntimeException("Un autre bus avec cette immatriculation existe déjà");
-                        }
-                    });
+            Optional<Bus> existingBusOpt = busRepository.findByImmatriculation(immatriculation.trim());
+            if (existingBusOpt.isPresent() && !existingBusOpt.get().getId().equals(id)) {
+                throw new RuntimeException("Un autre bus avec cette immatriculation existe déjà");
+            }
             
             // Update bus
             bus.setImmatriculation(immatriculation.trim());
