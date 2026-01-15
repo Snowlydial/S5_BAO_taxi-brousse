@@ -19,6 +19,10 @@ public class Reservation {
     
     @Column(name = "numero_place")
     private Integer numeroPlace;
+
+    @ManyToOne
+    @JoinColumn(name = "id_classeplace")
+    private ClassePlace classePlace;
     
     @ManyToOne
     @JoinColumn(name = "id_client", nullable = false)
