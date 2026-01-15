@@ -77,6 +77,21 @@
 
                         <li class="sidebar-item has-sub">
                             <a href="#" class='sidebar-link'>
+                                <i class="bi bi-gear"></i>
+                                <span>Bus Configuration</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item">
+                                    <a th:href="@{/busconf/list}">Liste des Configurations</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a th:href="@{/busconf/create}">Ajouter une Configuration</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="sidebar-item has-sub">
+                            <a href="#" class='sidebar-link'>
                                 <i class="bi bi-geo-alt"></i>
                                 <span>Trajets</span>
                             </a>
