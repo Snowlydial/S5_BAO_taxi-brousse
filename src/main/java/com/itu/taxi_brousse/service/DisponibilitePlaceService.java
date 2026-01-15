@@ -37,7 +37,7 @@ public class DisponibilitePlaceService {
         }
         
         // Fallback capacity if not configured
-        return 67;
+        return 20;
     }
     
     //?=== Get available seat numbers for a Bus_Voyage
