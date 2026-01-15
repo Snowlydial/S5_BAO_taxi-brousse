@@ -73,11 +73,12 @@
                                                          th:if="${conf.libelle == confType}"
                                                          class="col-md-4">
                                                         <div class="form-check">
-                                                            <input class="form-check-input" 
+                                                            <input class="form-check-input conf-checkbox" 
                                                                    type="checkbox" 
                                                                    name="busConfIds" 
                                                                    th:value="${conf.id}" 
-                                                                   th:id="'conf' + ${conf.id}">
+                                                                   th:id="'conf' + ${conf.id}"
+                                                                   th:attr="data-conf-type=${confType}">
                                                             <label class="form-check-label" th:for="'conf' + ${conf.id}">
                                                                 <span th:text="${conf.valeur}"></span>
                                                             </label>
@@ -88,9 +89,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <small class="form-text text-muted">
-                                        Sélectionnez les configurations applicables à ce bus (capacité, climatisation, wifi, etc.)
-                                    </small>
                                 </div>
 
                                 <!-- Info Box -->
@@ -122,6 +120,30 @@
                 </div>
             </div>
         </section>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const checkboxes = document.querySelectorAll('.conf-checkbox');
+                
+                checkboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            const confType = this.getAttribute('data-conf-type');
+                            
+                            // Uncheck all other checkboxes with the same conf type
+                            checkboxes.forEach(otherCheckbox => {
+                                if (otherCheckbox !== this && 
+                                    otherCheckbox.getAttribute('data-conf-type') === confType) {
+                                    otherCheckbox.checked = false;
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+        </script>
     </div>
 </body>
 </html>
