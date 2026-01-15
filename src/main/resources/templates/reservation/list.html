@@ -212,7 +212,7 @@
                                                                            th:max="${reservation.busVoyage.dateDepart}">
                                                                     <small class="form-text text-muted">
                                                                         La date doit etre avant le depart 
-                                                                        (<span th:text="${#temporals.format(reservation.busVoyage.dateDepart, 'dd/MM/yyyy')}"></span>)
+                                                                        (<span th:text="${#temporals.format(reservation.busVoyage.dateDepart, 'yyyy/MM/dd')}"></span>)
                                                                     </small>
                                                                 </div>
                                                                 <div class="alert alert-warning">
