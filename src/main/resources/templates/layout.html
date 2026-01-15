@@ -70,7 +70,22 @@
                                     <a th:href="@{/bus/list}">Liste des Bus</a>
                                 </li>
                                 <li class="submenu-item">
-                                    <a th:href="@{/bus/add}">Ajouter Bus</a>
+                                    <a th:href="@{/bus/create}">Ajouter Bus</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="sidebar-item has-sub">
+                            <a href="#" class='sidebar-link'>
+                                <i class="bi bi-gear"></i>
+                                <span>Bus Configuration</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item">
+                                    <a th:href="@{/busconf/list}">Liste des Configurations</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a th:href="@{/busconf/create}">Ajouter une Configuration</a>
                                 </li>
                             </ul>
                         </li>
@@ -82,10 +97,25 @@
                             </a>
                             <ul class="submenu">
                                 <li class="submenu-item">
-                                    <a th:href="@{/trajet/list}">Liste des Trajets</a>
+                                    <a th:href="@{/voyage/list}">Liste des Trajets</a>
                                 </li>
                                 <li class="submenu-item">
-                                    <a th:href="@{/trajet/add}">Ajouter Trajet</a>
+                                    <a th:href="@{/voyage/create}">Ajouter Trajet</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="sidebar-item has-sub">
+                            <a href="#" class='sidebar-link'>
+                                <i class="bi bi-database-fill-gear"></i>
+                                <span>Gestion Bus-Voyage</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item">
+                                    <a th:href="@{/busvoyage/manage}">Liste Bus-Voyage</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a th:href="@{/busvoyage/create-busvoyage}">Ajouter Bus-Voyage</a>
                                 </li>
                             </ul>
                         </li>

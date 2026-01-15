@@ -13,19 +13,22 @@ import java.util.List;
 
 @Repository
 public interface BusVoyageRepository extends JpaRepository<BusVoyage, Integer> {
-    List<BusVoyage> findByDateDepart(LocalDate date);
-    List<BusVoyage> findByVoyageId(Integer voyageId);
+       List<BusVoyage> findByDateDepart(LocalDate date);
+       List<BusVoyage> findByVoyageId(Integer voyageId);
 
-    @Query("SELECT bv FROM BusVoyage bv " +
-           "JOIN bv.voyage v " +
-           "JOIN bv.bus b " +
-           "JOIN b.busClasse bc " +
-           "WHERE (:#{#gareDepart == null} = true OR v.gareDepart = :gareDepart) " +
-           "AND (:#{#gareArrivee == null} = true OR v.gareArrivee = :gareArrivee) " +
-           "AND (:#{#dateDepart == null} = true OR bv.dateDepart = :dateDepart) " +
-           "AND (:#{#heureDepartMin == null} = true OR bv.heureDepart >= :heureDepartMin) " +
-           "AND (:#{#busClasseId == null} = true OR bc.id = :busClasseId)")
-    List<BusVoyage> findWithFilters(@Param("gareDepart") Gare gareDepart, @Param("gareArrivee") Gare gareArrivee, 
-                                    @Param("dateDepart") LocalDate dateDepart, @Param("heureDepartMin") LocalTime heureDepartMin, 
-                                    @Param("busClasseId") Integer busClasseId);
+       @Query("SELECT bv FROM BusVoyage bv " +
+              "JOIN bv.voyage v " +
+              "JOIN bv.bus b " +
+              "JOIN b.busClasse bc " +
+              "WHERE (:#{#gareDepart == null} = true OR v.gareDepart = :gareDepart) " +
+              "AND (:#{#gareArrivee == null} = true OR v.gareArrivee = :gareArrivee) " +
+              "AND (:#{#dateDepart == null} = true OR bv.dateDepart = :dateDepart) " +
+              "AND (:#{#heureDepartMin == null} = true OR bv.heureDepart >= :heureDepartMin) " +
+              "AND (:#{#busClasseId == null} = true OR bc.id = :busClasseId)")
+       List<BusVoyage> findWithFilters(@Param("gareDepart") Gare gareDepart, @Param("gareArrivee") Gare gareArrivee, 
+                                          @Param("dateDepart") LocalDate dateDepart, @Param("heureDepartMin") LocalTime heureDepartMin, 
+                                          @Param("busClasseId") Integer busClasseId);
+
+       
+       List<BusVoyage> findByDateDepartBetween(LocalDate start, LocalDate end);
 }

@@ -92,6 +92,17 @@
                                                     <i class="bi bi-x-circle"></i>
                                                 </button>
                                             </div>
+                                            
+                                            <!-- Date Range Filter -->
+                                            <div class="col-md-5">
+                                                <label class="form-label">Période de départ</label>
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text">Du</span>
+                                                    <input type="date" id="filterDateMin" class="form-control">
+                                                    <span class="input-group-text">Au</span>
+                                                    <input type="date" id="filterDateMax" class="form-control">
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -127,7 +138,8 @@
                                     <tr th:each="reservation : ${reservations}"
                                         th:with="statut=${reservationStatutService.getLatestStatut(reservation)},
                                                 price=${reservation.busVoyage.prixSpecifique != null ? reservation.busVoyage.prixSpecifique : (reservation.busVoyage.voyage.prixVoyage != null ? reservation.busVoyage.voyage.prixVoyage : reservation.busVoyage.bus.busClasse.prixClasse)},
-                                                firstPaiement=${reservation.paiements.isEmpty() ? null : reservation.paiements.get(0)}">
+                                                firstPaiement=${reservation.paiements.isEmpty() ? null : reservation.paiements.get(0)}"
+                                        th:attr="data-date-depart=${#temporals.format(reservation.busVoyage.dateDepart, 'yyyy-MM-dd')}">
                                         <td th:text="${reservation.id}"></td>
                                         <td>
                                             <strong th:text="${reservation.client.nom + ' ' + reservation.client.prenom}"></strong><br>
@@ -208,8 +220,8 @@
                                                                            name="dateAnnulation" 
                                                                            class="form-control" 
                                                                            required
-                                                                           th:value="${reservation.busVoyage.dateDepart}"
-                                                                           th:max="${reservation.busVoyage.dateDepart}">
+                                                                           th:value="${#temporals.format(reservation.busVoyage.dateDepart, 'yyyy-MM-dd')}"
+                                                                           th:max="${#temporals.format(reservation.busVoyage.dateDepart, 'yyyy-MM-dd')}">
                                                                     <small class="form-text text-muted">
                                                                         La date doit etre avant le depart 
                                                                         (<span th:text="${#temporals.format(reservation.busVoyage.dateDepart, 'dd/MM/yyyy')}"></span>)
@@ -248,7 +260,7 @@
                 const table = document.querySelector('#reservationsTable');
                 if (!table) return;
                 
-                //*-- Simple initialization like the template
+                //*-- Simple initialization
                 const dataTable = new simpleDatatables.DataTable(table, {
                     searchable: true,
                     paging: false,
@@ -264,6 +276,8 @@
                     const trajetFilter = document.getElementById('filterTrajet').value.trim();
                     const classeFilter = document.getElementById('filterClasse').value.trim();
                     const statutFilter = document.getElementById('filterStatut').value.trim();
+                    const dateMinFilter = document.getElementById('filterDateMin').value;
+                    const dateMaxFilter = document.getElementById('filterDateMax').value;
                     
                     const rows = table.querySelectorAll('tbody tr');
                     rows.forEach(row => {
@@ -272,6 +286,7 @@
                         const busImmat = row.cells[3].querySelector('span:first-child').textContent.trim();
                         const classeText = row.cells[3].querySelector('.badge').textContent.trim();
                         const statutText = row.cells[8].textContent.trim();
+                        const dateDepart = row.getAttribute('data-date-depart'); // yyyy-MM-dd format
                         
                         const clientMatch = !clientFilter || clientText.includes(clientFilter);
                         const busMatch = !busFilter || busImmat === busFilter;
@@ -279,7 +294,16 @@
                         const classeMatch = !classeFilter || classeText === classeFilter;
                         const statutMatch = !statutFilter || statutText.includes(statutFilter);
                         
-                        if (clientMatch && busMatch && trajetMatch && classeMatch && statutMatch) {
+                        // Date range matching
+                        let dateMatch = true;
+                        if (dateMinFilter && dateDepart < dateMinFilter) {
+                            dateMatch = false;
+                        }
+                        if (dateMaxFilter && dateDepart > dateMaxFilter) {
+                            dateMatch = false;
+                        }
+                        
+                        if (clientMatch && busMatch && trajetMatch && classeMatch && statutMatch && dateMatch) {
                             row.style.display = '';
                         } else {
                             row.style.display = 'none';
@@ -293,6 +317,8 @@
                 document.getElementById('filterTrajet').addEventListener('change', applyFilters);
                 document.getElementById('filterClasse').addEventListener('change', applyFilters);
                 document.getElementById('filterStatut').addEventListener('change', applyFilters);
+                document.getElementById('filterDateMin').addEventListener('change', applyFilters);
+                document.getElementById('filterDateMax').addEventListener('change', applyFilters);
 
                 //*-- Clear all filters
                 document.getElementById('clearFilters').addEventListener('click', function() {
@@ -301,6 +327,8 @@
                     document.getElementById('filterTrajet').value = '';
                     document.getElementById('filterClasse').value = '';
                     document.getElementById('filterStatut').value = '';
+                    document.getElementById('filterDateMin').value = '';
+                    document.getElementById('filterDateMax').value = '';
                     
                     // Show all rows
                     const rows = table.querySelectorAll('tbody tr');

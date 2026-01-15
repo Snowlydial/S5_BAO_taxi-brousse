@@ -70,7 +70,7 @@
                                     <div>
                                         <h6 class="mb-0">Date & Heure de Depart</h6>
                                         <p class="mb-0">
-                                            <span th:text="${#temporals.format(busVoyage.dateDepart, 'dd/MM/yyyy')}"></span>
+                                            <span th:text="${#temporals.format(busVoyage.dateDepart, 'yyyy/MM/dd')}"></span>
                                             à <span th:text="${#temporals.format(busVoyage.heureDepart, 'HH:mm')}"></span>
                                         </p>
                                     </div>
@@ -152,8 +152,9 @@
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Date de Réservation *</label>
                                     <input type="date" name="dateReservation" class="form-control" 
-                                           required id="dateReservation"
-                                           th:max="${busVoyage.dateDepart}">
+                                           required 
+                                           id="dateReservation"
+                                           th:max="${#temporals.format(busVoyage.dateDepart, 'yyyy-MM-dd')}">
                                     <div class="form-text text-muted">La date doit être avant le départ</div>
                                 </div>
                                 <div class="col-md-6 mb-3">
@@ -329,7 +330,7 @@
         <!-- Your existing JavaScript remains unchanged -->
         <script th:inline="javascript">
             const pricePerSeat = /*[[${price}]]*/ 0;
-            const busVoyageDate = /*[[${busVoyage.dateDepart}]]*/ '';
+            const busVoyageDate = /*[[${#temporals.format(busVoyage.dateDepart, 'yyyy-MM-dd')}]]*/ '';
             const seatCheckboxes = document.querySelectorAll('.seat-checkbox');
             const selectedSeatsInfo = document.getElementById('selectedSeatsInfo');
             const selectedSeatsList = document.getElementById('selectedSeatsList');
@@ -342,7 +343,9 @@
             
             //*-- Set default date to today
             const today = new Date().toISOString().split('T')[0];
-            dateReservationInput.value = today;
+            const dateToUse = today <= busVoyageDate ? today : busVoyageDate;
+            dateReservationInput.value = dateToUse;
+            dateReservationInput.max = busVoyageDate;
             
             function updateSelectedSeats() {
                 const selected = Array.from(seatCheckboxes)
