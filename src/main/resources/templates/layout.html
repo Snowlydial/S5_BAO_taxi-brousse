@@ -104,6 +104,21 @@
                                 </li>
                             </ul>
                         </li>
+
+                        <li class="sidebar-item has-sub">
+                            <a href="#" class='sidebar-link'>
+                                <i class="bi bi-database-fill-gear"></i>
+                                <span>Gestion Bus-Voyage</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item">
+                                    <a th:href="@{/busvoyage/manage}">Liste Bus-Voyage</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a th:href="@{/busvoyage/create-busvoyage}">Ajouter Bus-Voyage</a>
+                                </li>
+                            </ul>
+                        </li>
                     </ul>
                 </div>
                 <button class="sidebar-toggler btn x"><i data-feather="x"></i></button>
