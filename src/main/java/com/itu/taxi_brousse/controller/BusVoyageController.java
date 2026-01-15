@@ -28,9 +28,9 @@ public class BusVoyageController {
     
     @GetMapping("/search")
     public String searchPage(Model model) {
-        LocalDate today = LocalDate.now();
-        List<BusVoyageWithAvailability> defaultResults = busVoyageService.searchWithAvailability(
-            null, null, today, null, null, null, null
+        int today = LocalDate.now().getYear();
+        List<BusVoyageWithAvailability> defaultResults = busVoyageService.searchByYear(
+            null, null, today, null, null, 0.00, 200000.00
         );
         
         model.addAttribute("pageTitle", "Rechercher un Voyage");
@@ -39,6 +39,7 @@ public class BusVoyageController {
         model.addAttribute("results", defaultResults);
         model.addAttribute("searchPerformed", true);
         model.addAttribute("selectedDate", today);
+        model.addAttribute("searchByYear", false);
         
         return "busvoyage/search";
     }
@@ -48,6 +49,7 @@ public class BusVoyageController {
             @RequestParam(required = false) Integer gareDepart,
             @RequestParam(required = false) Integer gareArrivee,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDepart,
+            @RequestParam(required = false) Integer year,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime heureMin,
             @RequestParam(required = false) Integer classeId,
             @RequestParam(required = false) Double prixMin,
@@ -57,23 +59,34 @@ public class BusVoyageController {
         Gare depart = gareDepart != null ? gareRepository.findById(gareDepart).orElse(null) : null;
         Gare arrivee = gareArrivee != null ? gareRepository.findById(gareArrivee).orElse(null) : null;
         
-        // If no date specified, default to today
-        LocalDate searchDate = dateDepart != null ? dateDepart : LocalDate.now();
+        List<BusVoyageWithAvailability> results;
+        boolean searchByYear = false;
         
-        List<BusVoyageWithAvailability> results = busVoyageService.searchWithAvailability(
-            depart, arrivee, searchDate, heureMin, classeId, prixMin, prixMax
-        );
+        // Determine if searching by year or specific date
+        if (year != null) {
+            // Search by year - get all voyages for that year
+            searchByYear = true;
+            results = busVoyageService.searchByYear(
+                depart, arrivee, year, heureMin, classeId, prixMin, prixMax
+            );
+            model.addAttribute("selectedYear", year);
+        } else {
+            // Search by specific date
+            LocalDate searchDate = dateDepart != null ? dateDepart : LocalDate.now();
+            results = busVoyageService.searchWithAvailability(
+                depart, arrivee, searchDate, heureMin, classeId, prixMin, prixMax
+            );
+            model.addAttribute("selectedDate", searchDate);
+        }
         
         model.addAttribute("pageTitle", "Résultats de Recherche");
         model.addAttribute("gares", gareRepository.findAll());
         model.addAttribute("classes", busClasseRepository.findAll());
         model.addAttribute("results", results);
         model.addAttribute("searchPerformed", true);
-        
-        // Keep search params
+        model.addAttribute("searchByYear", searchByYear);
         model.addAttribute("selectedGareDepart", gareDepart);
         model.addAttribute("selectedGareArrivee", gareArrivee);
-        model.addAttribute("selectedDate", searchDate);
         model.addAttribute("selectedHeureMin", heureMin);
         model.addAttribute("selectedClasse", classeId);
         model.addAttribute("selectedPrixMin", prixMin);

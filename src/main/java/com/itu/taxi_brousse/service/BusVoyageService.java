@@ -61,10 +61,62 @@ public class BusVoyageService {
                                                                   LocalTime heureDepartMin, Integer busClasseId, 
                                                                   Double prixMin, Double prixMax) {
         
-        List<BusVoyage> busVoyages = searchBusVoyages(
-                gareDepart, gareArrivee, dateDepart, heureDepartMin, busClasseId, prixMin, prixMax);
+        List<BusVoyage> busVoyages = searchBusVoyages(gareDepart, gareArrivee, dateDepart, heureDepartMin, busClasseId, prixMin, prixMax);
         
         return busVoyages.stream()
+                .map(this::toBusVoyageWithAvailability)
+                .collect(Collectors.toList());
+    }
+
+    //?=== Search bus voyages across a whole year (returns DTOs with availability)
+    public List<BusVoyageWithAvailability> searchByYear(Gare gareDepart, Gare gareArrivee, Integer year,
+                                                       LocalTime heureDepartMin, Integer busClasseId,
+                                                       Double prixMin, Double prixMax) {
+        if (year == null) {
+            // fallback to searching by specific date (today) if year not provided
+            return searchWithAvailability(gareDepart, gareArrivee, LocalDate.now(), heureDepartMin, busClasseId, prixMin, prixMax);
+        }
+
+        LocalDate start = LocalDate.of(year, 1, 1);
+        LocalDate end = LocalDate.of(year, 12, 31);
+
+        List<BusVoyage> voyages = busVoyageRepository.findByDateDepartBetween(start, end);
+
+        List<BusVoyage> filtered = voyages.stream()
+                .filter(bv -> {
+                    boolean departOk = true;
+                    if (gareDepart != null) {
+                        departOk = bv.getVoyage() != null && gareDepart.equals(bv.getVoyage().getGareDepart());
+                    }
+
+                    boolean arriveeOk = true;
+                    if (gareArrivee != null) {
+                        arriveeOk = bv.getVoyage() != null && gareArrivee.equals(bv.getVoyage().getGareArrivee());
+                    }
+
+                    boolean heureOk = true;
+                    if (heureDepartMin != null) {
+                        heureOk = bv.getHeureDepart() != null && !bv.getHeureDepart().isBefore(heureDepartMin);
+                    }
+
+                    boolean classeOk = true;
+                    if (busClasseId != null) {
+                        if (bv.getBus() != null && bv.getBus().getBusClasse() != null && bv.getBus().getBusClasse().getId() != null) {
+                            classeOk = bv.getBus().getBusClasse().getId().equals(busClasseId);
+                        } else {
+                            classeOk = false;
+                        }
+                    }
+
+                    return departOk && arriveeOk && heureOk && classeOk;
+                })
+                .collect(Collectors.toList());
+
+        if (prixMin != null || prixMax != null) {
+            filtered = filterByPrice(filtered, prixMin, prixMax);
+        }
+
+        return filtered.stream()
                 .map(this::toBusVoyageWithAvailability)
                 .collect(Collectors.toList());
     }
