@@ -29,9 +29,7 @@ INSERT INTO Gare (libelle) VALUES
 ('Analakely'),
 ('Toamasina Gare Routiere'),
 ('Antsirabe Gare Routiere'),
-('Fianarantsoa Gare Routiere'),
-('Toamasina'),
-('Antananarivo');
+('Fianarantsoa Gare Routiere');
 
 -- BusClasse
 INSERT INTO BusClasse (libelle, prix_classe) VALUES 
@@ -54,11 +52,7 @@ INSERT INTO BusConf (libelle, valeur) VALUES
 ('climatisation', 'oui'),
 ('climatisation', 'non'),
 ('wifi', 'oui'),
-('wifi', 'non'),
-('capacite', '18'),
-('nb_place_VIP', '2'),
-('nb_place_premium', '6'),
-('nb_place_standard', '10');
+('wifi', 'non');
 
 -- Bus
 INSERT INTO Bus (immatriculation, id_busClasse) VALUES 
@@ -183,11 +177,21 @@ INSERT INTO Voyage (duree, prix_voyage, id_gare_1, id_gare_2) VALUES
 INSERT INTO Bus (immatriculation, id_busClasse) VALUES 
 ('nyeh', 2);
 
+INSERT INTO BusConf (libelle, valeur) VALUES 
+('capacite', '18'),
+('nb_place_VIP', '2'),
+('nb_place_premium', '6'),
+('nb_place_standard', '10');
+
 INSERT INTO Bus_BusConf (id_bus, id_busConf) VALUES 
 (4, 15),  -- capacite: 18
 (4, 16),  -- nb_place_VIP: 2
 (4, 17),  -- nb_place_premium: 6
 (4, 18);  -- nb_place_standard: 10  (Note: your SQL had nb_place_VIP again, I'm assuming you meant standard)
+
+INSERT INTO Gare (libelle) VALUES 
+('Toamasina'),
+('Antananarivo');
 
 INSERT INTO Bus_Voyage (heure_depart, date_depart, prix_specifique, id_bus, id_voyage) VALUES 
 ('07:00:00', '2026-01-25', NULL, 4, 6);
