@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Gestion des Configurations Bus</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-heading">
+            <div class="page-title">
+                <div class="row">
+                    <div class="col-12 col-md-6 order-md-1 order-last">
+                        <h3>Gestion des Configurations Bus</h3>
+                        <p class="text-subtitle text-muted">Gérer les configurations disponibles (capacité, climatisation, wifi, etc.)</p>
+                    </div>
+                    <div class="col-12 col-md-6 order-md-2 order-first">
+                        <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de Bord</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Configurations Bus</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section class="section">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">Liste des Configurations</h4>
+                    <a th:href="@{/busconf/create}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i> Nouvelle Configuration
+                    </a>
+                </div>
+                <div class="card-content">
+                    <div class="card-body">
+                        <!-- No configurations message -->
+                        <div th:if="${#lists.isEmpty(configurations)}" class="alert alert-light-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Aucune configuration trouvée. <a th:href="@{/busconf/create}">Créer une nouvelle configuration</a>.
+                        </div>
+
+                        <!-- Configurations table -->
+                        <div th:if="${!#lists.isEmpty(configurations)}" class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Type (Libellé)</th>
+                                        <th>Valeur</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="conf : ${configurations}">
+                                        <td th:text="${conf.id}"></td>
+                                        <td>
+                                            <span class="badge bg-secondary text-capitalize" th:text="${conf.libelle}"></span>
+                                        </td>
+                                        <td>
+                                            <strong th:text="${conf.valeur}"></strong>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a th:href="@{/busconf/edit/{id}(id=${conf.id})}" 
+                                                   class="btn btn-sm btn-warning">
+                                                    <i class="bi bi-pencil-square"></i> Modifier
+                                                </a>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-danger"
+                                                        data-bs-toggle="modal"
+                                                        th:data-bs-target="'#deleteModal' + ${conf.id}">
+                                                    <i class="bi bi-trash"></i> Supprimer
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Delete Modal -->
+                                            <div class="modal fade" th:id="'deleteModal' + ${conf.id}" tabindex="-1">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Confirmer la suppression</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <p>Êtes-vous sûr de vouloir supprimer cette configuration ?</p>
+                                                            <div class="alert alert-warning">
+                                                                <strong>Type :</strong>
+                                                                <span th:text="${conf.libelle}"></span><br>
+                                                                <strong>Valeur :</strong>
+                                                                <span th:text="${conf.valeur}"></span>
+                                                            </div>
+                                                            <p class="text-danger">
+                                                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                                                Cette action est irréversible et peut échouer si la configuration est utilisée par des bus.
+                                                            </p>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                            <form th:action="@{/busconf/delete/{id}(id=${conf.id})}" method="post" style="display: inline;">
+                                                                <button type="submit" class="btn btn-danger">Supprimer</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Info Box -->
+                        <div class="mt-3">
+                            <div class="alert alert-light-info">
+                                <h6><i class="bi bi-info-circle me-2"></i>Types de configurations courants</h6>
+                                <ul class="mb-0">
+                                    <li><strong>capacite</strong> : Nombre de places (ex: 15, 20, 25, 30)</li>
+                                    <li><strong>climatisation</strong> : Options (oui, non)</li>
+                                    <li><strong>wifi</strong> : Disponibilité (oui, non)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Modifier Voyage</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-heading">
+            <div class="page-title">
+                <div class="row">
+                    <div class="col-12 col-md-6 order-md-1 order-last">
+                        <h3>Modifier Voyage</h3>
+                        <p class="text-subtitle text-muted">Modifier les informations du trajet</p>
+                    </div>
+                    <div class="col-12 col-md-6 order-md-2 order-first">
+                        <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de Bord</a></li>
+                                <li class="breadcrumb-item"><a th:href="@{/voyage/list}">Voyages</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Modifier</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section class="section">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Informations du Voyage #<span th:text="${voyage.id}"></span></h4>
+                </div>
+                <div class="card-content">
+                    <div class="card-body">
+                        <form th:action="@{/voyage/edit/{id}(id=${voyage.id})}" method="post">
+                            <div class="row">
+                                <!-- Gare Départ -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Gare de Départ *</label>
+                                    <select name="gareDepart" class="form-select" required>
+                                        <option value="">-- Choisir une gare --</option>
+                                        <option th:each="gare : ${gares}" 
+                                                th:value="${gare.id}" 
+                                                th:text="${gare.libelle}"
+                                                th:selected="${gare.id == voyage.gareDepart.id}">
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Gare Arrivée -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Gare d'Arrivée *</label>
+                                    <select name="gareArrivee" class="form-select" required>
+                                        <option value="">-- Choisir une gare --</option>
+                                        <option th:each="gare : ${gares}" 
+                                                th:value="${gare.id}" 
+                                                th:text="${gare.libelle}"
+                                                th:selected="${gare.id == voyage.gareArrivee.id}">
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Durée -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Durée (heures) *</label>
+                                    <input type="number" 
+                                           name="duree" 
+                                           class="form-control" 
+                                           step="0.5" 
+                                           min="0.5" 
+                                           th:value="${voyage.duree}"
+                                           required>
+                                    <small class="form-text text-muted">
+                                        Durée estimée du trajet en heures
+                                    </small>
+                                </div>
+
+                                <!-- Prix Voyage -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Prix du Voyage (Ar)</label>
+                                    <input type="number" 
+                                           name="prixVoyage" 
+                                           class="form-control" 
+                                           step="1000" 
+                                           min="0" 
+                                           th:value="${voyage.prixVoyage}">
+                                    <small class="form-text text-muted">
+                                        Optionnel. Si vide, le prix sera celui de la classe du bus
+                                    </small>
+                                </div>
+
+                                <!-- Info Box -->
+                                <div class="col-12 mb-3">
+                                    <div class="alert alert-light-warning">
+                                        <h6><i class="bi bi-exclamation-triangle me-2"></i>Attention</h6>
+                                        <p class="mb-0">
+                                            La modification de ce voyage affectera tous les Bus_Voyage futurs utilisant ce trajet.
+                                            Les Bus_Voyage déjà créés conserveront leurs prix actuels.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Buttons -->
+                                <div class="col-12">
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-save me-1"></i> Enregistrer les modifications
+                                        </button>
+                                        <a th:href="@{/voyage/list}" class="btn btn-secondary">
+                                            <i class="bi bi-x-circle me-1"></i> Annuler
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

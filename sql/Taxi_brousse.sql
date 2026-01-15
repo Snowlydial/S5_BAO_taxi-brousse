@@ -4,126 +4,147 @@ CREATE DATABASE taxibroussedb;
 
 --? TABLES
 CREATE TABLE Caisse(
-   id SERIAL,
-   label VARCHAR(50) ,
-   PRIMARY KEY(id)
+   id_caisse SERIAL,
+   libelle VARCHAR(50) ,
+   PRIMARY KEY(id_caisse)
 );
 
 CREATE TABLE CategorieGenre(
-   id SERIAL,
+   id_categorieGenre SERIAL,
    libelle VARCHAR(50) ,
-   PRIMARY KEY(id)
+   PRIMARY KEY(id_categorieGenre)
 );
 
 CREATE TABLE CategorieGroupeAge(
-   id SERIAL,
+   id_categorieGroupeAge SERIAL,
    libelle VARCHAR(50) ,
-   PRIMARY KEY(id)
+   PRIMARY KEY(id_categorieGroupeAge)
 );
 
 CREATE TABLE Gare(
-   id SERIAL,
+   id_gare SERIAL,
    libelle VARCHAR(50) ,
-   PRIMARY KEY(id)
+   PRIMARY KEY(id_gare)
 );
 
 CREATE TABLE BusClasse(
-   id SERIAL,
+   id_busClasse SERIAL,
    libelle VARCHAR(50) ,
-   prix_additif DOUBLE PRECISION,
-   PRIMARY KEY(id)
+   prix_classe DOUBLE PRECISION,
+   PRIMARY KEY(id_busClasse)
 );
 
 CREATE TABLE BusConf(
-   id SERIAL,
+   id_busConf SERIAL,
    libelle VARCHAR(50) ,
    valeur VARCHAR(255) ,
-   PRIMARY KEY(id)
+   PRIMARY KEY(id_busConf)
 );
 
 CREATE TABLE HistoriquePrixClasse(
-   id SERIAL,
+   id_histoPrixClasse SERIAL,
    date_ecriture TIMESTAMP,
-   id_busclasse INTEGER NOT NULL,
-   PRIMARY KEY(id),
-   FOREIGN KEY(id_busclasse) REFERENCES BusClasse(id)
+   prix_classe DOUBLE PRECISION,
+   id_busClasse INTEGER NOT NULL,
+   PRIMARY KEY(id_histoPrixClasse),
+   FOREIGN KEY(id_busClasse) REFERENCES BusClasse(id_busClasse)
 );
 
 CREATE TABLE Bus(
-   id SERIAL,
+   id_bus SERIAL,
    immatriculation VARCHAR(50) ,
-   id_busclasse INTEGER NOT NULL,
-   PRIMARY KEY(id),
+   id_busClasse INTEGER NOT NULL,
+   PRIMARY KEY(id_bus),
    UNIQUE(immatriculation),
-   FOREIGN KEY(id_busclasse) REFERENCES BusClasse(id)
+   FOREIGN KEY(id_busClasse) REFERENCES BusClasse(id_busClasse)
 );
 
 CREATE TABLE Voyage(
-   id SERIAL,
+   id_voyage SERIAL,
    duree DOUBLE PRECISION,
-   prix_additif DOUBLE PRECISION,
-   id_garedepart INTEGER NOT NULL,
-   id_garearrivee INTEGER NOT NULL,
-   PRIMARY KEY(id),
-   FOREIGN KEY(id_garedepart) REFERENCES Gare(id),
-   FOREIGN KEY(id_garearrivee) REFERENCES Gare(id)
+   prix_voyage DOUBLE PRECISION,
+   id_gare_1 INTEGER NOT NULL,
+   id_gare_2 INTEGER NOT NULL,
+   PRIMARY KEY(id_voyage),
+   FOREIGN KEY(id_gare_1) REFERENCES Gare(id_gare),
+   FOREIGN KEY(id_gare_2) REFERENCES Gare(id_gare)
 );
 
 CREATE TABLE Client(
-   id SERIAL,
+   id_client SERIAL,
    nom VARCHAR(50) ,
    prenom VARCHAR(50) ,
-   id_categoriegenre INTEGER NOT NULL,
-   id_categoriegroupeage INTEGER NOT NULL,
-   PRIMARY KEY(id),
-   FOREIGN KEY(id_categoriegenre) REFERENCES CategorieGenre(id),
-   FOREIGN KEY(id_categoriegroupeage) REFERENCES CategorieGroupeAge(id)
+   id_categorieGenre INTEGER NOT NULL,
+   id_categorieGroupeAge INTEGER NOT NULL,
+   PRIMARY KEY(id_client),
+   FOREIGN KEY(id_categorieGenre) REFERENCES CategorieGenre(id_categorieGenre),
+   FOREIGN KEY(id_categorieGroupeAge) REFERENCES CategorieGroupeAge(id_categorieGroupeAge)
 );
 
 CREATE TABLE HistoriquePrixVoyage(
-   id SERIAL,
+   id_histoPrixVoyage SERIAL,
    date_ecriture TIMESTAMP,
+   prix_voyage DOUBLE PRECISION,
    id_voyage INTEGER NOT NULL,
-   PRIMARY KEY(id),
-   FOREIGN KEY(id_voyage) REFERENCES Voyage(id)
+   PRIMARY KEY(id_histoPrixVoyage),
+   FOREIGN KEY(id_voyage) REFERENCES Voyage(id_voyage)
 );
 
 CREATE TABLE Bus_Voyage(
-   id SERIAL,
+   id_bus_voyage SERIAL,
    heure_depart TIME,
    date_depart DATE,
+   prix_specifique DOUBLE PRECISION,
    id_bus INTEGER NOT NULL,
    id_voyage INTEGER NOT NULL,
-   PRIMARY KEY(id),
-   FOREIGN KEY(id_bus) REFERENCES Bus(id),
-   FOREIGN KEY(id_voyage) REFERENCES Voyage(id)
+   PRIMARY KEY(id_bus_voyage),
+   FOREIGN KEY(id_bus) REFERENCES Bus(id_bus),
+   FOREIGN KEY(id_voyage) REFERENCES Voyage(id_voyage)
+);
+
+CREATE TABLE HistoriquePrixSpecifique(
+   id_histoPrixSpecifique SERIAL,
+   date_ecriture TIMESTAMP,
+   prix_specifique DOUBLE PRECISION,
+   id_bus_voyage INTEGER NOT NULL,
+   PRIMARY KEY(id_histoPrixSpecifique),
+   FOREIGN KEY(id_bus_voyage) REFERENCES Bus_Voyage(id_bus_voyage)
 );
 
 CREATE TABLE Reservation(
-   id SERIAL,
+   id_reservation SERIAL,
+   numero_place INTEGER,
    id_client INTEGER NOT NULL,
-   id_busvoyage INTEGER NOT NULL,
-   PRIMARY KEY(id),
-   FOREIGN KEY(id_client) REFERENCES Client(id),
-   FOREIGN KEY(id_busvoyage) REFERENCES Bus_Voyage(id)
+   id_bus_voyage INTEGER NOT NULL,
+   PRIMARY KEY(id_reservation),
+   FOREIGN KEY(id_client) REFERENCES Client(id_client),
+   FOREIGN KEY(id_bus_voyage) REFERENCES Bus_Voyage(id_bus_voyage)
 );
 
 CREATE TABLE Paiement(
-   id SERIAL,
+   id_paiement SERIAL,
    date_paiement TIMESTAMP,
    montant_paye DOUBLE PRECISION,
    id_caisse INTEGER NOT NULL,
    id_reservation INTEGER NOT NULL,
-   PRIMARY KEY(id),
-   FOREIGN KEY(id_caisse) REFERENCES Caisse(id),
-   FOREIGN KEY(id_reservation) REFERENCES Reservation(id)
+   PRIMARY KEY(id_paiement),
+   FOREIGN KEY(id_caisse) REFERENCES Caisse(id_caisse),
+   FOREIGN KEY(id_reservation) REFERENCES Reservation(id_reservation)
+);
+
+CREATE TABLE ReservationStatut(
+   id_reservationStatut SERIAL,
+   date_annulation DATE,
+   id_reservation INTEGER NOT NULL,
+   PRIMARY KEY(id_reservationStatut),
+   FOREIGN KEY(id_reservation) REFERENCES Reservation(id_reservation)
 );
 
 CREATE TABLE Bus_BusConf(
-   id SERIAL,
+   id_bus_busConf SERIAL,
    id_bus INTEGER,
-   id_busconf INTEGER,
-   PRIMARY KEY(id),
-   FOREIGN KEY(id_bus) REFERENCES Bus(id),
-   FOREIGN KEY(id_busconf) REFERENCES BusConf(id)
+   id_busConf INTEGER,
+   PRIMARY KEY(id_bus_busConf),
+   FOREIGN KEY(id_bus) REFERENCES Bus(id_bus),
+   FOREIGN KEY(id_busConf) REFERENCES BusConf(id_busConf)
 );

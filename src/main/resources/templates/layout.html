@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' - Taxi Brousse'">Taxi Brousse</title>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/bootstrap.css}">
+
+    <link rel="stylesheet" th:href="@{/vendors/iconly/bold.css}">
+
+    <link rel="stylesheet" th:href="@{/vendors/perfect-scrollbar/perfect-scrollbar.css}">
+    <link rel="stylesheet" th:href="@{/vendors/bootstrap-icons/bootstrap-icons.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="shortcut icon" th:href="@{/images/favicon.svg}" type="image/x-icon">
+</head>
+
+<body>
+    <div id="app">
+        <div id="sidebar" class="active">
+            <div class="sidebar-wrapper active">
+                <div class="sidebar-header">
+                    <div class="d-flex justify-content-between">
+                        <div class="logo">
+                            <a th:href="@{/dashboard}"><img th:src="@{/images/logo/x.png}" alt="Taxi Buh :["></a>
+                        </div>
+                        <div class="toggler">
+                            <a href="#" class="sidebar-hide d-xl-none d-block"><i class="bi bi-x bi-middle"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-menu">
+                    <ul class="menu">
+                        <li class="sidebar-title">Menu</li>
+
+                        <li class="sidebar-item" th:classappend="${#strings.equals(currentPath, '/dashboard') or #strings.equals(currentPath, '/')} ? 'active' : ''">
+                            <a th:href="@{/dashboard}" class='sidebar-link'>
+                                <i class="bi bi-grid-fill"></i>
+                                <span>Tableau de Bord</span>
+                            </a>
+                        </li>
+
+                        <li class="sidebar-item" th:classappend="${#strings.contains(currentPath, '/busvoyage')} ? 'active' : ''">
+                            <a th:href="@{/busvoyage/search}" class='sidebar-link'>
+                                <i class="bi bi-search"></i>
+                                <span>Rechercher Voyage</span>
+                            </a>
+                        </li>
+
+                        <li class="sidebar-item" th:classappend="${#strings.contains(currentPath, '/reservation')} ? 'active' : ''">
+                            <a th:href="@{/reservation/list}" class='sidebar-link'>
+                                <i class="bi bi-list-check"></i>
+                                <span>Liste Réservations</span>
+                            </a>
+                        </li>
+
+                        <!-- Add more menu items here as needed -->
+                        <li class="sidebar-title">Gestion</li>
+
+                        <li class="sidebar-item has-sub">
+                            <a href="#" class='sidebar-link'>
+                                <i class="bi bi-bus-front"></i>
+                                <span>Gestion Bus</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item">
+                                    <a th:href="@{/bus/list}">Liste des Bus</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a th:href="@{/bus/create}">Ajouter Bus</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="sidebar-item has-sub">
+                            <a href="#" class='sidebar-link'>
+                                <i class="bi bi-gear"></i>
+                                <span>Bus Configuration</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item">
+                                    <a th:href="@{/busconf/list}">Liste des Configurations</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a th:href="@{/busconf/create}">Ajouter une Configuration</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="sidebar-item has-sub">
+                            <a href="#" class='sidebar-link'>
+                                <i class="bi bi-geo-alt"></i>
+                                <span>Trajets</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item">
+                                    <a th:href="@{/voyage/list}">Liste des Trajets</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a th:href="@{/voyage/create}">Ajouter Trajet</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="sidebar-item has-sub">
+                            <a href="#" class='sidebar-link'>
+                                <i class="bi bi-database-fill-gear"></i>
+                                <span>Gestion Bus-Voyage</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item">
+                                    <a th:href="@{/busvoyage/manage}">Liste Bus-Voyage</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a th:href="@{/busvoyage/create-busvoyage}">Ajouter Bus-Voyage</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                <button class="sidebar-toggler btn x"><i data-feather="x"></i></button>
+            </div>
+        </div>
+        <div id="main">
+            <header class="mb-3">
+                <a href="#" class="burger-btn d-block d-xl-none">
+                    <i class="bi bi-justify fs-3"></i>
+                </a>
+            </header>
+
+            <div class="page-content">
+                <!-- Flash Messages -->
+                <div th:if="${success}" class="alert alert-success alert-dismissible fade show mx-3" role="alert">
+                    <span th:text="${success}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show mx-3" role="alert">
+                    <span th:text="${error}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                
+                <!-- Main Content Area -->
+                <section class="row">
+                    <div class="col-12">
+                        <div layout:fragment="content">
+                            <!-- Page specific content will be inserted here -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <footer>
+                <div class="footer clearfix mb-0 text-muted">
+                    <div class="float-start">
+                        <p th:text="${T(java.time.LocalDate).now().year} + ' &copy; Taxi Brousse'">Taxi Brousse</p>
+                    </div>
+                    <div class="float-end">
+                        <p>Projet S5_S3 ETU3082 & ETU4035</p>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+    
+    <script th:src="@{/vendors/perfect-scrollbar/perfect-scrollbar.min.js}"></script>
+    <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+    
+    <script th:src="@{/vendors/apexcharts/apexcharts.js}"></script>
+    
+    <!-- Main template script -->
+    <script th:src="@{/js/main.js}"></script>
+    
+    <!-- Page specific scripts -->
+    <div layout:fragment="scripts">
+        <!-- Additional scripts will be inserted here -->
+    </div>
+    
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        // Simple JavaScript for sidebar toggle (no Thymeleaf expressions)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Burger button click
+            document.querySelector('.burger-btn')?.addEventListener('click', function(e) {
+                e.preventDefault();
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) {
+                    sidebar.classList.toggle('active');
+                }
+            });
+            
+            // Sidebar hide button
+            document.querySelector('.sidebar-hide')?.addEventListener('click', function(e) {
+                e.preventDefault();
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) {
+                    sidebar.classList.remove('active');
+                }
+            });
+            
+            // Sidebar toggler button
+            document.querySelector('.sidebar-toggler')?.addEventListener('click', function() {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) {
+                    sidebar.classList.toggle('active');
+                }
+            });
+            
+            // Handle submenu toggles
+            document.querySelectorAll('.has-sub > a').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    if (window.innerWidth > 768) {
+                        e.preventDefault();
+                        const parent = this.parentElement;
+                        parent.classList.toggle('open');
+                    }
+                });
+            });
+        });
+        /*]]>*/
+    </script>
+</body>
+
+</html>

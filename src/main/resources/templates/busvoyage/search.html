@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Rechercher Voyage</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-heading">
+            <div class="page-title">
+                <div class="row">
+                    <div class="col-12 col-md-6 order-md-1 order-last">
+                        <h3>Rechercher un Voyage</h3>
+                        <p class="text-subtitle text-muted">Recherchez des voyages disponibles selon vos critères</p>
+                    </div>
+                    <div class="col-12 col-md-6 order-md-2 order-first">
+                        <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de Bord</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Rechercher Voyage</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Form -->
+        <section class="section">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Critères de Recherche</h4>
+                </div>
+                <div class="card-content">
+                    <div class="card-body">
+                        <form action="/busvoyage/search/results" method="get" id="searchForm">
+                            <div class="row">
+                                <!-- Route Selection -->
+                                <div class="col-md-6 col-lg-3 mb-3">
+                                    <label class="form-label">Gare Départ</label>
+                                    <select name="gareDepart" class="form-select">
+                                        <option value="">-- Choisir --</option>
+                                        <option th:each="gare : ${gares}" 
+                                                th:value="${gare.id}" 
+                                                th:text="${gare.libelle}"
+                                                th:selected="${gare.id == selectedGareDepart}">
+                                        </option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-6 col-lg-3 mb-3">
+                                    <label class="form-label">Gare Arrivée</label>
+                                    <select name="gareArrivee" class="form-select">
+                                        <option value="">-- Choisir --</option>
+                                        <option th:each="gare : ${gares}" 
+                                                th:value="${gare.id}" 
+                                                th:text="${gare.libelle}"
+                                                th:selected="${gare.id == selectedGareArrivee}">
+                                        </option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Date/Year Selection -->
+                                <div class="col-md-6 col-lg-3 mb-3">
+                                    <label class="form-label">Recherche par</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="dateSearchType" 
+                                               id="searchByDate" value="date" checked>
+                                        <label class="form-check-label" for="searchByDate">
+                                            Date précise
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="dateSearchType" 
+                                               id="searchByYear" value="year"
+                                               th:checked="${searchByYear}">
+                                        <label class="form-check-label" for="searchByYear">
+                                            Année complète
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 col-lg-3 mb-3">
+                                    <div id="dateInputGroup">
+                                        <label class="form-label">Date Départ</label>
+                                        <input type="date" name="dateDepart" id="dateInput" class="form-control" 
+                                               th:value="${selectedDate != null ? selectedDate : #temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+                                    </div>
+                                    <div id="yearInputGroup" style="display: none;">
+                                        <label class="form-label">Année</label>
+                                        <input type="number" name="year" id="yearInput" class="form-control" 
+                                               min="2020" max="2030" placeholder="2026"
+                                               th:value="${selectedYear}">
+                                    </div>
+                                </div>
+                                
+                                <!-- Time and Class Filters -->
+                                <div class="col-md-6 col-lg-2 mb-3">
+                                    <label class="form-label">Heure Min</label>
+                                    <input type="time" name="heureMin" class="form-control" th:value="${selectedHeureMin}">
+                                </div>
+                                
+                                <div class="col-md-6 col-lg-2 mb-3">
+                                    <label class="form-label">Classe Bus</label>
+                                    <select name="classeId" class="form-select">
+                                        <option value="">-- Toutes --</option>
+                                        <option th:each="classe : ${classes}" 
+                                                th:value="${classe.id}" 
+                                                th:text="${classe.libelle}"
+                                                th:selected="${classe.id == selectedClasse}">
+                                        </option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Price Filters -->
+                                <div class="col-md-6 col-lg-2 mb-3">
+                                    <label class="form-label">Prix Min (Ar)</label>
+                                    <input type="number" name="prixMin" class="form-control" placeholder="0" th:value="${selectedPrixMin}">
+                                </div>
+                                
+                                <div class="col-md-6 col-lg-2 mb-3">
+                                    <label class="form-label">Prix Max (Ar)</label>
+                                    <input type="number" name="prixMax" class="form-control" placeholder="200000" th:value="${selectedPrixMax}">
+                                </div>
+                                
+                                <!-- Buttons -->
+                                <div class="col-12 mt-2">
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-search me-1"></i> Rechercher
+                                        </button>
+                                        <a href="/busvoyage/search" class="btn btn-light-secondary">Réinitialiser</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Results Section -->
+        <div th:if="${searchPerformed}">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Résultats de recherche</h4>
+                    <span class="badge bg-primary" th:text="${#lists.size(results)} + ' voyage(s)'">0</span>
+                </div>
+                <div class="card-content">
+                    <div class="card-body">
+                        <!-- No results message -->
+                        <div th:if="${#lists.isEmpty(results)}" class="alert alert-light-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Aucun voyage trouvé pour ces critères de recherche.
+                        </div>
+                        
+                        <!-- Results grid -->
+                        <div class="row" th:if="${!#lists.isEmpty(results)}">
+                            <div class="col-md-6 col-lg-4" th:each="result : ${results}">
+                                <div class="card shadow-sm mb-3">
+                                    <div class="card-header py-2 bg-light-primary">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="text-truncate">
+                                                <small class="text-muted">De</small>
+                                                <strong th:text="${result.busVoyage.voyage.gareDepart.libelle}"></strong>
+                                            </div>
+                                            <i class="bi bi-arrow-right text-muted"></i>
+                                            <div class="text-truncate">
+                                                <small class="text-muted">À</small>
+                                                <strong th:text="${result.busVoyage.voyage.gareArrivee.libelle}"></strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body py-3">
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <small class="text-muted d-block">Bus</small>
+                                                <span th:text="${result.busVoyage.bus.immatriculation}"></span>
+                                            </div>
+                                            <div class="col-6 text-end">
+                                                <span class="badge bg-info" th:text="${result.busClasse.libelle}"></span>
+                                            </div>
+                                            
+                                            <div class="col-12">
+                                                <hr class="my-2">
+                                            </div>
+                                            
+                                            <div class="col-6">
+                                                <small class="text-muted d-block">Date et Heure de Départ</small>
+                                                <span th:text="${#temporals.format(result.busVoyage.dateDepart, 'yyyy/MM/dd')}"></span>
+                                                à <span th:text="${#temporals.format(result.busVoyage.heureDepart, 'HH:mm')}"></span>
+                                            </div>
+                                            <div class="col-6 text-end">
+                                                <small class="text-muted d-block">Durée</small>
+                                                <span th:text="${result.busVoyage.voyage.duree}"></span>h
+                                            </div>
+                                            
+                                            <div class="col-6">
+                                                <small class="text-muted d-block">Prix/Place</small>
+                                                <span class="text-success fw-bold">
+                                                    <span th:text="${#numbers.formatDecimal(result.price, 0, 'COMMA', 0, 'POINT')}"></span> Ar
+                                                </span>
+                                            </div>
+                                            <div class="col-6 text-end">
+                                                <small class="text-muted d-block">Places</small>
+                                                <span class="badge" th:classappend="${result.availableSeats > 10 ? 'bg-success' : (result.availableSeats > 5 ? 'bg-warning' : 'bg-danger')}">
+                                                    <span th:text="${result.availableSeats}"></span>/<span th:text="${result.capacity}"></span>
+                                                </span>
+                                            </div>
+                                            
+                                            <div class="col-12 mt-2">
+                                                <a th:if="${result.availableSeats > 0}" 
+                                                   th:href="@{/reservation/create(busVoyageId=${result.busVoyage.id})}" 
+                                                   class="btn btn-primary btn-sm w-100">
+                                                    <i class="bi bi-ticket-perforated me-1"></i> Réserver
+                                                </a>
+                                                <button th:if="${result.availableSeats == 0}" 
+                                                        class="btn btn-secondary btn-sm w-100" disabled>
+                                                    <i class="bi bi-x-circle me-1"></i> Complet
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const searchByDate = document.getElementById('searchByDate');
+                const searchByYear = document.getElementById('searchByYear');
+                const dateInputGroup = document.getElementById('dateInputGroup');
+                const yearInputGroup = document.getElementById('yearInputGroup');
+                const dateInput = document.getElementById('dateInput');
+                const yearInput = document.getElementById('yearInput');
+                
+                function toggleInputs() {
+                    if (searchByYear.checked) {
+                        dateInputGroup.style.display = 'none';
+                        yearInputGroup.style.display = 'block';
+                        dateInput.disabled = true;
+                        yearInput.disabled = false;
+                    } else {
+                        dateInputGroup.style.display = 'block';
+                        yearInputGroup.style.display = 'none';
+                        dateInput.disabled = false;
+                        yearInput.disabled = true;
+                    }
+                }
+                
+                searchByDate.addEventListener('change', toggleInputs);
+                searchByYear.addEventListener('change', toggleInputs);
+                
+                // Initialize on page load
+                toggleInputs();
+            });
+        </script>
+    </div>
+</body>
+</html>
