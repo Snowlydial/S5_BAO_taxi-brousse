@@ -41,6 +41,13 @@ CREATE TABLE BusConf(
    PRIMARY KEY(id_busConf)
 );
 
+CREATE TABLE ClassePlace(
+   id_classePlace SERIAL,
+   libelle VARCHAR(50) ,
+   prix_place DOUBLE PRECISION,
+   PRIMARY KEY(id_classePlace)
+);
+
 CREATE TABLE HistoriquePrixClasse(
    id_histoPrixClasse SERIAL,
    date_ecriture TIMESTAMP,
@@ -114,9 +121,11 @@ CREATE TABLE HistoriquePrixSpecifique(
 CREATE TABLE Reservation(
    id_reservation SERIAL,
    numero_place INTEGER,
+   id_classePlace INTEGER,
    id_client INTEGER NOT NULL,
    id_bus_voyage INTEGER NOT NULL,
    PRIMARY KEY(id_reservation),
+   FOREIGN KEY(id_classePlace) REFERENCES ClassePlace(id_classePlace),
    FOREIGN KEY(id_client) REFERENCES Client(id_client),
    FOREIGN KEY(id_bus_voyage) REFERENCES Bus_Voyage(id_bus_voyage)
 );
