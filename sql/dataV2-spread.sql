@@ -177,7 +177,7 @@ INSERT INTO Client (nom, prenom, id_categorieGenre, id_categorieGroupeAge) VALUE
 -- Adults
 ('Rakoto', 'Jean', 1, 3),
 ('Rasoa', 'Marie', 2, 3),
-('Randria', 'Paul', 1, 3),
+('Randria', 'Paul', 1,   3),
 ('Raharison', 'Sophie', 2, 3),
 ('Andrianina', 'Luc', 1, 3),
 ('Razafindrakoto', 'Clara', 2, 3),
@@ -293,21 +293,21 @@ INSERT INTO ReservationStatut (date_annulation, id_reservation) VALUES
 (NULL, 46), (NULL, 47), (NULL, 48), (NULL, 49), (NULL, 50),
 (NULL, 51), (NULL, 52), (NULL, 53), (NULL, 54), (NULL, 55),
 (NULL, 56), (NULL, 57), (NULL, 58), (NULL, 59), (NULL, 60),
-(NULL, 61), (NULL, 62),
+(NULL, 61), (NULL, 62);
 
 -- Cancelled reservations (spread across months)
 -- September cancellations
-('2025-09-14', 3),  -- Cancelled 1 day before Sep 15 trip
+-- ('2025-09-14', 3),
 -- October cancellations  
-('2025-10-11', 10), -- Cancelled 1 day before Oct 12 trip
+-- ('2025-10-11', 10),
 -- December cancellations (holiday change of plans)
-('2025-12-09', 23), -- Cancelled 1 day before Dec 20 holiday trip
+-- ('2025-12-09', 23),
 -- January cancellations
-('2025-12-27', 28), -- New Year's Day cancellation
+-- ('2025-12-27', 28),
 -- March cancellations
-('2026-01-31', 37), -- Cancelled 1 day before Mar 1 trip
+-- ('2026-01-31', 37),
 -- June cancellations
-('2026-05-09', 54); -- Cancelled 1 day before Jun 25 peak trip
+-- ('2026-05-09', 54);
 
 -- Sample Paiements (Spread across different months, typically 1-7 days before trip)
 INSERT INTO Paiement (date_paiement, montant_paye, id_caisse, id_reservation) VALUES 

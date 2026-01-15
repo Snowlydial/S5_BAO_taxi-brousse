@@ -94,7 +94,7 @@
                                             </div>
                                             
                                             <!-- Date Range Filter -->
-                                            <div class="col-md-5">
+                                            <div class="col-md-4">
                                                 <label class="form-label">Période de départ</label>
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text">Du</span>
@@ -103,7 +103,42 @@
                                                     <input type="date" id="filterDateMax" class="form-control">
                                                 </div>
                                             </div>
+                                            
+                                            <!-- Heure Filter -->
+                                            <div class="col-md-2">
+                                                <label class="form-label">Heure départ min</label>
+                                                <input type="time" id="filterHeureMin" class="form-control form-control-sm">
+                                            </div>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Revenue Summary Card -->
+                        <div class="card shadow-sm mb-4 bg-light-success">
+                            <div class="card-body py-3">
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
+                                        <h6 class="mb-1 text-muted">Chiffre d'Affaires (filtré)</h6>
+                                        <h3 class="mb-0 text-success">
+                                            <i class="bi bi-currency-exchange me-2"></i>
+                                            <span id="totalRevenue">0</span> Ar
+                                        </h3>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="mb-1 text-muted">Nombre de réservations</h6>
+                                        <h4 class="mb-0">
+                                            <i class="bi bi-ticket-perforated me-2"></i>
+                                            <span id="totalReservations">0</span>
+                                        </h4>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="mb-1 text-muted">Prix moyen</h6>
+                                        <h4 class="mb-0">
+                                            <i class="bi bi-graph-up-arrow me-2"></i>
+                                            <span id="avgPrice">0</span> Ar
+                                        </h4>
                                     </div>
                                 </div>
                             </div>
@@ -139,7 +174,9 @@
                                         th:with="statut=${reservationStatutService.getLatestStatut(reservation)},
                                                 price=${reservation.busVoyage.prixSpecifique != null ? reservation.busVoyage.prixSpecifique : (reservation.busVoyage.voyage.prixVoyage != null ? reservation.busVoyage.voyage.prixVoyage : reservation.busVoyage.bus.busClasse.prixClasse)},
                                                 firstPaiement=${reservation.paiements.isEmpty() ? null : reservation.paiements.get(0)}"
-                                        th:attr="data-date-depart=${#temporals.format(reservation.busVoyage.dateDepart, 'yyyy-MM-dd')}">
+                                        th:attr="data-date-depart=${#temporals.format(reservation.busVoyage.dateDepart, 'yyyy-MM-dd')},
+                                                 data-heure-depart=${#temporals.format(reservation.busVoyage.heureDepart, 'HH:mm')},
+                                                 data-prix=${price}">
                                         <td th:text="${reservation.id}"></td>
                                         <td>
                                             <strong th:text="${reservation.client.nom + ' ' + reservation.client.prenom}"></strong><br>
@@ -191,13 +228,13 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <button th:if="${statut != null && !statut.isAnnule()}"
+                                            <!-- <button th:if="${statut != null && !statut.isAnnule()}"
                                                     type="button" 
                                                     class="btn btn-danger btn-sm"
                                                     data-bs-toggle="modal"
                                                     th:data-bs-target="'#cancelModal' + ${reservation.id}">
                                                 <i class="bi bi-x-circle me-1"></i> Annuler
-                                            </button>
+                                            </button> -->
                                             <span th:if="${statut != null && statut.isAnnule()}" 
                                                   class="text-muted small">
                                                 Deja annule
@@ -278,6 +315,10 @@
                     const statutFilter = document.getElementById('filterStatut').value.trim();
                     const dateMinFilter = document.getElementById('filterDateMin').value;
                     const dateMaxFilter = document.getElementById('filterDateMax').value;
+                    const heureMinFilter = document.getElementById('filterHeureMin').value;
+                    
+                    let totalRevenue = 0;
+                    let visibleCount = 0;
                     
                     const rows = table.querySelectorAll('tbody tr');
                     rows.forEach(row => {
@@ -286,13 +327,16 @@
                         const busImmat = row.cells[3].querySelector('span:first-child').textContent.trim();
                         const classeText = row.cells[3].querySelector('.badge').textContent.trim();
                         const statutText = row.cells[8].textContent.trim();
-                        const dateDepart = row.getAttribute('data-date-depart'); // yyyy-MM-dd format
+                        const dateDepart = row.getAttribute('data-date-depart');
+                        const heureDepart = row.getAttribute('data-heure-depart');
+                        const prix = parseFloat(row.getAttribute('data-prix'));
                         
                         const clientMatch = !clientFilter || clientText.includes(clientFilter);
                         const busMatch = !busFilter || busImmat === busFilter;
                         const trajetMatch = !trajetFilter || trajetText === trajetFilter;
                         const classeMatch = !classeFilter || classeText === classeFilter;
                         const statutMatch = !statutFilter || statutText.includes(statutFilter);
+                        const heureMatch = !heureMinFilter || heureDepart >= heureMinFilter;
                         
                         // Date range matching
                         let dateMatch = true;
@@ -303,13 +347,31 @@
                             dateMatch = false;
                         }
                         
-                        if (clientMatch && busMatch && trajetMatch && classeMatch && statutMatch && dateMatch) {
+                        if (clientMatch && busMatch && trajetMatch && classeMatch && statutMatch && dateMatch && heureMatch) {
                             row.style.display = '';
+                            totalRevenue += prix;
+                            visibleCount++;
                         } else {
                             row.style.display = 'none';
                         }
                     });
+                    
+                    // Update revenue display
+                    updateRevenueDisplay(totalRevenue, visibleCount);
                 }
+                
+                function updateRevenueDisplay(total, count) {
+                    const avgPrice = count > 0 ? total / count : 0;
+                    
+                    document.getElementById('totalRevenue').textContent = 
+                        new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(total);
+                    document.getElementById('totalReservations').textContent = count;
+                    document.getElementById('avgPrice').textContent = 
+                        new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(avgPrice);
+                }
+                
+                // Initial calculation
+                applyFilters();
 
                 //*-- Attach filter event listeners
                 document.getElementById('filterClient').addEventListener('input', applyFilters);
@@ -319,6 +381,7 @@
                 document.getElementById('filterStatut').addEventListener('change', applyFilters);
                 document.getElementById('filterDateMin').addEventListener('change', applyFilters);
                 document.getElementById('filterDateMax').addEventListener('change', applyFilters);
+                document.getElementById('filterHeureMin').addEventListener('change', applyFilters);
 
                 //*-- Clear all filters
                 document.getElementById('clearFilters').addEventListener('click', function() {
