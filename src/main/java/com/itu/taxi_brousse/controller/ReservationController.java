@@ -192,6 +192,8 @@ public class ReservationController {
         }
     }
     
+    // Not working yet -- this need to affect the nb place dispo as well...
+    // Mayhaps I could add a boolean valid in the place as well
     @PostMapping("/cancel/{id}")
     public String cancelReservation(@PathVariable Integer id, 
                                      @RequestParam LocalDate dateAnnulation,
