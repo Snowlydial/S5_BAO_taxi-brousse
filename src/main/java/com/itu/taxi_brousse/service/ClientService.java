@@ -20,15 +20,28 @@ public class ClientService {
     private final CategorieGroupeAgeRepository categorieGroupeAgeRepository;
     
     public List<Client> getAllClients() {
-        return clientRepository.findAll();
+        return clientRepository.findAllWithCategorieGroupeAge();
     }
     
     public Optional<Client> getClientById(Integer id) {
-        return clientRepository.findById(id);
+        return clientRepository.findByIdWithDetails(id);
     }
     
     @Transactional
     public Client saveClient(Client client) {
+        // Ensure relationships are properly loaded
+        if (client.getCategorieGenre() != null && client.getCategorieGenre().getId() != null) {
+            CategorieGenre genre = categorieGenreRepository.findById(client.getCategorieGenre().getId())
+                    .orElseThrow(() -> new RuntimeException("Genre non trouvé"));
+            client.setCategorieGenre(genre);
+        }
+        
+        if (client.getCategorieGroupeAge() != null && client.getCategorieGroupeAge().getId() != null) {
+            CategorieGroupeAge ageGroup = categorieGroupeAgeRepository.findById(client.getCategorieGroupeAge().getId())
+                    .orElseThrow(() -> new RuntimeException("Groupe d'âge non trouvé"));
+            client.setCategorieGroupeAge(ageGroup);
+        }
+        
         return clientRepository.save(client);
     }
     
@@ -41,7 +54,7 @@ public class ClientService {
         return clientRepository.findByNomContainingIgnoreCaseOrPrenomContainingIgnoreCase(search, search);
     }
     
-    // NEW: Helper methods for getting related entities
+    // Helper methods for getting related entities
     public CategorieGenre getCategorieGenreById(Integer id) {
         return categorieGenreRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Genre non trouvé"));
@@ -50,5 +63,23 @@ public class ClientService {
     public CategorieGroupeAge getCategorieGroupeAgeById(Integer id) {
         return categorieGroupeAgeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Groupe d'âge non trouvé"));
+    }
+    
+    // Create client from data map (for API endpoint)
+    @Transactional
+    public Client createClientFromMap(String nom, String prenom, Integer categorieGenreId, Integer categorieGroupeAgeId) {
+        Client client = new Client();
+        client.setNom(nom);
+        client.setPrenom(prenom);
+        
+        if (categorieGenreId != null) {
+            client.setCategorieGenre(getCategorieGenreById(categorieGenreId));
+        }
+        
+        if (categorieGroupeAgeId != null) {
+            client.setCategorieGroupeAge(getCategorieGroupeAgeById(categorieGroupeAgeId));
+        }
+        
+        return saveClient(client);
     }
 }

@@ -1,37 +1,36 @@
 package com.itu.taxi_brousse.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-import java.util.ArrayList;
-import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 @Entity
 @Table(name = "client")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Client {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_client")
     private Integer id;
     
-    @Column(name = "nom", length = 50)
+    @Column(name = "nom", nullable = false)
     private String nom;
     
-    @Column(name = "prenom", length = 50)
+    @Column(name = "prenom", nullable = false)
     private String prenom;
     
-    @ManyToOne
-    @JoinColumn(name = "id_categoriegenre", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_categorieGenre", nullable = false)
     private CategorieGenre categorieGenre;
     
-    @ManyToOne
-    @JoinColumn(name = "id_categoriegroupeage", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_categorieGroupeAge", nullable = false)
     private CategorieGroupeAge categorieGroupeAge;
-    
-    @OneToMany(mappedBy = "client")
-    @Builder.Default
-    private List<Reservation> reservations = new ArrayList<>();
 }

@@ -47,31 +47,34 @@ public class ClientController {
         return "redirect:/clients";
     }
     
-    // NEW: API endpoint for creating client from reservation modal
+    // API endpoint for creating client from reservation modal
     @PostMapping("/create")
     @ResponseBody
     public ResponseEntity<?> createClientApi(@RequestBody Map<String, Object> clientData) {
         try {
-            Client client = new Client();
-            client.setNom((String) clientData.get("nom"));
-            client.setPrenom((String) clientData.get("prenom"));
+            String nom = (String) clientData.get("nom");
+            String prenom = (String) clientData.get("prenom");
+            Integer categorieGenreId = null;
+            Integer categorieGroupeAgeId = null;
             
-            // Set genre
             if (clientData.get("categorieGenreId") != null) {
-                client.setCategorieGenre(clientService.getCategorieGenreById(
-                    Integer.parseInt(clientData.get("categorieGenreId").toString())
-                ));
+                categorieGenreId = Integer.parseInt(clientData.get("categorieGenreId").toString());
             }
             
-            // Set age group
             if (clientData.get("categorieGroupeAgeId") != null) {
-                client.setCategorieGroupeAge(clientService.getCategorieGroupeAgeById(
-                    Integer.parseInt(clientData.get("categorieGroupeAgeId").toString())
-                ));
+                categorieGroupeAgeId = Integer.parseInt(clientData.get("categorieGroupeAgeId").toString());
             }
             
-            Client savedClient = clientService.saveClient(client);
-            return ResponseEntity.ok(savedClient);
+            Client savedClient = clientService.createClientFromMap(nom, prenom, categorieGenreId, categorieGroupeAgeId);
+            
+            // Return the client with relationships loaded for the frontend
+            Client clientWithDetails = clientService.getClientById(savedClient.getId())
+                    .orElseThrow(() -> new RuntimeException("Client créé mais non retrouvé"));
+            
+            return ResponseEntity.ok(clientWithDetails);
+            
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "ID invalide"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
