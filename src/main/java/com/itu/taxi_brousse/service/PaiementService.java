@@ -5,6 +5,7 @@ import com.itu.taxi_brousse.repository.PaiementRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -37,8 +38,12 @@ public class PaiementService {
     //?=== Create multiple payments for a reservation (split payment) with custom date
     @Transactional
     public List<Paiement> createMultiplePayments(Reservation reservation, List<Caisse> caisses, List<Double> montants, LocalDateTime datePaiement) {
-        //*-- Calculate expected total price
-        Double prixTotal = pricingService.calculatePrice(reservation.getBusVoyage());
+        if (caisses.size() != montants.size()) {
+            throw new RuntimeException("Number of payment methods must match number of amounts");
+        }
+        
+        //*-- Calculate expected total price (now supports ClassePlace)
+        Double prixTotal = pricingService.calculatePrice(reservation);
         Double totalMontant = montants.stream().mapToDouble(Double::doubleValue).sum();
         
         //*-- Validate total amount
@@ -47,10 +52,6 @@ public class PaiementService {
                 String.format("Total payment %.2f does not match calculated price %.2f", 
                     totalMontant, prixTotal)
             );
-        }
-        
-        if (caisses.size() != montants.size()) {
-            throw new RuntimeException("Number of payment methods must match number of amounts");
         }
         
         List<Paiement> paiements = new ArrayList<>();
