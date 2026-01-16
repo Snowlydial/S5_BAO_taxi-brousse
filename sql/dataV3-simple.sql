@@ -2,7 +2,7 @@
 
 INSERT INTO ClassePlace (libelle, prix_place) VALUES 
 ('Premium', 140000),
-('Vip', 180000),
+('VIP', 180000),
 ('Standard', 80000);
 
 -- Caisse (Payment methods)
