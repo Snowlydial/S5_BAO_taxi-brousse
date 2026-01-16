@@ -17,11 +17,24 @@ INSERT INTO CategorieGenre (libelle) VALUES
 ('Homme'),
 ('Femme');
 
--- CategorieGroupeAge
-INSERT INTO CategorieGroupeAge (libelle, prix_standard_override) VALUES 
-('Enfant (0-12 ans)', 50000),
-('Adulte (18-59 ans)', NULL),
-('Senior (60+ ans)', NULL);
+-- CategorieGroupeAge (REMOVED prix_standard_override column)
+INSERT INTO CategorieGroupeAge (libelle) VALUES 
+('Enfant (0-12 ans)'),
+('Adulte (18-59 ans)'),
+('Senior (60+ ans)');
+
+-- NEW: Age group + seat class price overrides
+-- Get IDs dynamically based on insertion order
+INSERT INTO CategorieGroupeAge_ClassePlace_Override (id_categorieGroupeAge, id_classePlace, prix_override) VALUES 
+-- Enfant discounts
+(1, 3, 50000),   -- Enfant + Standard = 50,000 (instead of 80,000)
+(1, 1, 120000),  -- Enfant + Premium = 120,000 (instead of 140,000) - ~14% off
+(1, 2, 150000),  -- Enfant + VIP = 150,000 (instead of 180,000) - ~16.7% off
+
+-- Senior discounts  
+(3, 3, 60000),   -- Senior + Standard = 60,000 (instead of 80,000) - 25% off
+(3, 1, 112000),  -- Senior + Premium = 112,000 (instead of 140,000) - 20% off
+(3, 2, 144000);  -- Senior + VIP = 144,000 (instead of 180,000) - 20% off
 
 -- Gare
 INSERT INTO Gare (libelle) VALUES 
@@ -133,4 +146,3 @@ INSERT INTO Voyage (duree, prix_voyage, id_gare_1, id_gare_2) VALUES
 
 INSERT INTO Bus_Voyage (heure_depart, date_depart, prix_specifique, id_bus, id_voyage) VALUES 
 ('07:00:00', '2026-01-27', NULL, 4, 7);
-

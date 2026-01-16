@@ -3,7 +3,9 @@ package com.itu.taxi_brousse.service;
 import com.itu.taxi_brousse.entity.BusVoyage;
 import com.itu.taxi_brousse.entity.Reservation;
 import com.itu.taxi_brousse.entity.HistoriquePrixSpecifique;
+import com.itu.taxi_brousse.entity.CategorieGroupeAgeClassePlaceOverride;
 import com.itu.taxi_brousse.repository.HistoriquePrixSpecifiqueRepository;
+import com.itu.taxi_brousse.repository.CategorieGroupeAgeClassePlaceOverrideRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,21 +13,33 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class PricingService {
     
     private final HistoriquePrixSpecifiqueRepository historiquePrixSpecifiqueRepository;
+    private final CategorieGroupeAgeClassePlaceOverrideRepository overrideRepository;
     
-    //?=== Calculate price for a reservation with enfant discount
+    //?=== Calculate price for a reservation with age group + seat class discounts
     public Double calculatePrice(Reservation reservation) {
-        // Priority 1: Check for enfant discount on standard place
-        if (shouldApplyEnfantDiscount(reservation)) {
-            return reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride();
+        // Priority 1: Check for age group + seat class override price
+        if (reservation.getClient() != null && 
+            reservation.getClient().getCategorieGroupeAge() != null &&
+            reservation.getClassePlace() != null) {
+            
+            Optional<CategorieGroupeAgeClassePlaceOverride> override = overrideRepository.findByCategorieGroupeAgeAndClassePlace(
+                reservation.getClient().getCategorieGroupeAge(),
+                reservation.getClassePlace()
+            );
+            
+            if (override.isPresent()) {
+                return override.get().getPrixOverride();
+            }
         }
         
-        // Priority 2: ClassePlace price
+        // Priority 2: ClassePlace price (if no override found)
         if (reservation.getClassePlace() != null && 
             reservation.getClassePlace().getPrixPlace() != null && 
             reservation.getClassePlace().getPrixPlace() > 0) {
@@ -36,21 +50,19 @@ public class PricingService {
         return calculatePrice(reservation.getBusVoyage());
     }
     
-    //?=== Check if enfant discount should be applied
-    private boolean shouldApplyEnfantDiscount(Reservation reservation) {
-        // Check if client is enfant
-        boolean isEnfant = reservation.getClient() != null && 
-                          reservation.getClient().getCategorieGroupeAge() != null &&
-                          "Enfant (0-12 ans)".equals(reservation.getClient().getCategorieGroupeAge().getLibelle());
+    //?=== Get override price for a specific age group and seat class
+    public Double getOverridePrice(Integer categorieGroupeAgeId, Integer classePlaceId) {
+        Optional<CategorieGroupeAgeClassePlaceOverride> override = overrideRepository
+            .findByCategorieGroupeAge_IdAndClassePlace_Id(categorieGroupeAgeId, classePlaceId);
         
-        // Check if place is standard
-        boolean isStandardPlace = reservation.getClassePlace() != null && 
-                                 "Standard".equals(reservation.getClassePlace().getLibelle());
-        
-        // Check if override price is set
-        boolean hasOverridePrice = reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride() != null;
-        
-        return isEnfant && isStandardPlace && hasOverridePrice;
+        return override.map(CategorieGroupeAgeClassePlaceOverride::getPrixOverride).orElse(null);
+    }
+    
+    //?=== Check if there's an override price for a specific age group and seat class
+    public boolean hasOverridePrice(Integer categorieGroupeAgeId, Integer classePlaceId) {
+        return overrideRepository
+            .findByCategorieGroupeAge_IdAndClassePlace_Id(categorieGroupeAgeId, classePlaceId)
+            .isPresent();
     }
     
     //?=== Calculate price using hierarchy: Bus_Voyage → Voyage → BusClasse

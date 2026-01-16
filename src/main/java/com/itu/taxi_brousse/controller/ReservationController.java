@@ -35,6 +35,7 @@ public class ReservationController {
     private final CategorieGenreRepository categorieGenreRepository;
     private final CategorieGroupeAgeRepository categorieGroupeAgeRepository;
     private final ClassePlaceRepository classePlaceRepository;
+    private final CategorieGroupeAgeClassePlaceOverrideRepository overrideRepository;
     
     @GetMapping("/list")
     public String listReservations(Model model) {
@@ -97,7 +98,15 @@ public class ReservationController {
             .collect(Collectors.toList());
         
         //*-- Get all clients with their age category information
-        List<Client> clients = clientRepository.findAll();
+        List<Client> clients = clientRepository.findAllWithCategorieGroupeAge();
+        
+        //*-- Get all override prices for the template
+        List<CategorieGroupeAgeClassePlaceOverride> allOverrides = overrideRepository.findAll();
+        Map<String, Double> overridePriceMap = new HashMap<>();
+        for (CategorieGroupeAgeClassePlaceOverride override : allOverrides) {
+            String key = override.getCategorieGroupeAge().getId() + "_" + override.getClassePlace().getId();
+            overridePriceMap.put(key, override.getPrixOverride());
+        }
         
         System.out.println("=== DEBUG: Reservation Create Form ===");
         System.out.println("Bus Place Types Config: " + busPlaceTypes);
@@ -106,6 +115,7 @@ public class ReservationController {
             .map(cp -> cp.getLibelle()).collect(Collectors.toList()));
         System.out.println("ClassePlace options to show: " + availableClassePlaces.stream()
             .map(ClassePlace::getLibelle).collect(Collectors.toList()));
+        System.out.println("Override prices: " + overridePriceMap);
         
         model.addAttribute("pageTitle", "Nouvelle Réservation");
         model.addAttribute("busVoyage", busVoyage);
@@ -113,7 +123,8 @@ public class ReservationController {
         model.addAttribute("capacity", capacity);
         model.addAttribute("availableSeatsByType", availableSeatsByType);
         model.addAttribute("classePlaces", availableClassePlaces);
-        model.addAttribute("clients", clients);  // Already includes age category info
+        model.addAttribute("clients", clients);
+        model.addAttribute("overridePriceMap", overridePriceMap);
         model.addAttribute("caisses", caisseRepository.findAll());
         model.addAttribute("genres", categorieGenreRepository.findAll());
         model.addAttribute("groupesAge", categorieGroupeAgeRepository.findAll());
@@ -168,10 +179,23 @@ public class ReservationController {
                 client, busVoyage, selectedSeats, seatClasseMap
             );
             
-            //*-- Calculate total price (PricingService will handle enfant discount)
+            //*-- Calculate total price (PricingService will handle age group discounts)
             Double totalPrice = reservations.stream()
                 .mapToDouble(r -> pricingService.calculatePrice(r))
                 .sum();
+            
+            //*-- Check for any discounted seats
+            boolean hasDiscountedSeats = reservations.stream()
+                .anyMatch(r -> {
+                    if (r.getClient() != null && r.getClient().getCategorieGroupeAge() != null && 
+                        r.getClassePlace() != null) {
+                        return overrideRepository.findByCategorieGroupeAgeAndClassePlace(
+                            r.getClient().getCategorieGroupeAge(),
+                            r.getClassePlace()
+                        ).isPresent();
+                    }
+                    return false;
+                });
             
             //*-- Clean up payment inputs
             List<Integer> validCaisseIds = new ArrayList<>();
@@ -229,20 +253,9 @@ public class ReservationController {
                 }
             }
             
-            // Check if any enfant discount was applied
-            boolean hasEnfantDiscount = reservations.stream()
-                .anyMatch(r -> {
-                    if (r.getClient() != null && r.getClient().getCategorieGroupeAge() != null) {
-                        boolean isEnfant = "Enfant (0-12 ans)".equals(r.getClient().getCategorieGroupeAge().getLibelle());
-                        boolean isStandard = r.getClassePlace() != null && "Standard".equals(r.getClassePlace().getLibelle());
-                        return isEnfant && isStandard;
-                    }
-                    return false;
-                });
-            
             String successMessage = selectedSeats.size() + " réservation(s) créée(s) avec succès!";
-            if (hasEnfantDiscount) {
-                successMessage += " (Tarif enfant appliqué pour les places Standard)";
+            if (hasDiscountedSeats) {
+                successMessage += " (Tarifs spéciaux appliqués selon catégorie d'âge)";
             }
             
             redirectAttributes.addFlashAttribute("success", successMessage);

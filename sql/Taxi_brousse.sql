@@ -18,7 +18,6 @@ CREATE TABLE CategorieGenre(
 CREATE TABLE CategorieGroupeAge(
    id_categorieGroupeAge SERIAL,
    libelle VARCHAR(50) ,
-   prix_standard_override DOUBLE PRECISION,
    PRIMARY KEY(id_categorieGroupeAge)
 );
 
@@ -47,6 +46,17 @@ CREATE TABLE ClassePlace(
    libelle VARCHAR(50) ,
    prix_place DOUBLE PRECISION,
    PRIMARY KEY(id_classePlace)
+);
+
+CREATE TABLE CategorieGroupeAge_ClassePlace_Override(
+   id_override SERIAL,
+   prix_override DOUBLE PRECISION NOT NULL,
+   id_categorieGroupeAge INTEGER NOT NULL,
+   id_classePlace INTEGER NOT NULL,
+   PRIMARY KEY(id_override),
+   UNIQUE(id_categorieGroupeAge, id_classePlace),
+   FOREIGN KEY(id_categorieGroupeAge) REFERENCES CategorieGroupeAge(id_categorieGroupeAge),
+   FOREIGN KEY(id_classePlace) REFERENCES ClassePlace(id_classePlace)
 );
 
 CREATE TABLE HistoriquePrixClasse(

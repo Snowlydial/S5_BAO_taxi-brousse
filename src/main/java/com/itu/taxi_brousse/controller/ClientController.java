@@ -3,11 +3,13 @@ package com.itu.taxi_brousse.controller;
 import com.itu.taxi_brousse.entity.Client;
 import com.itu.taxi_brousse.service.ClientService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/clients")
@@ -43,6 +45,36 @@ public class ClientController {
     public String createClient(@ModelAttribute Client client) {
         clientService.saveClient(client);
         return "redirect:/clients";
+    }
+    
+    // NEW: API endpoint for creating client from reservation modal
+    @PostMapping("/create")
+    @ResponseBody
+    public ResponseEntity<?> createClientApi(@RequestBody Map<String, Object> clientData) {
+        try {
+            Client client = new Client();
+            client.setNom((String) clientData.get("nom"));
+            client.setPrenom((String) clientData.get("prenom"));
+            
+            // Set genre
+            if (clientData.get("categorieGenreId") != null) {
+                client.setCategorieGenre(clientService.getCategorieGenreById(
+                    Integer.parseInt(clientData.get("categorieGenreId").toString())
+                ));
+            }
+            
+            // Set age group
+            if (clientData.get("categorieGroupeAgeId") != null) {
+                client.setCategorieGroupeAge(clientService.getCategorieGroupeAgeById(
+                    Integer.parseInt(clientData.get("categorieGroupeAgeId").toString())
+                ));
+            }
+            
+            Client savedClient = clientService.saveClient(client);
+            return ResponseEntity.ok(savedClient);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
     
     @GetMapping("/{id}")

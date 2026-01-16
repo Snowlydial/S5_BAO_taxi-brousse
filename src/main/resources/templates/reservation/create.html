@@ -111,8 +111,8 @@
                                     <option th:each="client : ${clients}" 
                                             th:value="${client.id}" 
                                             th:text="${client.nom + ' ' + client.prenom}"
-                                            th:attr="data-categorie-age=${client.categorieGroupeAge?.libelle}, 
-                                                     data-prix-override=${client.categorieGroupeAge?.prixStandardOverride}">
+                                            th:attr="data-categorie-age-id=${client.categorieGroupeAge?.id}, 
+                                                    data-categorie-age-name=${client.categorieGroupeAge?.libelle}">
                                     </option>
                                 </select>
                                 <div class="form-text text-muted mt-2">
@@ -333,10 +333,12 @@
             const busVoyageDate = /*[[${#temporals.format(busVoyage.dateDepart, 'yyyy-MM-dd')}]]*/ '';
             const classePlaces = /*[[${classePlaces}]]*/ [];
             const availableSeatsByType = /*[[${availableSeatsByType}]]*/ {};
+            const overridePriceMap = /*[[${overridePriceMap}]]*/ {};
             
             console.log('=== DEBUG: Reservation Create Page ===');
             console.log('Available ClassePlaces:', classePlaces);
             console.log('Available Seats By Type:', availableSeatsByType);
+            console.log('Override Price Map:', overridePriceMap);
             
             let selectedSeatsByType = {};
             
@@ -364,8 +366,8 @@
             document.querySelectorAll('#clientSelect option').forEach(option => {
                 if (option.value) {
                     clientInfoMap[option.value] = {
-                        categorieAge: option.dataset.categorieAge,
-                        prixOverride: option.dataset.prixOverride ? parseFloat(option.dataset.prixOverride) : null
+                        categorieAgeId: option.dataset.categorieAgeId,
+                        categorieAgeName: option.dataset.categorieAgeName
                     };
                 }
             });
@@ -409,10 +411,11 @@
                 return clientInfoMap[clientId] || null;
             }
             
-            function isEnfantClient(clientInfo) {
-                return clientInfo &&
-                       clientInfo.categorieAge === 'Enfant (0-12 ans)' &&
-                       clientInfo.prixOverride !== null;
+            function getOverridePrice(clientInfo, classePlaceId) {
+                if (!clientInfo || !clientInfo.categorieAgeId) return null;
+                
+                const key = clientInfo.categorieAgeId + "_" + classePlaceId;
+                return overridePriceMap[key] || null;
             }
             
             function updateSelectedSeats() {
@@ -429,7 +432,6 @@
                     
                     // Get selected client info
                     const clientInfo = getCurrentClientInfo();
-                    const isEnfant = isEnfantClient(clientInfo);
                     
                     // Create class selectors for each seat
                     seatClassSelectors.innerHTML = '';
@@ -440,20 +442,29 @@
                         
                         let optionsHtml = '<option value="">-- Choisir classe --</option>';
                         classePlaces.forEach(cp => {
-                            // Check if this is an enfant selecting Standard place
+                            // Check for override price
                             let displayPrice = cp.prixPlace;
                             let isDiscounted = false;
+                            let originalPrice = cp.prixPlace;
                             
-                            if (isEnfant && cp.libelle === 'Standard' && clientInfo.prixOverride !== null) {
-                                displayPrice = clientInfo.prixOverride;
-                                isDiscounted = true;
+                            if (clientInfo && clientInfo.categorieAgeId) {
+                                const overridePrice = getOverridePrice(clientInfo, cp.id);
+                                if (overridePrice !== null) {
+                                    displayPrice = overridePrice;
+                                    isDiscounted = true;
+                                }
                             }
                             
                             const optionText = isDiscounted ? 
-                                `${cp.libelle} - ${displayPrice.toLocaleString('fr-FR')} Ar (Tarif enfant)` :
+                                `${cp.libelle} - ${displayPrice.toLocaleString('fr-FR')} Ar (Tarif ${clientInfo?.categorieAgeName || 'spécial'})` :
                                 `${cp.libelle} - ${displayPrice.toLocaleString('fr-FR')} Ar`;
                             
-                            optionsHtml += `<option value="${cp.id}" data-prix="${displayPrice}" ${isDiscounted ? 'data-discounted="true"' : ''} data-original-prix="${cp.prixPlace}">${optionText}</option>`;
+                            optionsHtml += `<option value="${cp.id}" 
+                                                data-prix="${displayPrice}" 
+                                                ${isDiscounted ? 'data-discounted="true"' : ''} 
+                                                data-original-prix="${originalPrice}">
+                                                ${optionText}
+                                            </option>`;
                         });
                         
                         div.innerHTML = `
@@ -480,6 +491,7 @@
                             const selectedOption = this.options[this.selectedIndex];
                             const prix = selectedOption.dataset.prix;
                             const isDiscounted = selectedOption.hasAttribute('data-discounted');
+                            const originalPrix = selectedOption.dataset.originalPrix;
                             
                             // Update price display next to select
                             const priceDisplay = this.closest('.seat-class-row').querySelector('.price-display');
@@ -487,7 +499,8 @@
                                 priceDisplay.textContent = parseFloat(prix).toLocaleString('fr-FR') + ' Ar';
                                 if (isDiscounted) {
                                     priceDisplay.classList.add('text-warning');
-                                    priceDisplay.title = 'Tarif enfant appliqué';
+                                    const discount = originalPrix - parseFloat(prix);
+                                    priceDisplay.title = `Tarif spécial: Économie de ${discount.toLocaleString('fr-FR')} Ar`;
                                 } else {
                                     priceDisplay.classList.remove('text-warning');
                                     priceDisplay.title = '';
@@ -518,6 +531,7 @@
                 let total = 0;
                 let hasDiscountedSeats = false;
                 const selects = document.querySelectorAll('.seat-class-select');
+                const clientInfo = getCurrentClientInfo();
                 
                 selects.forEach(select => {
                     const selectedOption = select.options[select.selectedIndex];
@@ -534,6 +548,7 @@
                 // Show discount info if applicable
                 if (hasDiscountedSeats) {
                     discountInfoDiv.style.display = 'block';
+                    discountInfoDiv.innerHTML = `<i class="bi bi-tag me-1"></i> Tarif ${clientInfo?.categorieAgeName || 'spécial'} appliqué`;
                 } else {
                     discountInfoDiv.style.display = 'none';
                 }
@@ -551,10 +566,8 @@
             // Update prices when client changes
             clientSelect.addEventListener('change', function() {
                 const clientInfo = getCurrentClientInfo();
-                const isEnfant = isEnfantClient(clientInfo);
                 
                 console.log('Selected client age category:', clientInfo);
-                console.log('Is enfant:', isEnfant);
                 
                 // Recreate seat class selectors with updated prices if seats are already selected
                 if (document.querySelectorAll('.seat-class-select').length > 0) {
@@ -700,14 +713,14 @@
                         const option = new Option(client.nom + ' ' + client.prenom, client.id, true, true);
                         // Add age category info as data attributes
                         if (client.categorieGroupeAge) {
-                            option.dataset.categorieAge = client.categorieGroupeAge.libelle;
-                            option.dataset.prixOverride = client.categorieGroupeAge.prixStandardOverride || '';
+                            option.dataset.categorieAgeId = client.categorieGroupeAge.id;
+                            option.dataset.categorieAgeName = client.categorieGroupeAge.libelle;
                         }
                         document.getElementById('clientSelect').add(option);
                         // Update client info map
                         clientInfoMap[client.id] = {
-                            categorieAge: client.categorieGroupeAge?.libelle,
-                            prixOverride: client.categorieGroupeAge?.prixStandardOverride
+                            categorieAgeId: client.categorieGroupeAge?.id,
+                            categorieAgeName: client.categorieGroupeAge?.libelle
                         };
                         bootstrap.Modal.getInstance(document.getElementById('createClientModal')).hide();
                         this.reset();
