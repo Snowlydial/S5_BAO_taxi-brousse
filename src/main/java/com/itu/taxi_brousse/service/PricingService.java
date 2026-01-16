@@ -1,6 +1,7 @@
 package com.itu.taxi_brousse.service;
 
 import com.itu.taxi_brousse.entity.BusVoyage;
+import com.itu.taxi_brousse.entity.Reservation;
 import com.itu.taxi_brousse.entity.HistoriquePrixSpecifique;
 import com.itu.taxi_brousse.repository.HistoriquePrixSpecifiqueRepository;
 
@@ -16,6 +17,20 @@ import java.util.List;
 public class PricingService {
     
     private final HistoriquePrixSpecifiqueRepository historiquePrixSpecifiqueRepository;
+    
+    //?=== Calculate price for a reservation based on ClassePlace
+    //*-- Priority: classePlace > busVoyage > voyage > busClasse
+    public Double calculatePrice(Reservation reservation) {
+        // Priority 1: ClassePlace price
+        if (reservation.getClassePlace() != null && 
+            reservation.getClassePlace().getPrixPlace() != null && 
+            reservation.getClassePlace().getPrixPlace() > 0) {
+            return reservation.getClassePlace().getPrixPlace();
+        }
+        
+        // Fallback to BusVoyage price calculation
+        return calculatePrice(reservation.getBusVoyage());
+    }
     
     //?=== Calculate price using hierarchy: Bus_Voyage → Voyage → BusClasse
     public Double calculatePrice(BusVoyage busVoyage) {

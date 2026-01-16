@@ -81,7 +81,7 @@ public class PaiementService {
     //?=== Check if reservation is fully paid
     public boolean isReservationFullyPaid(Reservation reservation) {
         Double totalPaid = getTotalPaid(reservation);
-        Double prixTotal = pricingService.calculatePrice(reservation.getBusVoyage());
+        Double prixTotal = pricingService.calculatePrice(reservation);
         
         return Math.abs(totalPaid - prixTotal) <= 0.01;
     }
@@ -89,14 +89,14 @@ public class PaiementService {
     //?=== Calculate remaining amount to pay
     public Double getRemainingAmount(Reservation reservation) {
         Double totalPaid = getTotalPaid(reservation);
-        Double prixTotal = pricingService.calculatePrice(reservation.getBusVoyage());
+        Double prixTotal = pricingService.calculatePrice(reservation);
         
         return Math.max(0, prixTotal - totalPaid);
     }
     
     //?=== Get payments for auto-complete in UI
     public Map<String, Double> suggestSplitPayments(Reservation reservation, List<Caisse> selectedCaisses) {
-        Double prixTotal = pricingService.calculatePrice(reservation.getBusVoyage());
+        Double prixTotal = pricingService.calculatePrice(reservation);
         Map<String, Double> suggestions = new LinkedHashMap<>();
         
         if (selectedCaisses.isEmpty()) {

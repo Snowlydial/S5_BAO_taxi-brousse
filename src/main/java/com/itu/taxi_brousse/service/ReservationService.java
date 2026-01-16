@@ -73,6 +73,40 @@ public class ReservationService {
         return reservations;
     }
     
+    //?=== Create multiple reservations with ClassePlace
+    @Transactional
+    public List<Reservation> createMultipleReservations(Client client, BusVoyage busVoyage, List<Integer> seatNumbers, Map<Integer, ClassePlace> seatClasseMap) {
+        List<Reservation> reservations = new ArrayList<>();
+        
+        for (Integer seatNumber : seatNumbers) {
+            //*-- Validate each seat
+            if (!availabilityService.isSeatAvailable(busVoyage, seatNumber)) {
+                throw new RuntimeException("Seat " + seatNumber + " is not available");
+            }
+            
+            ClassePlace classePlace = seatClasseMap.get(seatNumber);
+            
+            Reservation reservation = Reservation.builder()
+                    .numeroPlace(seatNumber)
+                    .classePlace(classePlace)
+                    .client(client)
+                    .busVoyage(busVoyage)
+                    .build();
+            
+            reservations.add(reservation);
+        }
+        
+        //*-- Save all reservations
+        reservations = reservationRepository.saveAll(reservations);
+        
+        //*-- Create active status for each reservation
+        for (Reservation reservation : reservations) {
+            reservationStatutService.createActiveStatus(reservation);
+        }
+        
+        return reservations;
+    }
+    
     //?=== Cancel a reservation with specific date
     @Transactional
     public void cancelReservation(Integer reservationId, LocalDate dateAnnulation) {

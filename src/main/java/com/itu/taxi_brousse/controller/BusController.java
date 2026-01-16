@@ -3,6 +3,7 @@ package com.itu.taxi_brousse.controller;
 import com.itu.taxi_brousse.entity.Bus;
 import com.itu.taxi_brousse.entity.BusBusConf;
 import com.itu.taxi_brousse.entity.BusConf;
+import com.itu.taxi_brousse.entity.ClassePlace;
 import com.itu.taxi_brousse.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -10,7 +11,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -23,15 +26,50 @@ public class BusController {
     private final BusClasseRepository busClasseRepository;
     private final BusConfRepository busConfRepository;
     private final BusBusConfRepository busBusConfRepository;
+    private final ClassePlaceRepository classePlaceRepository;
     
     //?=== List all buses
     @GetMapping("/list")
     public String listBuses(Model model) {
         List<Bus> buses = busRepository.findAll();
         
+        // Get ClassePlace prices
+        ClassePlace premium = classePlaceRepository.findByLibelleIgnoreCase("Premium").orElse(null);
+        ClassePlace vip = classePlaceRepository.findByLibelleIgnoreCase("VIP").orElse(null);
+        ClassePlace standard = classePlaceRepository.findByLibelleIgnoreCase("Standard").orElse(null);
+        
+        Double prixPremium = (premium != null) ? premium.getPrixPlace() : 0.0;
+        Double prixVip = (vip!=null) ? vip.getPrixPlace():0.0;
+        Double prixStandard = (standard != null) ? standard.getPrixPlace() : 0.0;
+        
+        // Calculate potential revenue for each bus
+        Map<Integer, Double> revenueMap = new HashMap<>();
+        for (Bus bus : buses) {
+            List<BusBusConf> configs = busBusConfRepository.findByBus(bus);
+            
+            Integer nbPremium = 0;
+            Integer nbStandard = 0;
+            Integer nbVip = 0;
+            
+            for (BusBusConf config : configs) {
+                String libelle = config.getBusConf().getLibelle().toLowerCase();
+                if ("nb_place_premium".equals(libelle)) {
+                    nbPremium = Integer.parseInt(config.getBusConf().getValeur());
+                } else if ("nb_place_standard".equals(libelle)) {
+                    nbStandard = Integer.parseInt(config.getBusConf().getValeur());
+                } else if ("nb_place_VIP".equals(libelle)) {
+                    nbVip = Integer.parseInt(config.getBusConf().getValeur());
+                }
+            }
+            
+            Double revenue = (nbPremium * prixPremium) + (nbStandard * prixStandard) + (nbVip * prixVip);
+            revenueMap.put(bus.getId(), revenue);
+        }
+        
         model.addAttribute("pageTitle", "Gestion des Bus");
         model.addAttribute("buses", buses);
         model.addAttribute("busBusConfRepository", busBusConfRepository);
+        model.addAttribute("revenueMap", revenueMap);
         
         return "bus/list";
     }

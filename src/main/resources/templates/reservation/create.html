@@ -76,22 +76,6 @@
                                     </div>
                                 </div>
                                 
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-lg bg-light-warning p-3 me-3 d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-cash-stack fs-4 d-flex align-items-center justify-content-center"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0">Prix / Place</h6>
-                                        <p class="mb-0 text-success fw-bold">
-                                            <span th:text="${#numbers.formatDecimal(price, 0, 'COMMA', 0, 'POINT')}"></span> Ar
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row mt-3">
-                            <div class="col-12">
                                 <div class="d-flex justify-content-between border-top pt-3">
                                     <div class="d-flex align-items-center">
                                         <i class="bi bi-clock-history text-primary me-2"></i>
@@ -175,7 +159,8 @@
                         <h4 class="card-title">Sélectionner Place(s)</h4>
                         <p class="text-subtitle text-muted">
                             <i class="bi bi-info-circle me-1"></i>
-                            <span>Places disponibles: <span th:text="${#lists.size(availableSeats)}" class="fw-bold"></span></span>
+                            <span class="badge bg-warning me-2">Premium: <span th:text="${availablePremium}" id="availablePremiumBadge"></span> dispo</span>
+                            <span class="badge bg-info">Standard: <span th:text="${availableStandard}" id="availableStandardBadge"></span> dispo</span>
                         </p>
                     </div>
                     <div class="card-content">
@@ -197,7 +182,13 @@
                                 </div>
                             </div>
                             
-                            <div id="selectedSeatsInfo" class="alert alert-light-info" style="display: none;">
+                            <!-- Selected Seats Details -->
+                            <div id="selectedSeatsDetails" style="display: none;">
+                                <h6 class="mb-3">Classe des places sélectionnées:</h6>
+                                <div id="seatClassSelectors"></div>
+                            </div>
+                            
+                            <div id="selectedSeatsInfo" class="alert alert-light-info mt-3" style="display: none;">
                                 <div class="alert-body">
                                     <i class="bi bi-check-circle text-info me-2"></i>
                                     <div>
@@ -327,13 +318,20 @@
     </div>
     
     <div layout:fragment="scripts">
-        <!-- Your existing JavaScript remains unchanged -->
         <script th:inline="javascript">
-            const pricePerSeat = /*[[${price}]]*/ 0;
             const busVoyageDate = /*[[${#temporals.format(busVoyage.dateDepart, 'yyyy-MM-dd')}]]*/ '';
+            const classePlaces = /*[[${classePlaces}]]*/ [];
+            const availablePremiumCount = /*[[${availablePremium}]]*/ 0;
+            const availableStandardCount = /*[[${availableStandard}]]*/ 0;
+            
+            let selectedPremiumCount = 0;
+            let selectedStandardCount = 0;
+            
             const seatCheckboxes = document.querySelectorAll('.seat-checkbox');
             const selectedSeatsInfo = document.getElementById('selectedSeatsInfo');
             const selectedSeatsList = document.getElementById('selectedSeatsList');
+            const selectedSeatsDetails = document.getElementById('selectedSeatsDetails');
+            const seatClassSelectors = document.getElementById('seatClassSelectors');
             const totalAmountSpan = document.getElementById('totalAmount');
             const submitBtn = document.getElementById('submitBtn');
             const multiplePaymentToggle = document.getElementById('multiplePaymentToggle');
@@ -347,6 +345,29 @@
             dateReservationInput.value = dateToUse;
             dateReservationInput.max = busVoyageDate;
             
+            function countSeatClasses() {
+                selectedPremiumCount = 0;
+                selectedStandardCount = 0;
+                
+                const selects = document.querySelectorAll('.seat-class-select');
+                selects.forEach(select => {
+                    const selectedOption = classePlaces.find(cp => cp.id == select.value);
+                    if (selectedOption) {
+                        if (selectedOption.libelle.toLowerCase() === 'premium') {
+                            selectedPremiumCount++;
+                        } else if (selectedOption.libelle.toLowerCase() === 'standard') {
+                            selectedStandardCount++;
+                        }
+                    }
+                });
+                
+                // Update badges
+                document.getElementById('availablePremiumBadge').textContent = 
+                    (availablePremiumCount - selectedPremiumCount);
+                document.getElementById('availableStandardBadge').textContent = 
+                    (availableStandardCount - selectedStandardCount);
+            }
+            
             function updateSelectedSeats() {
                 const selected = Array.from(seatCheckboxes)
                     .filter(cb => cb.checked && !cb.disabled)
@@ -354,16 +375,67 @@
                 
                 if (selected.length > 0) {
                     selectedSeatsInfo.style.display = 'block';
+                    selectedSeatsDetails.style.display = 'block';
                     selectedSeatsList.textContent = selected.join(', ');
-                    const total = selected.length * pricePerSeat;
-                    totalAmountSpan.textContent = total.toLocaleString('fr-FR', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                    
+                    // Create class selectors for each seat
+                    seatClassSelectors.innerHTML = '';
+                    selected.forEach(seatNum => {
+                        const div = document.createElement('div');
+                        div.className = 'row mb-2 align-items-center';
+                        div.innerHTML = `
+                            <div class="col-auto">
+                                <span class="badge bg-primary">Place ${seatNum}</span>
+                            </div>
+                            <div class="col">
+                                <select name="seatClasses" class="form-select seat-class-select" required data-seat="${seatNum}">
+                                    <option value="">-- Choisir classe --</option>
+                                    ${classePlaces.map(cp => 
+                                        `<option value="${cp.id}" data-prix="${cp.prixPlace}">
+                                            ${cp.libelle} - ${cp.prixPlace.toLocaleString('fr-FR')} Ar
+                                        </option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+                        `;
+                        seatClassSelectors.appendChild(div);
+                    });
+                    
+                    // Add event listeners to new selects
+                    document.querySelectorAll('.seat-class-select').forEach(select => {
+                        select.addEventListener('change', calculateTotal);
+                    });
+                    
+                    calculateTotal();
                     submitBtn.disabled = false;
                 } else {
                     selectedSeatsInfo.style.display = 'none';
+                    selectedSeatsDetails.style.display = 'none';
+                    seatClassSelectors.innerHTML = '';
                     submitBtn.disabled = true;
                 }
                 
+                countSeatClasses();
                 updateRemainingAmount();
+            }
+            
+            function calculateTotal() {
+                let total = 0;
+                const selects = document.querySelectorAll('.seat-class-select');
+                
+                selects.forEach(select => {
+                    const selectedOption = select.options[select.selectedIndex];
+                    if (selectedOption && selectedOption.dataset.prix) {
+                        total += parseFloat(selectedOption.dataset.prix);
+                    }
+                });
+                
+                totalAmountSpan.textContent = total.toLocaleString('fr-FR', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                
+                countSeatClasses();
+                updateRemainingAmount();
+                
+                return total;
             }
             
             seatCheckboxes.forEach(cb => {
@@ -374,19 +446,15 @@
                 if (this.checked) {
                     singlePayment.style.display = 'none';
                     multiplePayment.style.display = 'block';
-                    // Disable single payment select
                     document.querySelector('.single-caisse').disabled = true;
                     document.querySelector('.single-caisse').removeAttribute('required');
-                    // Enable multiple payment inputs
                     document.querySelectorAll('.payment-row select').forEach(s => s.disabled = false);
                     document.querySelectorAll('.payment-row input').forEach(i => i.disabled = false);
                 } else {
                     singlePayment.style.display = 'block';
                     multiplePayment.style.display = 'none';
-                    // Enable single payment select
                     document.querySelector('.single-caisse').disabled = false;
                     document.querySelector('.single-caisse').setAttribute('required', '');
-                    // Disable multiple payment inputs so they won't be submitted
                     document.querySelectorAll('.payment-row select').forEach(s => s.disabled = true);
                     document.querySelectorAll('.payment-row input').forEach(i => i.disabled = true);
                 }
@@ -401,28 +469,22 @@
                 updateRemainingAmount();
             });
             
-            // Validate payment amounts - no negatives, enforce limits
             document.getElementById('paymentMethods').addEventListener('input', function(e) {
                 if (e.target.classList.contains('montant-input')) {
-                    const selected = Array.from(seatCheckboxes).filter(cb => cb.checked && !cb.disabled);
-                    const totalPrice = selected.length * pricePerSeat;
-                    
+                    const totalPrice = calculateTotal();
                     let value = parseFloat(e.target.value) || 0;
                     
-                    // No negatives
                     if (value < 0) {
                         value = 0;
                         e.target.value = 0;
                     }
                     
-                    // Calculate current total from all inputs
                     const montantInputs = Array.from(document.querySelectorAll('.montant-input'));
                     const currentTotal = montantInputs.reduce((sum, input) => {
-                        if (input === e.target) return sum; // Skip current input being edited
+                        if (input === e.target) return sum;
                         return sum + (parseFloat(input.value) || 0);
                     }, 0);
                     
-                    // Max this input can be is: totalPrice - otherInputsTotal
                     const maxAllowed = totalPrice - currentTotal;
                     
                     if (value > maxAllowed) {
@@ -435,9 +497,7 @@
             function updateRemainingAmount() {
                 if (!multiplePaymentToggle.checked) return;
                 
-                const selected = Array.from(seatCheckboxes).filter(cb => cb.checked && !cb.disabled);
-                const totalPrice = selected.length * pricePerSeat;
-                
+                const totalPrice = calculateTotal();
                 const montantInputs = Array.from(document.querySelectorAll('.montant-input'));
                 const totalPaid = montantInputs.reduce((sum, input) => {
                     return sum + (parseFloat(input.value) || 0);
@@ -463,9 +523,36 @@
             }
             
             document.getElementById('reservationForm').addEventListener('submit', function(e) {
+                // Validate seat classes are selected
+                const selects = document.querySelectorAll('.seat-class-select');
+                let allSelected = true;
+                selects.forEach(select => {
+                    if (!select.value) {
+                        allSelected = false;
+                    }
+                });
+                
+                if (!allSelected) {
+                    e.preventDefault();
+                    alert('Veuillez sélectionner une classe pour chaque place');
+                    return false;
+                }
+                
+                // Validate premium/standard counts
+                if (selectedPremiumCount > availablePremiumCount) {
+                    e.preventDefault();
+                    alert(`Trop de places Premium sélectionnées (${selectedPremiumCount}/${availablePremiumCount})`);
+                    return false;
+                }
+                
+                if (selectedStandardCount > availableStandardCount) {
+                    e.preventDefault();
+                    alert(`Trop de places Standard sélectionnées (${selectedStandardCount}/${availableStandardCount})`);
+                    return false;
+                }
+                
                 if (multiplePaymentToggle.checked) {
-                    const selected = Array.from(seatCheckboxes).filter(cb => cb.checked && !cb.disabled);
-                    const totalPrice = selected.length * pricePerSeat;
+                    const totalPrice = calculateTotal();
                     const montantInputs = Array.from(document.querySelectorAll('.montant-input'));
                     const totalPaid = montantInputs.reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
                     
@@ -492,10 +579,8 @@
                     
                     if (response.ok) {
                         const client = await response.json();
-                        // Add to dropdown
                         const option = new Option(client.nom + ' ' + client.prenom, client.id, true, true);
                         document.getElementById('clientSelect').add(option);
-                        // Close modal
                         bootstrap.Modal.getInstance(document.getElementById('createClientModal')).hide();
                         this.reset();
                     } else {

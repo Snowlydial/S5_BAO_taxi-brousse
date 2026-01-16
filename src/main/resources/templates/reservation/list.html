@@ -172,7 +172,7 @@
                                 <tbody>
                                     <tr th:each="reservation : ${reservations}"
                                         th:with="statut=${reservationStatutService.getLatestStatut(reservation)},
-                                                price=${reservation.busVoyage.prixSpecifique != null ? reservation.busVoyage.prixSpecifique : (reservation.busVoyage.voyage.prixVoyage != null ? reservation.busVoyage.voyage.prixVoyage : reservation.busVoyage.bus.busClasse.prixClasse)},
+                                                price=${reservationPrices.get(reservation.id)},
                                                 firstPaiement=${reservation.paiements.isEmpty() ? null : reservation.paiements.get(0)}"
                                         th:attr="data-date-depart=${#temporals.format(reservation.busVoyage.dateDepart, 'yyyy-MM-dd')},
                                                  data-heure-depart=${#temporals.format(reservation.busVoyage.heureDepart, 'HH:mm')},
@@ -392,10 +392,8 @@
                     document.getElementById('filterStatut').value = '';
                     document.getElementById('filterDateMin').value = '';
                     document.getElementById('filterDateMax').value = '';
-                    
-                    // Show all rows
-                    const rows = table.querySelectorAll('tbody tr');
-                    rows.forEach(row => row.style.display = '');
+                    document.getElementById('filterHeureMin').value = '';
+                    applyFilters();
                 });
             });
         </script>
