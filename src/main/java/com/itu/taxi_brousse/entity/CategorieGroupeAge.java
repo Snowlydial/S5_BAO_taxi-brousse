@@ -20,4 +20,10 @@ public class CategorieGroupeAge {
     
     @Column(name = "prix_standard_override")
     private Double prixStandardOverride;
+    
+    @Column(name = "prix_premium_override")
+    private Double prixPremiumOverride;
+    
+    @Column(name = "prix_vip_override")
+    private Double prixVipOverride;
 }

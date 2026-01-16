@@ -1,6 +1,7 @@
 package com.itu.taxi_brousse.service;
 
 import com.itu.taxi_brousse.entity.BusVoyage;
+import com.itu.taxi_brousse.entity.CategorieGroupeAge;
 import com.itu.taxi_brousse.entity.Reservation;
 import com.itu.taxi_brousse.entity.HistoriquePrixSpecifique;
 import com.itu.taxi_brousse.repository.HistoriquePrixSpecifiqueRepository;
@@ -20,70 +21,66 @@ public class PricingService {
     
     //?=== Calculate price for a reservation with age category discounts
     public Double calculatePrice(Reservation reservation) {
-        // Priority 1: Check for enfant discount on standard place
-        if (shouldApplyEnfantDiscount(reservation)) {
-            return reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride();
+        if (reservation.getClassePlace() == null || reservation.getClient() == null) {
+            return calculatePrice(reservation.getBusVoyage());
         }
         
-        // Priority 2: Check for senior discount (20% off for all ClassePlace types)
-        if (shouldApplySeniorDiscount(reservation)) {
-            Double basePrice = getBasePriceForReservation(reservation);
-            Double discountRate = reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride();
-            return basePrice * (1 + discountRate); // discountRate is -0.20, so 1 - 0.20 = 0.80
+        String classePlaceType = reservation.getClassePlace().getLibelle();
+        String ageCategory = reservation.getClient().getCategorieGroupeAge().getLibelle();
+        
+        // For adult and enfant: use specific override prices
+        if (ageCategory.equals("Adulte (18-59 ans)") || ageCategory.equals("Enfant (0-12 ans)")) {
+            Double overridePrice = getOverridePrice(reservation.getClient().getCategorieGroupeAge(), classePlaceType);
+            if (overridePrice != null && overridePrice > 0) {
+                return overridePrice;
+            }
+        }
+        // For senior: apply percentage discount to adult prices
+        else if (ageCategory.equals("Senior (60+ ans)")) {
+            Double adultPrice = getAdultPriceForClassePlace(classePlaceType);
+            Double discountRate = reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride(); // -0.20
+            if (adultPrice != null && discountRate != null) {
+                return adultPrice * (1 + discountRate); // discountRate is negative, e.g., -0.20
+            }
         }
         
-        // Priority 3: ClassePlace price
-        if (reservation.getClassePlace() != null && 
-            reservation.getClassePlace().getPrixPlace() != null && 
+        // Fallback to ClassePlace price or BusVoyage price
+        if (reservation.getClassePlace().getPrixPlace() != null && 
             reservation.getClassePlace().getPrixPlace() > 0) {
             return reservation.getClassePlace().getPrixPlace();
         }
         
-        // Fallback to BusVoyage price calculation
         return calculatePrice(reservation.getBusVoyage());
     }
     
-    //?=== Check if enfant discount should be applied
-    private boolean shouldApplyEnfantDiscount(Reservation reservation) {
-        // Check if client is enfant
-        boolean isEnfant = reservation.getClient() != null && 
-                          reservation.getClient().getCategorieGroupeAge() != null &&
-                          "Enfant (0-12 ans)".equals(reservation.getClient().getCategorieGroupeAge().getLibelle());
-        
-        // Check if place is standard
-        boolean isStandardPlace = reservation.getClassePlace() != null && 
-                                 "Standard".equals(reservation.getClassePlace().getLibelle());
-        
-        // Check if override price is set
-        boolean hasOverridePrice = reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride() != null;
-        
-        return isEnfant && isStandardPlace && hasOverridePrice;
-    }
-    
-    //?=== Check if senior discount should be applied
-    private boolean shouldApplySeniorDiscount(Reservation reservation) {
-        // Check if client is senior
-        boolean isSenior = reservation.getClient() != null && 
-                          reservation.getClient().getCategorieGroupeAge() != null &&
-                          "Senior (60+ ans)".equals(reservation.getClient().getCategorieGroupeAge().getLibelle());
-        
-        // Check if discount rate is set (should be -0.20)
-        boolean hasDiscountRate = reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride() != null;
-        
-        return isSenior && hasDiscountRate;
-    }
-    
-    //?=== Get base price for reservation (for senior discount calculation)
-    private Double getBasePriceForReservation(Reservation reservation) {
-        // First check ClassePlace price
-        if (reservation.getClassePlace() != null && 
-            reservation.getClassePlace().getPrixPlace() != null && 
-            reservation.getClassePlace().getPrixPlace() > 0) {
-            return reservation.getClassePlace().getPrixPlace();
+    //?=== Get override price for specific classe place type
+    private Double getOverridePrice(CategorieGroupeAge ageCategory, String classePlaceType) {
+        switch (classePlaceType) {
+            case "Standard":
+                return ageCategory.getPrixStandardOverride();
+            case "Premium":
+                return ageCategory.getPrixPremiumOverride();
+            case "VIP":
+                return ageCategory.getPrixVipOverride();
+            default:
+                return null;
         }
-        
-        // Fallback to BusVoyage price
-        return calculatePrice(reservation.getBusVoyage());
+    }
+    
+    //?=== Get adult price for specific classe place type
+    private Double getAdultPriceForClassePlace(String classePlaceType) {
+        // This should come from database - you might need to inject a repository
+        // For now, return the base ClassePlace prices or hardcoded adult prices
+        switch (classePlaceType) {
+            case "Standard":
+                return 50000.0; // Adult Standard price
+            case "Premium":
+                return 60000.0; // Adult Premium price
+            case "VIP":
+                return 70000.0; // Adult VIP price
+            default:
+                return null;
+        }
     }
     
     //?=== Calculate price using hierarchy: Bus_Voyage → Voyage → BusClasse

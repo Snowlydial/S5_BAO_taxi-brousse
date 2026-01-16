@@ -109,9 +109,9 @@ INSERT INTO Bus (immatriculation, id_busClasse) VALUES
 
 -- BusConf for mixed place types (VIP, Premium, Standard)
 INSERT INTO BusConf (libelle, valeur) VALUES 
-('nb_place_VIP', '2'),
-('nb_place_premium', '6'),
-('nb_place_standard', '10');
+('nb_place_VIP', '20'),
+('nb_place_premium', '20'),
+('nb_place_standard', '20');
 
 INSERT INTO Bus_BusConf (id_bus, id_busConf) VALUES 
 (4, 8),  -- nb_place_VIP: 2 (id = 7 from new insert)
@@ -136,3 +136,26 @@ INSERT INTO Voyage (duree, prix_voyage, id_gare_1, id_gare_2) VALUES
 INSERT INTO Bus_Voyage (heure_depart, date_depart, prix_specifique, id_bus, id_voyage) VALUES 
 ('07:00:00', '2026-01-27', NULL, 4, 7);
 
+-- First, add the new columns if they don't exist
+ALTER TABLE CategorieGroupeAge 
+ADD COLUMN IF NOT EXISTS prix_premium_override DOUBLE PRECISION,
+ADD COLUMN IF NOT EXISTS prix_vip_override DOUBLE PRECISION;
+
+-- Then update the data with the new prices
+UPDATE CategorieGroupeAge SET 
+    prix_standard_override = 40000,
+    prix_premium_override = 50000,
+    prix_vip_override = 65000
+WHERE libelle = 'Enfant (0-12 ans)';
+
+UPDATE CategorieGroupeAge SET 
+    prix_standard_override = 50000,
+    prix_premium_override = 60000,
+    prix_vip_override = 70000
+WHERE libelle = 'Adulte (18-59 ans)';
+
+UPDATE CategorieGroupeAge SET 
+    prix_standard_override = -0.20,  -- 20% discount
+    prix_premium_override = -0.20,    -- 20% discount
+    prix_vip_override = -0.20         -- 20% discount
+WHERE libelle = 'Senior (60+ ans)';

@@ -112,7 +112,9 @@
                                             th:value="${client.id}" 
                                             th:text="${client.nom + ' ' + client.prenom}"
                                             th:attr="data-categorie-age=${client.categorieGroupeAge?.libelle}, 
-                                                     data-prix-override=${client.categorieGroupeAge?.prixStandardOverride}">
+                                                    data-prix-standard-override=${client.categorieGroupeAge?.prixStandardOverride}, 
+                                                    data-prix-premium-override=${client.categorieGroupeAge?.prixPremiumOverride}, 
+                                                    data-prix-vip-override=${client.categorieGroupeAge?.prixVipOverride}">
                                     </option>
                                 </select>
                                 <div class="form-text text-muted mt-2">
@@ -425,28 +427,59 @@
                        clientInfo.prixOverride !== null;
             }
             
-            function calculatePriceForClassePlace(classePlace, clientInfo) {
+           function calculatePriceForClassePlace(classePlace, clientInfo) {
                 let basePrice = classePlace.prixPlace;
                 let finalPrice = basePrice;
                 let discountType = '';
                 
-                // Check for enfant discount (Standard place only)
-                if (isEnfantClient(clientInfo) && classePlace.libelle === 'Standard') {
-                    finalPrice = clientInfo.prixOverride; // Fixed enfant price
-                    discountType = 'enfant';
+                const ageCategory = clientInfo.categorieAge;
+                const isEnfant = ageCategory === 'Enfant (0-12 ans)';
+                const isAdulte = ageCategory === 'Adulte (18-59 ans)';
+                const isSenior = ageCategory === 'Senior (60+ ans)';
+                
+                // Adult and enfant have specific override prices
+                if (isEnfant || isAdulte) {
+                    // Use the appropriate override price based on classe place type
+                    let overridePrice = null;
+                    if (classePlace.libelle === 'Standard') {
+                        overridePrice = clientInfo.prixStandardOverride;
+                    } else if (classePlace.libelle === 'Premium') {
+                        overridePrice = clientInfo.prixPremiumOverride;
+                    } else if (classePlace.libelle === 'VIP') {
+                        overridePrice = clientInfo.prixVipOverride;
+                    }
+                    
+                    if (overridePrice && overridePrice > 0) {
+                        finalPrice = overridePrice;
+                        discountType = isEnfant ? 'enfant' : 'adulte';
+                    }
                 }
-                // Check for senior discount (all ClassePlace types)
-                else if (isSeniorClient(clientInfo)) {
-                    const discountRate = clientInfo.prixOverride; // Should be -0.20
-                    finalPrice = basePrice * (1 + discountRate);
-                    discountType = 'senior';
+                // Senior gets percentage discount from adult prices
+                else if (isSenior) {
+                    const discountRate = clientInfo.prixStandardOverride; // Should be -0.20
+                    // Get adult price for this classe place
+                    let adultPrice = 0;
+                    if (classePlace.libelle === 'Standard') {
+                        adultPrice = 50000; // Adult Standard price
+                    } else if (classePlace.libelle === 'Premium') {
+                        adultPrice = 60000; // Adult Premium price
+                    } else if (classePlace.libelle === 'VIP') {
+                        adultPrice = 70000; // Adult VIP price
+                    }
+                    
+                    if (discountRate && adultPrice > 0) {
+                        finalPrice = adultPrice * (1 + discountRate);
+                        discountType = 'senior';
+                    }
                 }
                 
                 return {
                     basePrice: basePrice,
                     finalPrice: finalPrice,
                     discountType: discountType,
-                    discountPercent: discountType === 'senior' ? '20%' : ''
+                    discountPercent: discountType === 'senior' ? '20%' : '',
+                    originalPrice: discountType === 'senior' ? (classePlace.libelle === 'Standard' ? 50000 : 
+                                                            classePlace.libelle === 'Premium' ? 60000 : 70000) : basePrice
                 };
             }
             
