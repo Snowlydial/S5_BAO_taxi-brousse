@@ -22,8 +22,9 @@ public class PaiementService {
     //?=== Create single payment for a reservation with custom date
     @Transactional
     public Paiement createSinglePayment(Reservation reservation, Caisse caisse, LocalDateTime datePaiement) {
-        //*-- Calculate price at payment time
-        Double prixTotal = pricingService.calculatePrice(reservation.getBusVoyage());
+        //*-- Calculate price at payment time using reservation-specific pricing
+        //*-- This will handle enfant discount, classe place prices, etc.
+        Double prixTotal = pricingService.calculatePrice(reservation);
         
         Paiement paiement = Paiement.builder()
                 .datePaiement(datePaiement)

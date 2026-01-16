@@ -18,10 +18,14 @@ public class PricingService {
     
     private final HistoriquePrixSpecifiqueRepository historiquePrixSpecifiqueRepository;
     
-    //?=== Calculate price for a reservation based on ClassePlace
-    //*-- Priority: classePlace > busVoyage > voyage > busClasse
+    //?=== Calculate price for a reservation with enfant discount
     public Double calculatePrice(Reservation reservation) {
-        // Priority 1: ClassePlace price
+        // Priority 1: Check for enfant discount on standard place
+        if (shouldApplyEnfantDiscount(reservation)) {
+            return reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride();
+        }
+        
+        // Priority 2: ClassePlace price
         if (reservation.getClassePlace() != null && 
             reservation.getClassePlace().getPrixPlace() != null && 
             reservation.getClassePlace().getPrixPlace() > 0) {
@@ -30,6 +34,23 @@ public class PricingService {
         
         // Fallback to BusVoyage price calculation
         return calculatePrice(reservation.getBusVoyage());
+    }
+    
+    //?=== Check if enfant discount should be applied
+    private boolean shouldApplyEnfantDiscount(Reservation reservation) {
+        // Check if client is enfant
+        boolean isEnfant = reservation.getClient() != null && 
+                          reservation.getClient().getCategorieGroupeAge() != null &&
+                          "Enfant (0-12 ans)".equals(reservation.getClient().getCategorieGroupeAge().getLibelle());
+        
+        // Check if place is standard
+        boolean isStandardPlace = reservation.getClassePlace() != null && 
+                                 "Standard".equals(reservation.getClassePlace().getLibelle());
+        
+        // Check if override price is set
+        boolean hasOverridePrice = reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride() != null;
+        
+        return isEnfant && isStandardPlace && hasOverridePrice;
     }
     
     //?=== Calculate price using hierarchy: Bus_Voyage → Voyage → BusClasse

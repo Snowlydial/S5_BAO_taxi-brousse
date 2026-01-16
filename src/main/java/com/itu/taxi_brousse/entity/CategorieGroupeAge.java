@@ -18,4 +18,6 @@ public class CategorieGroupeAge {
     @Column(name = "libelle", length = 50)
     private String libelle;
     
+    @Column(name = "prix_standard_override")
+    private Double prixStandardOverride;
 }

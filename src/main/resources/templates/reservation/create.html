@@ -110,7 +110,10 @@
                                     <option value="">-- Choisir un client --</option>
                                     <option th:each="client : ${clients}" 
                                             th:value="${client.id}" 
-                                            th:text="${client.nom + ' ' + client.prenom}"></option>
+                                            th:text="${client.nom + ' ' + client.prenom}"
+                                            th:attr="data-categorie-age=${client.categorieGroupeAge?.libelle}, 
+                                                     data-prix-override=${client.categorieGroupeAge?.prixStandardOverride}">
+                                    </option>
                                 </select>
                                 <div class="form-text text-muted mt-2">
                                     Pas dans la liste?
@@ -199,6 +202,9 @@
                                     <div>
                                         <strong>Place(s) sélectionnée(s):</strong> <span id="selectedSeatsList" class="fw-bold"></span><br>
                                         <strong>Montant total:</strong> <span id="totalAmount" class="text-success fw-bold"></span> Ar
+                                        <div id="discountInfo" class="text-warning small mt-1" style="display: none;">
+                                            <i class="bi bi-tag me-1"></i> Tarif enfant appliqué pour les places Standard
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -345,11 +351,26 @@
             const selectedSeatsDetails = document.getElementById('selectedSeatsDetails');
             const seatClassSelectors = document.getElementById('seatClassSelectors');
             const totalAmountSpan = document.getElementById('totalAmount');
+            const discountInfoDiv = document.getElementById('discountInfo');
             const submitBtn = document.getElementById('submitBtn');
+            const clientSelect = document.getElementById('clientSelect');
             const multiplePaymentToggle = document.getElementById('multiplePaymentToggle');
             const singlePayment = document.getElementById('singlePayment');
             const multiplePayment = document.getElementById('multiplePayment');
             const dateReservationInput = document.getElementById('dateReservation');
+            
+            // Store client information from options
+            const clientInfoMap = {};
+            document.querySelectorAll('#clientSelect option').forEach(option => {
+                if (option.value) {
+                    clientInfoMap[option.value] = {
+                        categorieAge: option.dataset.categorieAge,
+                        prixOverride: option.dataset.prixOverride ? parseFloat(option.dataset.prixOverride) : null
+                    };
+                }
+            });
+            
+            console.log('Client info map:', clientInfoMap);
             
             //*-- Set default date to today
             const today = new Date().toISOString().split('T')[0];
@@ -383,6 +404,17 @@
                 });
             }
             
+            function getCurrentClientInfo() {
+                const clientId = clientSelect.value;
+                return clientInfoMap[clientId] || null;
+            }
+            
+            function isEnfantClient(clientInfo) {
+                return clientInfo &&
+                       clientInfo.categorieAge === 'Enfant (0-12 ans)' &&
+                       clientInfo.prixOverride !== null;
+            }
+            
             function updateSelectedSeats() {
                 const selected = Array.from(seatCheckboxes)
                     .filter(cb => cb.checked && !cb.disabled)
@@ -395,35 +427,77 @@
                     selectedSeatsDetails.style.display = 'block';
                     selectedSeatsList.textContent = selected.join(', ');
                     
+                    // Get selected client info
+                    const clientInfo = getCurrentClientInfo();
+                    const isEnfant = isEnfantClient(clientInfo);
+                    
                     // Create class selectors for each seat
                     seatClassSelectors.innerHTML = '';
                     selected.forEach(seatNum => {
                         const div = document.createElement('div');
-                        div.className = 'row mb-2 align-items-center';
+                        div.className = 'row mb-2 align-items-center seat-class-row';
+                        div.dataset.seat = seatNum;
+                        
+                        let optionsHtml = '<option value="">-- Choisir classe --</option>';
+                        classePlaces.forEach(cp => {
+                            // Check if this is an enfant selecting Standard place
+                            let displayPrice = cp.prixPlace;
+                            let isDiscounted = false;
+                            
+                            if (isEnfant && cp.libelle === 'Standard' && clientInfo.prixOverride !== null) {
+                                displayPrice = clientInfo.prixOverride;
+                                isDiscounted = true;
+                            }
+                            
+                            const optionText = isDiscounted ? 
+                                `${cp.libelle} - ${displayPrice.toLocaleString('fr-FR')} Ar (Tarif enfant)` :
+                                `${cp.libelle} - ${displayPrice.toLocaleString('fr-FR')} Ar`;
+                            
+                            optionsHtml += `<option value="${cp.id}" data-prix="${displayPrice}" ${isDiscounted ? 'data-discounted="true"' : ''} data-original-prix="${cp.prixPlace}">${optionText}</option>`;
+                        });
+                        
                         div.innerHTML = `
                             <div class="col-auto">
                                 <span class="badge bg-primary">Place ${seatNum}</span>
                             </div>
                             <div class="col">
                                 <select name="seatClasses" class="form-select seat-class-select" required data-seat="${seatNum}">
-                                    <option value="">-- Choisir classe --</option>
-                                    ${classePlaces.map(cp => 
-                                        `<option value="${cp.id}" data-prix="${cp.prixPlace}">
-                                            ${cp.libelle} - ${cp.prixPlace.toLocaleString('fr-FR')} Ar
-                                        </option>`
-                                    ).join('')}
+                                    ${optionsHtml}
                                 </select>
+                            </div>
+                            <div class="col-auto">
+                                <span class="price-display text-success fw-bold"></span>
                             </div>
                         `;
                         seatClassSelectors.appendChild(div);
                     });
                     
                     console.log('Created', selected.length, 'seat class selectors');
-                    console.log('Options in dropdown:', classePlaces.map(cp => cp.libelle));
                     
                     // Add event listeners to new selects
                     document.querySelectorAll('.seat-class-select').forEach(select => {
-                        select.addEventListener('change', calculateTotal);
+                        select.addEventListener('change', function() {
+                            const selectedOption = this.options[this.selectedIndex];
+                            const prix = selectedOption.dataset.prix;
+                            const isDiscounted = selectedOption.hasAttribute('data-discounted');
+                            
+                            // Update price display next to select
+                            const priceDisplay = this.closest('.seat-class-row').querySelector('.price-display');
+                            if (prix) {
+                                priceDisplay.textContent = parseFloat(prix).toLocaleString('fr-FR') + ' Ar';
+                                if (isDiscounted) {
+                                    priceDisplay.classList.add('text-warning');
+                                    priceDisplay.title = 'Tarif enfant appliqué';
+                                } else {
+                                    priceDisplay.classList.remove('text-warning');
+                                    priceDisplay.title = '';
+                                }
+                            } else {
+                                priceDisplay.textContent = '';
+                            }
+                            
+                            calculateTotal();
+                        });
                     });
                     
                     calculateTotal();
@@ -433,6 +507,7 @@
                     selectedSeatsDetails.style.display = 'none';
                     seatClassSelectors.innerHTML = '';
                     submitBtn.disabled = true;
+                    discountInfoDiv.style.display = 'none';
                 }
                 
                 countSeatClasses();
@@ -441,16 +516,27 @@
             
             function calculateTotal() {
                 let total = 0;
+                let hasDiscountedSeats = false;
                 const selects = document.querySelectorAll('.seat-class-select');
                 
                 selects.forEach(select => {
                     const selectedOption = select.options[select.selectedIndex];
                     if (selectedOption && selectedOption.dataset.prix) {
                         total += parseFloat(selectedOption.dataset.prix);
+                        if (selectedOption.hasAttribute('data-discounted')) {
+                            hasDiscountedSeats = true;
+                        }
                     }
                 });
                 
                 totalAmountSpan.textContent = total.toLocaleString('fr-FR', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                
+                // Show discount info if applicable
+                if (hasDiscountedSeats) {
+                    discountInfoDiv.style.display = 'block';
+                } else {
+                    discountInfoDiv.style.display = 'none';
+                }
                 
                 countSeatClasses();
                 updateRemainingAmount();
@@ -460,6 +546,20 @@
             
             seatCheckboxes.forEach(cb => {
                 cb.addEventListener('change', updateSelectedSeats);
+            });
+            
+            // Update prices when client changes
+            clientSelect.addEventListener('change', function() {
+                const clientInfo = getCurrentClientInfo();
+                const isEnfant = isEnfantClient(clientInfo);
+                
+                console.log('Selected client age category:', clientInfo);
+                console.log('Is enfant:', isEnfant);
+                
+                // Recreate seat class selectors with updated prices if seats are already selected
+                if (document.querySelectorAll('.seat-class-select').length > 0) {
+                    updateSelectedSeats();
+                }
             });
             
             multiplePaymentToggle.addEventListener('change', function() {
@@ -598,7 +698,17 @@
                     if (response.ok) {
                         const client = await response.json();
                         const option = new Option(client.nom + ' ' + client.prenom, client.id, true, true);
+                        // Add age category info as data attributes
+                        if (client.categorieGroupeAge) {
+                            option.dataset.categorieAge = client.categorieGroupeAge.libelle;
+                            option.dataset.prixOverride = client.categorieGroupeAge.prixStandardOverride || '';
+                        }
                         document.getElementById('clientSelect').add(option);
+                        // Update client info map
+                        clientInfoMap[client.id] = {
+                            categorieAge: client.categorieGroupeAge?.libelle,
+                            prixOverride: client.categorieGroupeAge?.prixStandardOverride
+                        };
                         bootstrap.Modal.getInstance(document.getElementById('createClientModal')).hide();
                         this.reset();
                     } else {

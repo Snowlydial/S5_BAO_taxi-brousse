@@ -96,6 +96,9 @@ public class ReservationController {
             .filter(cp -> busPlaceTypes.containsKey(cp.getLibelle()))
             .collect(Collectors.toList());
         
+        //*-- Get all clients with their age category information
+        List<Client> clients = clientRepository.findAll();
+        
         System.out.println("=== DEBUG: Reservation Create Form ===");
         System.out.println("Bus Place Types Config: " + busPlaceTypes);
         System.out.println("Available Seats By Type: " + availableSeatsByType);
@@ -110,7 +113,7 @@ public class ReservationController {
         model.addAttribute("capacity", capacity);
         model.addAttribute("availableSeatsByType", availableSeatsByType);
         model.addAttribute("classePlaces", availableClassePlaces);
-        model.addAttribute("clients", clientRepository.findAll());
+        model.addAttribute("clients", clients);  // Already includes age category info
         model.addAttribute("caisses", caisseRepository.findAll());
         model.addAttribute("genres", categorieGenreRepository.findAll());
         model.addAttribute("groupesAge", categorieGroupeAgeRepository.findAll());
@@ -165,7 +168,7 @@ public class ReservationController {
                 client, busVoyage, selectedSeats, seatClasseMap
             );
             
-            //*-- Calculate total price
+            //*-- Calculate total price (PricingService will handle enfant discount)
             Double totalPrice = reservations.stream()
                 .mapToDouble(r -> pricingService.calculatePrice(r))
                 .sum();
@@ -226,8 +229,23 @@ public class ReservationController {
                 }
             }
             
-            redirectAttributes.addFlashAttribute("success", 
-                selectedSeats.size() + " réservation(s) créée(s) avec succès!");
+            // Check if any enfant discount was applied
+            boolean hasEnfantDiscount = reservations.stream()
+                .anyMatch(r -> {
+                    if (r.getClient() != null && r.getClient().getCategorieGroupeAge() != null) {
+                        boolean isEnfant = "Enfant (0-12 ans)".equals(r.getClient().getCategorieGroupeAge().getLibelle());
+                        boolean isStandard = r.getClassePlace() != null && "Standard".equals(r.getClassePlace().getLibelle());
+                        return isEnfant && isStandard;
+                    }
+                    return false;
+                });
+            
+            String successMessage = selectedSeats.size() + " réservation(s) créée(s) avec succès!";
+            if (hasEnfantDiscount) {
+                successMessage += " (Tarif enfant appliqué pour les places Standard)";
+            }
+            
+            redirectAttributes.addFlashAttribute("success", successMessage);
             return "redirect:/reservation/list";
             
         } catch (Exception e) {

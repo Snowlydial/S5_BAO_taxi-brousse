@@ -18,10 +18,10 @@ INSERT INTO CategorieGenre (libelle) VALUES
 ('Femme');
 
 -- CategorieGroupeAge
-INSERT INTO CategorieGroupeAge (libelle) VALUES 
-('Enfant (0-12 ans)'),
-('Adulte (18-59 ans)'),
-('Senior (60+ ans)');
+INSERT INTO CategorieGroupeAge (libelle, prix_standard_override) VALUES 
+('Enfant (0-12 ans)', 50000),
+('Adulte (18-59 ans)', NULL),
+('Senior (60+ ans)', NULL);
 
 -- Gare
 INSERT INTO Gare (libelle) VALUES 
@@ -120,3 +120,17 @@ INSERT INTO Bus_BusConf (id_bus, id_busConf) VALUES
 
 INSERT INTO Bus_Voyage (heure_depart, date_depart, prix_specifique, id_bus, id_voyage) VALUES 
 ('07:00:00', '2026-01-25', NULL, 4, 6);
+
+--? Alea week 2b:
+INSERT INTO Client (nom, prenom, id_categorieGenre, id_categorieGroupeAge) VALUES 
+('Enfant', 'Test', 2, 1);
+
+INSERT INTO Gare (libelle) VALUES 
+('Tamatave');
+
+INSERT INTO Voyage (duree, prix_voyage, id_gare_1, id_gare_2) VALUES 
+(8.0, 40000.00, 8, 9);
+
+INSERT INTO Bus_Voyage (heure_depart, date_depart, prix_specifique, id_bus, id_voyage) VALUES 
+('07:00:00', '2026-01-27', NULL, 4, 7);
+

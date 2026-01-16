@@ -18,6 +18,7 @@ CREATE TABLE CategorieGenre(
 CREATE TABLE CategorieGroupeAge(
    id_categorieGroupeAge SERIAL,
    libelle VARCHAR(50) ,
+   prix_standard_override DOUBLE PRECISION,
    PRIMARY KEY(id_categorieGroupeAge)
 );
 
