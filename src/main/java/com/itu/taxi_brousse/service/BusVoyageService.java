@@ -48,12 +48,25 @@ public class BusVoyageService {
     private List<BusVoyage> filterByPrice(List<BusVoyage> busVoyages, Double prixMin, Double prixMax) {
         return busVoyages.stream()
                 .filter(bv -> {
-                    Double price = pricingService.calculatePrice(bv);
-                    boolean minOk = prixMin == null || price >= prixMin;
-                    boolean maxOk = prixMax == null || price <= prixMax;
+                    // Get the minimum price among all place types
+                    Double minPrice = getMinPlaceTypePrice(bv);
+                    boolean minOk = prixMin == null || minPrice >= prixMin;
+                    boolean maxOk = prixMax == null || minPrice <= prixMax;
                     return minOk && maxOk;
                 })
                 .collect(Collectors.toList());
+    }
+    
+    //?=== Get minimum price among all place types for a bus voyage
+    private Double getMinPlaceTypePrice(BusVoyage busVoyage) {
+        try {
+            return availabilityService.getPlaceTypePrices(busVoyage)
+                .values().stream()
+                .min(Double::compare)
+                .orElse(pricingService.calculatePrice(busVoyage));
+        } catch (Exception e) {
+            return pricingService.calculatePrice(busVoyage);
+        }
     }
     
     //?=== Get bus voyages with availability info
@@ -128,6 +141,11 @@ public class BusVoyageService {
         Integer availableSeats = availabilityService.getAvailableSeatCount(busVoyage);
         List<Integer> availableSeatNumbers = availabilityService.getAvailableSeats(busVoyage);
         
+        // Get place type information
+        java.util.Map<String, Integer> placeTypeCapacities = availabilityService.getPlaceTypeCapacities(busVoyage.getBus().getId());
+        java.util.Map<String, Integer> placeTypeAvailableSeats = availabilityService.getAvailableSeatsByType(busVoyage);
+        java.util.Map<String, Double> placeTypePrices = availabilityService.getPlaceTypePrices(busVoyage);
+        
         return BusVoyageWithAvailability.builder()
                 .busVoyage(busVoyage)
                 .price(price)
@@ -135,6 +153,9 @@ public class BusVoyageService {
                 .availableSeats(availableSeats)
                 .availableSeatNumbers(availableSeatNumbers)
                 .busClasse(busVoyage.getBus().getBusClasse())
+                .placeTypeCapacities(placeTypeCapacities)
+                .placeTypeAvailableSeats(placeTypeAvailableSeats)
+                .placeTypePrices(placeTypePrices)
                 .build();
     }
     

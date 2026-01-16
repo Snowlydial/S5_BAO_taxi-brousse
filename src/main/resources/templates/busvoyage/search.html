@@ -196,20 +196,45 @@
                                                 <span th:text="${result.busVoyage.voyage.duree}"></span>h
                                             </div>
                                             
-                                            <div class="col-6">
-                                                <small class="text-muted d-block">Prix/Place</small>
-                                                <span class="text-success fw-bold">
-                                                    <span th:text="${#numbers.formatDecimal(result.price, 0, 'COMMA', 0, 'POINT')}"></span> Ar
-                                                </span>
-                                            </div>
-                                            <div class="col-6 text-end">
-                                                <small class="text-muted d-block">Places</small>
-                                                <span class="badge" th:classappend="${result.availableSeats > 10 ? 'bg-success' : (result.availableSeats > 5 ? 'bg-warning' : 'bg-danger')}">
-                                                    <span th:text="${result.availableSeats}"></span>/<span th:text="${result.capacity}"></span>
-                                                </span>
+                                            <!-- Place Types and Prices -->
+                                            <div class="col-12 mt-2">
+                                                <small class="text-muted d-block mb-1">Types de places disponibles:</small>
+                                                <div th:if="${result.placeTypeCapacities != null and !result.placeTypeCapacities.isEmpty()}">
+                                                    <div th:each="entry : ${result.placeTypeCapacities}" 
+                                                         th:with="placeType=${entry.key},
+                                                                 capacity=${entry.value},
+                                                                 available=${result.placeTypeAvailableSeats.get(entry.key)},
+                                                                 price=${result.placeTypePrices.get(entry.key)}"
+                                                         class="d-flex justify-content-between align-items-center mb-1 p-2 bg-light rounded">
+                                                        <div>
+                                                            <strong th:text="${placeType}"></strong>
+                                                            <small class="text-muted ms-2">
+                                                                (<span th:text="${available}"></span>/<span th:text="${capacity}"></span>)
+                                                            </small>
+                                                        </div>
+                                                        <div class="text-success fw-bold">
+                                                            <span th:text="${#numbers.formatDecimal(price, 0, 'COMMA', 0, 'POINT')}"></span> Ar
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div th:if="${result.placeTypeCapacities == null or result.placeTypeCapacities.isEmpty()}" 
+                                                     class="text-muted small">
+                                                    Pas d'information sur les places
+                                                </div>
                                             </div>
                                             
-                                            <div class="col-12 mt-2">
+                                            <!-- Total Capacity -->
+                                            <div class="col-12">
+                                                <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+                                                    <small class="text-muted">Capacité totale:</small>
+                                                    <small class="text-muted fw-bold">
+                                                        <span th:text="${result.availableSeats}"></span>/<span th:text="${result.capacity}"></span> places
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Action Button -->
+                                            <div class="col-12 mt-3">
                                                 <a th:if="${result.availableSeats > 0}" 
                                                    th:href="@{/reservation/create(busVoyageId=${result.busVoyage.id})}" 
                                                    class="btn btn-primary btn-sm w-100">

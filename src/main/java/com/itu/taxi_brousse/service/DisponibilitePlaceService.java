@@ -203,4 +203,73 @@ public class DisponibilitePlaceService {
         
         return true;
     }
+    
+    //?=== Get place type prices for a bus voyage
+    public Map<String, Double> getPlaceTypePrices(BusVoyage busVoyage) {
+        Map<String, Double> placeTypePrices = new HashMap<>();
+        Map<String, Integer> placeTypeCapacities = getPlaceTypeCapacities(busVoyage.getBus().getId());
+        
+        // Get all ClassePlace records
+        List<ClassePlace> allClassePlaces = classePlaceRepository.findAll();
+        Map<String, Double> prixMap = new HashMap<>();
+        allClassePlaces.forEach(cp -> prixMap.put(cp.getLibelle(), cp.getPrixPlace()));
+        
+        // Map place types to their prices
+        for (String placeType : placeTypeCapacities.keySet()) {
+            Double price = prixMap.get(placeType);
+            if (price != null) {
+                placeTypePrices.put(placeType, price);
+            }
+        }
+        
+        return placeTypePrices;
+    }
+    
+    //?=== Get minimum price among available place types
+    public Double getMinAvailablePrice(BusVoyage busVoyage) {
+        Map<String, Integer> availableSeatsByType = getAvailableSeatsByType(busVoyage);
+        Map<String, Double> placeTypePrices = getPlaceTypePrices(busVoyage);
+        
+        return availableSeatsByType.entrySet().stream()
+            .filter(entry -> entry.getValue() > 0) // Only types with available seats
+            .map(entry -> placeTypePrices.get(entry.getKey()))
+            .filter(Objects::nonNull)
+            .min(Double::compare)
+            .orElse(0.0);
+    }
+    
+    //?=== Get all place types with their details (capacity, available, price)
+    public List<PlaceTypeDetails> getPlaceTypeDetails(BusVoyage busVoyage) {
+        Map<String, Integer> capacities = getPlaceTypeCapacities(busVoyage.getBus().getId());
+        Map<String, Integer> available = getAvailableSeatsByType(busVoyage);
+        Map<String, Double> prices = getPlaceTypePrices(busVoyage);
+        
+        List<PlaceTypeDetails> details = new ArrayList<>();
+        
+        for (String placeType : capacities.keySet()) {
+            PlaceTypeDetails detail = PlaceTypeDetails.builder()
+                .placeType(placeType)
+                .totalCapacity(capacities.get(placeType))
+                .availableSeats(available.getOrDefault(placeType, 0))
+                .price(prices.getOrDefault(placeType, 0.0))
+                .build();
+            details.add(detail);
+        }
+        
+        return details;
+    }
+    
+    //?=== DTO for place type details
+    @lombok.Builder
+    @lombok.Data
+    public static class PlaceTypeDetails {
+        private String placeType;
+        private Integer totalCapacity;
+        private Integer availableSeats;
+        private Double price;
+        
+        public boolean hasAvailableSeats() {
+            return availableSeats != null && availableSeats > 0;
+        }
+    }
 }

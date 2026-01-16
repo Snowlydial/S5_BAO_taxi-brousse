@@ -21,6 +21,7 @@ public class BusController {
     private final BusClasseRepository busClasseRepository;
     private final BusConfRepository busConfRepository;
     private final BusBusConfRepository busBusConfRepository;
+    private final ClassePlaceRepository classePlaceRepository;
     private final DisponibilitePlaceService disponibilitePlaceService;
     
     //?=== List all buses
@@ -57,10 +58,14 @@ public class BusController {
                 .distinct()
                 .collect(Collectors.toList());
         
+        // Get all available ClassePlace types for dropdown
+        List<ClassePlace> classePlaceTypes = classePlaceRepository.findAll();
+        
         model.addAttribute("pageTitle", "Nouveau Bus");
         model.addAttribute("classes", busClasseRepository.findAll());
         model.addAttribute("otherConfs", otherConfs);
         model.addAttribute("otherConfTypes", otherConfTypes);
+        model.addAttribute("classePlaceTypes", classePlaceTypes);
         
         return "bus/create";
     }
@@ -194,6 +199,9 @@ public class BusController {
                 .distinct()
                 .collect(Collectors.toList());
         
+        // Get all available ClassePlace types for dropdown
+        List<ClassePlace> classePlaceTypes = classePlaceRepository.findAll();
+        
         model.addAttribute("pageTitle", "Modifier Bus");
         model.addAttribute("bus", bus);
         model.addAttribute("classes", busClasseRepository.findAll());
@@ -201,6 +209,7 @@ public class BusController {
         model.addAttribute("otherConfs", otherConfs);
         model.addAttribute("otherConfTypes", otherConfTypes);
         model.addAttribute("selectedOtherConfIds", selectedOtherConfIds);
+        model.addAttribute("classePlaceTypes", classePlaceTypes);
         
         return "bus/edit";
     }
