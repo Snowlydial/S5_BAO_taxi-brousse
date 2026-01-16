@@ -239,12 +239,24 @@ public class ReservationController {
                     }
                     return false;
                 });
-            
+
+            boolean hasSeniorDiscount = reservations.stream()
+                .anyMatch(r -> {
+                    if (r.getClient() != null && r.getClient().getCategorieGroupeAge() != null) {
+                        boolean isSenior = "Senior (60+ ans)".equals(r.getClient().getCategorieGroupeAge().getLibelle());
+                        return isSenior;
+                    }
+                    return false;
+                });
+
             String successMessage = selectedSeats.size() + " réservation(s) créée(s) avec succès!";
             if (hasEnfantDiscount) {
                 successMessage += " (Tarif enfant appliqué pour les places Standard)";
             }
-            
+            if (hasSeniorDiscount) {
+                successMessage += " (Réduction senior de 20% appliquée)";
+            }
+
             redirectAttributes.addFlashAttribute("success", successMessage);
             return "redirect:/reservation/list";
             

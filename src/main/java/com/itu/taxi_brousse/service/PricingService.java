@@ -18,14 +18,21 @@ public class PricingService {
     
     private final HistoriquePrixSpecifiqueRepository historiquePrixSpecifiqueRepository;
     
-    //?=== Calculate price for a reservation with enfant discount
+    //?=== Calculate price for a reservation with age category discounts
     public Double calculatePrice(Reservation reservation) {
         // Priority 1: Check for enfant discount on standard place
         if (shouldApplyEnfantDiscount(reservation)) {
             return reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride();
         }
         
-        // Priority 2: ClassePlace price
+        // Priority 2: Check for senior discount (20% off for all ClassePlace types)
+        if (shouldApplySeniorDiscount(reservation)) {
+            Double basePrice = getBasePriceForReservation(reservation);
+            Double discountRate = reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride();
+            return basePrice * (1 + discountRate); // discountRate is -0.20, so 1 - 0.20 = 0.80
+        }
+        
+        // Priority 3: ClassePlace price
         if (reservation.getClassePlace() != null && 
             reservation.getClassePlace().getPrixPlace() != null && 
             reservation.getClassePlace().getPrixPlace() > 0) {
@@ -51,6 +58,32 @@ public class PricingService {
         boolean hasOverridePrice = reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride() != null;
         
         return isEnfant && isStandardPlace && hasOverridePrice;
+    }
+    
+    //?=== Check if senior discount should be applied
+    private boolean shouldApplySeniorDiscount(Reservation reservation) {
+        // Check if client is senior
+        boolean isSenior = reservation.getClient() != null && 
+                          reservation.getClient().getCategorieGroupeAge() != null &&
+                          "Senior (60+ ans)".equals(reservation.getClient().getCategorieGroupeAge().getLibelle());
+        
+        // Check if discount rate is set (should be -0.20)
+        boolean hasDiscountRate = reservation.getClient().getCategorieGroupeAge().getPrixStandardOverride() != null;
+        
+        return isSenior && hasDiscountRate;
+    }
+    
+    //?=== Get base price for reservation (for senior discount calculation)
+    private Double getBasePriceForReservation(Reservation reservation) {
+        // First check ClassePlace price
+        if (reservation.getClassePlace() != null && 
+            reservation.getClassePlace().getPrixPlace() != null && 
+            reservation.getClassePlace().getPrixPlace() > 0) {
+            return reservation.getClassePlace().getPrixPlace();
+        }
+        
+        // Fallback to BusVoyage price
+        return calculatePrice(reservation.getBusVoyage());
     }
     
     //?=== Calculate price using hierarchy: Bus_Voyage → Voyage → BusClasse

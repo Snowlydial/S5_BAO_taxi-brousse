@@ -21,7 +21,7 @@ INSERT INTO CategorieGenre (libelle) VALUES
 INSERT INTO CategorieGroupeAge (libelle, prix_standard_override) VALUES 
 ('Enfant (0-12 ans)', 50000),
 ('Adulte (18-59 ans)', NULL),
-('Senior (60+ ans)', NULL);
+('Senior (60+ ans)', -0.20);
 
 -- Gare
 INSERT INTO Gare (libelle) VALUES 
@@ -124,6 +124,8 @@ INSERT INTO Bus_Voyage (heure_depart, date_depart, prix_specifique, id_bus, id_v
 --? Alea week 2b:
 INSERT INTO Client (nom, prenom, id_categorieGenre, id_categorieGroupeAge) VALUES 
 ('Enfant', 'Test', 2, 1);
+INSERT INTO Client (nom, prenom, id_categorieGenre, id_categorieGroupeAge) VALUES 
+('Senior', 'Test', 2, 3);
 
 INSERT INTO Gare (libelle) VALUES 
 ('Tamatave');

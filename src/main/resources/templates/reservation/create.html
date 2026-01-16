@@ -202,8 +202,11 @@
                                     <div>
                                         <strong>Place(s) sélectionnée(s):</strong> <span id="selectedSeatsList" class="fw-bold"></span><br>
                                         <strong>Montant total:</strong> <span id="totalAmount" class="text-success fw-bold"></span> Ar
-                                        <div id="discountInfo" class="text-warning small mt-1" style="display: none;">
+                                        <div id="enfantDiscountInfo" class="text-warning small mt-1" style="display: none;">
                                             <i class="bi bi-tag me-1"></i> Tarif enfant appliqué pour les places Standard
+                                        </div>
+                                        <div id="seniorDiscountInfo" class="text-warning small mt-1" style="display: none;">
+                                            <i class="bi bi-tag me-1"></i> Réduction senior de 20% appliquée
                                         </div>
                                     </div>
                                 </div>
@@ -351,7 +354,8 @@
             const selectedSeatsDetails = document.getElementById('selectedSeatsDetails');
             const seatClassSelectors = document.getElementById('seatClassSelectors');
             const totalAmountSpan = document.getElementById('totalAmount');
-            const discountInfoDiv = document.getElementById('discountInfo');
+            const enfantDiscountInfoDiv = document.getElementById('enfantDiscountInfo');
+            const seniorDiscountInfoDiv = document.getElementById('seniorDiscountInfo');
             const submitBtn = document.getElementById('submitBtn');
             const clientSelect = document.getElementById('clientSelect');
             const multiplePaymentToggle = document.getElementById('multiplePaymentToggle');
@@ -415,6 +419,37 @@
                        clientInfo.prixOverride !== null;
             }
             
+            function isSeniorClient(clientInfo) {
+                return clientInfo &&
+                       clientInfo.categorieAge === 'Senior (60+ ans)' &&
+                       clientInfo.prixOverride !== null;
+            }
+            
+            function calculatePriceForClassePlace(classePlace, clientInfo) {
+                let basePrice = classePlace.prixPlace;
+                let finalPrice = basePrice;
+                let discountType = '';
+                
+                // Check for enfant discount (Standard place only)
+                if (isEnfantClient(clientInfo) && classePlace.libelle === 'Standard') {
+                    finalPrice = clientInfo.prixOverride; // Fixed enfant price
+                    discountType = 'enfant';
+                }
+                // Check for senior discount (all ClassePlace types)
+                else if (isSeniorClient(clientInfo)) {
+                    const discountRate = clientInfo.prixOverride; // Should be -0.20
+                    finalPrice = basePrice * (1 + discountRate);
+                    discountType = 'senior';
+                }
+                
+                return {
+                    basePrice: basePrice,
+                    finalPrice: finalPrice,
+                    discountType: discountType,
+                    discountPercent: discountType === 'senior' ? '20%' : ''
+                };
+            }
+            
             function updateSelectedSeats() {
                 const selected = Array.from(seatCheckboxes)
                     .filter(cb => cb.checked && !cb.disabled)
@@ -429,7 +464,6 @@
                     
                     // Get selected client info
                     const clientInfo = getCurrentClientInfo();
-                    const isEnfant = isEnfantClient(clientInfo);
                     
                     // Create class selectors for each seat
                     seatClassSelectors.innerHTML = '';
@@ -440,20 +474,19 @@
                         
                         let optionsHtml = '<option value="">-- Choisir classe --</option>';
                         classePlaces.forEach(cp => {
-                            // Check if this is an enfant selecting Standard place
-                            let displayPrice = cp.prixPlace;
-                            let isDiscounted = false;
+                            const priceInfo = calculatePriceForClassePlace(cp, clientInfo);
+                            const isDiscounted = priceInfo.discountType !== '';
                             
-                            if (isEnfant && cp.libelle === 'Standard' && clientInfo.prixOverride !== null) {
-                                displayPrice = clientInfo.prixOverride;
-                                isDiscounted = true;
+                            let optionText = `${cp.libelle} - ${priceInfo.finalPrice.toLocaleString('fr-FR')} Ar`;
+                            
+                            if (priceInfo.discountType === 'enfant') {
+                                optionText += ' (Tarif enfant)';
+                            } else if (priceInfo.discountType === 'senior') {
+                                const discountAmount = priceInfo.basePrice - priceInfo.finalPrice;
+                                optionText += ` (Réduction senior 20%: -${discountAmount.toLocaleString('fr-FR')} Ar)`;
                             }
                             
-                            const optionText = isDiscounted ? 
-                                `${cp.libelle} - ${displayPrice.toLocaleString('fr-FR')} Ar (Tarif enfant)` :
-                                `${cp.libelle} - ${displayPrice.toLocaleString('fr-FR')} Ar`;
-                            
-                            optionsHtml += `<option value="${cp.id}" data-prix="${displayPrice}" ${isDiscounted ? 'data-discounted="true"' : ''} data-original-prix="${cp.prixPlace}">${optionText}</option>`;
+                            optionsHtml += `<option value="${cp.id}" data-prix="${priceInfo.finalPrice}" ${isDiscounted ? 'data-discounted="true"' : ''} data-discount-type="${priceInfo.discountType}" data-original-prix="${priceInfo.basePrice}">${optionText}</option>`;
                         });
                         
                         div.innerHTML = `
@@ -466,7 +499,7 @@
                                 </select>
                             </div>
                             <div class="col-auto">
-                                <span class="price-display text-success fw-bold"></span>
+                                <span class="price-display text-success fw-bold" id="price-display-${seatNum}"></span>
                             </div>
                         `;
                         seatClassSelectors.appendChild(div);
@@ -479,15 +512,21 @@
                         select.addEventListener('change', function() {
                             const selectedOption = this.options[this.selectedIndex];
                             const prix = selectedOption.dataset.prix;
-                            const isDiscounted = selectedOption.hasAttribute('data-discounted');
+                            const discountType = selectedOption.dataset.discountType;
                             
                             // Update price display next to select
                             const priceDisplay = this.closest('.seat-class-row').querySelector('.price-display');
                             if (prix) {
                                 priceDisplay.textContent = parseFloat(prix).toLocaleString('fr-FR') + ' Ar';
-                                if (isDiscounted) {
+                                
+                                if (discountType === 'enfant') {
                                     priceDisplay.classList.add('text-warning');
                                     priceDisplay.title = 'Tarif enfant appliqué';
+                                } else if (discountType === 'senior') {
+                                    priceDisplay.classList.add('text-warning');
+                                    const originalPrix = selectedOption.dataset.originalPrix;
+                                    const discountAmount = originalPrix - prix;
+                                    priceDisplay.title = `Réduction senior: -${discountAmount.toLocaleString('fr-FR')} Ar`;
                                 } else {
                                     priceDisplay.classList.remove('text-warning');
                                     priceDisplay.title = '';
@@ -507,7 +546,8 @@
                     selectedSeatsDetails.style.display = 'none';
                     seatClassSelectors.innerHTML = '';
                     submitBtn.disabled = true;
-                    discountInfoDiv.style.display = 'none';
+                    enfantDiscountInfoDiv.style.display = 'none';
+                    seniorDiscountInfoDiv.style.display = 'none';
                 }
                 
                 countSeatClasses();
@@ -516,15 +556,20 @@
             
             function calculateTotal() {
                 let total = 0;
-                let hasDiscountedSeats = false;
+                let hasEnfantDiscount = false;
+                let hasSeniorDiscount = false;
                 const selects = document.querySelectorAll('.seat-class-select');
                 
                 selects.forEach(select => {
                     const selectedOption = select.options[select.selectedIndex];
                     if (selectedOption && selectedOption.dataset.prix) {
                         total += parseFloat(selectedOption.dataset.prix);
-                        if (selectedOption.hasAttribute('data-discounted')) {
-                            hasDiscountedSeats = true;
+                        const discountType = selectedOption.dataset.discountType;
+                        
+                        if (discountType === 'enfant') {
+                            hasEnfantDiscount = true;
+                        } else if (discountType === 'senior') {
+                            hasSeniorDiscount = true;
                         }
                     }
                 });
@@ -532,10 +577,16 @@
                 totalAmountSpan.textContent = total.toLocaleString('fr-FR', {minimumFractionDigits: 0, maximumFractionDigits: 0});
                 
                 // Show discount info if applicable
-                if (hasDiscountedSeats) {
-                    discountInfoDiv.style.display = 'block';
+                if (hasEnfantDiscount) {
+                    enfantDiscountInfoDiv.style.display = 'block';
                 } else {
-                    discountInfoDiv.style.display = 'none';
+                    enfantDiscountInfoDiv.style.display = 'none';
+                }
+                
+                if (hasSeniorDiscount) {
+                    seniorDiscountInfoDiv.style.display = 'block';
+                } else {
+                    seniorDiscountInfoDiv.style.display = 'none';
                 }
                 
                 countSeatClasses();
@@ -551,10 +602,10 @@
             // Update prices when client changes
             clientSelect.addEventListener('change', function() {
                 const clientInfo = getCurrentClientInfo();
-                const isEnfant = isEnfantClient(clientInfo);
                 
                 console.log('Selected client age category:', clientInfo);
-                console.log('Is enfant:', isEnfant);
+                console.log('Is enfant:', isEnfantClient(clientInfo));
+                console.log('Is senior:', isSeniorClient(clientInfo));
                 
                 // Recreate seat class selectors with updated prices if seats are already selected
                 if (document.querySelectorAll('.seat-class-select').length > 0) {
