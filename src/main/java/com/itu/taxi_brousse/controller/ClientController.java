@@ -3,13 +3,11 @@ package com.itu.taxi_brousse.controller;
 import com.itu.taxi_brousse.entity.Client;
 import com.itu.taxi_brousse.service.ClientService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Controller
 @RequestMapping("/clients")
@@ -45,39 +43,6 @@ public class ClientController {
     public String createClient(@ModelAttribute Client client) {
         clientService.saveClient(client);
         return "redirect:/clients";
-    }
-    
-    // API endpoint for creating client from reservation modal
-    @PostMapping("/create")
-    @ResponseBody
-    public ResponseEntity<?> createClientApi(@RequestBody Map<String, Object> clientData) {
-        try {
-            String nom = (String) clientData.get("nom");
-            String prenom = (String) clientData.get("prenom");
-            Integer categorieGenreId = null;
-            Integer categorieGroupeAgeId = null;
-            
-            if (clientData.get("categorieGenreId") != null) {
-                categorieGenreId = Integer.parseInt(clientData.get("categorieGenreId").toString());
-            }
-            
-            if (clientData.get("categorieGroupeAgeId") != null) {
-                categorieGroupeAgeId = Integer.parseInt(clientData.get("categorieGroupeAgeId").toString());
-            }
-            
-            Client savedClient = clientService.createClientFromMap(nom, prenom, categorieGenreId, categorieGroupeAgeId);
-            
-            // Return the client with relationships loaded for the frontend
-            Client clientWithDetails = clientService.getClientById(savedClient.getId())
-                    .orElseThrow(() -> new RuntimeException("Client créé mais non retrouvé"));
-            
-            return ResponseEntity.ok(clientWithDetails);
-            
-        } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", "ID invalide"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
     }
     
     @GetMapping("/{id}")

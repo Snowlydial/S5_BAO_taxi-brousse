@@ -1,13 +1,9 @@
 package com.itu.taxi_brousse.service;
 
-import com.itu.taxi_brousse.entity.*;
+import com.itu.taxi_brousse.entity.Client;
 import com.itu.taxi_brousse.repository.ClientRepository;
-import com.itu.taxi_brousse.repository.CategorieGenreRepository;
-import com.itu.taxi_brousse.repository.CategorieGroupeAgeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -16,18 +12,18 @@ import java.util.Optional;
 public class ClientService {
     
     private final ClientRepository clientRepository;
-    private final CategorieGenreRepository categorieGenreRepository;
-    private final CategorieGroupeAgeRepository categorieGroupeAgeRepository;
     
+    //?=== Get all clients
     public List<Client> getAllClients() {
         return clientRepository.findAllWithCategorieGroupeAge();
     }
     
+    //?=== Get client by ID
     public Optional<Client> getClientById(Integer id) {
         return clientRepository.findByIdWithDetails(id);
     }
     
-    @Transactional
+    //?=== Create or update client
     public Client saveClient(Client client) {
         // Ensure relationships are properly loaded
         if (client.getCategorieGenre() != null && client.getCategorieGenre().getId() != null) {
@@ -45,24 +41,24 @@ public class ClientService {
         return clientRepository.save(client);
     }
     
-    @Transactional
+    //?=== Delete client
     public void deleteClient(Integer id) {
         clientRepository.deleteById(id);
     }
     
-    public List<Client> searchClients(String search) {
-        return clientRepository.findByNomContainingIgnoreCaseOrPrenomContainingIgnoreCase(search, search);
+    //?=== Search clients by name
+    public List<Client> searchClients(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getAllClients();
+        }
+        
+        String searchTerm = "%" + keyword.trim() + "%";
+        return clientRepository.findByNomContainingOrPrenomContaining(searchTerm, searchTerm);
     }
     
-    // Helper methods for getting related entities
-    public CategorieGenre getCategorieGenreById(Integer id) {
-        return categorieGenreRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Genre non trouvé"));
-    }
-    
-    public CategorieGroupeAge getCategorieGroupeAgeById(Integer id) {
-        return categorieGroupeAgeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Groupe d'âge non trouvé"));
+    //?=== Get clients by age group category
+    public List<Client> getClientsByAgeGroup(Integer ageGroupId) {
+        return clientRepository.findByCategorieGroupeAgeId(ageGroupId);
     }
     
     // Create client from data map (for API endpoint)
