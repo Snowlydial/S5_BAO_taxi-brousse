@@ -1,17 +1,26 @@
 package com.itu.taxi_brousse.service;
 
+import com.itu.taxi_brousse.entity.CategorieGenre;
+import com.itu.taxi_brousse.entity.CategorieGroupeAge;
 import com.itu.taxi_brousse.entity.Client;
 import com.itu.taxi_brousse.repository.ClientRepository;
+import com.itu.taxi_brousse.repository.CategorieGenreRepository;
+import com.itu.taxi_brousse.repository.CategorieGroupeAgeRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
+
 
 @Service
 @RequiredArgsConstructor
 public class ClientService {
     
     private final ClientRepository clientRepository;
+    private final CategorieGenreRepository categorieGenreRepository;
+    private final CategorieGroupeAgeRepository categorieGroupeAgeRepository;
     
     //?=== Get all clients
     public List<Client> getAllClients() {
@@ -77,5 +86,15 @@ public class ClientService {
         }
         
         return saveClient(client);
+    }
+
+    public CategorieGenre getCategorieGenreById(int id) {
+        return categorieGenreRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Genre non trouvé"));
+    }
+
+    public CategorieGroupeAge getCategorieGroupeAgeById(int id) {
+        return categorieGroupeAgeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Groupe d'âge non trouvé"));
     }
 }
