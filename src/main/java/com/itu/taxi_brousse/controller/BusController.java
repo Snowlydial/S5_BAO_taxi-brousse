@@ -1,20 +1,15 @@
 package com.itu.taxi_brousse.controller;
 
-import com.itu.taxi_brousse.entity.Bus;
-import com.itu.taxi_brousse.entity.BusBusConf;
-import com.itu.taxi_brousse.entity.BusConf;
-import com.itu.taxi_brousse.entity.ClassePlace;
+import com.itu.taxi_brousse.entity.*;
 import com.itu.taxi_brousse.repository.*;
+import com.itu.taxi_brousse.service.DisponibilitePlaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Controller
@@ -26,43 +21,17 @@ public class BusController {
     private final BusClasseRepository busClasseRepository;
     private final BusConfRepository busConfRepository;
     private final BusBusConfRepository busBusConfRepository;
-    private final ClassePlaceRepository classePlaceRepository;
+    private final DisponibilitePlaceService disponibilitePlaceService;
     
     //?=== List all buses
     @GetMapping("/list")
     public String listBuses(Model model) {
         List<Bus> buses = busRepository.findAll();
         
-        // Get ClassePlace prices
-        ClassePlace premium = classePlaceRepository.findByLibelleIgnoreCase("Premium").orElse(null);
-        ClassePlace vip = classePlaceRepository.findByLibelleIgnoreCase("VIP").orElse(null);
-        ClassePlace standard = classePlaceRepository.findByLibelleIgnoreCase("Standard").orElse(null);
-        
-        Double prixPremium = (premium != null) ? premium.getPrixPlace() : 0.0;
-        Double prixVip = (vip!=null) ? vip.getPrixPlace():0.0;
-        Double prixStandard = (standard != null) ? standard.getPrixPlace() : 0.0;
-        
         // Calculate potential revenue for each bus
         Map<Integer, Double> revenueMap = new HashMap<>();
         for (Bus bus : buses) {
-            List<BusBusConf> configs = busBusConfRepository.findByBus(bus);
-            
-            Integer nbPremium = 0;
-            Integer nbStandard = 0;
-            Integer nbVip = 0;
-            
-            for (BusBusConf config : configs) {
-                String libelle = config.getBusConf().getLibelle().toLowerCase();
-                if ("nb_place_premium".equals(libelle)) {
-                    nbPremium = Integer.parseInt(config.getBusConf().getValeur());
-                } else if ("nb_place_standard".equals(libelle)) {
-                    nbStandard = Integer.parseInt(config.getBusConf().getValeur());
-                } else if ("nb_place_VIP".equals(libelle)) {
-                    nbVip = Integer.parseInt(config.getBusConf().getValeur());
-                }
-            }
-            
-            Double revenue = (nbPremium * prixPremium) + (nbStandard * prixStandard) + (nbVip * prixVip);
+            Double revenue = disponibilitePlaceService.calculatePotentialRevenue(bus.getId());
             revenueMap.put(bus.getId(), revenue);
         }
         
@@ -77,18 +46,21 @@ public class BusController {
     //?=== Show create form
     @GetMapping("/create")
     public String createForm(Model model) {
-        List<BusConf> allConfs = busConfRepository.findAll();
+        // Get all non-seat-capacity configurations (wifi, climatisation, etc.)
+        List<BusConf> otherConfs = busConfRepository.findAll().stream()
+                .filter(conf -> !conf.getLibelle().startsWith("nb_place_"))
+                .collect(Collectors.toList());
         
-        // Group configurations by libelle for easier selection
-        List<String> confTypes = allConfs.stream()
+        // Group other configurations by libelle
+        List<String> otherConfTypes = otherConfs.stream()
                 .map(BusConf::getLibelle)
                 .distinct()
                 .collect(Collectors.toList());
         
         model.addAttribute("pageTitle", "Nouveau Bus");
         model.addAttribute("classes", busClasseRepository.findAll());
-        model.addAttribute("allConfs", allConfs);
-        model.addAttribute("confTypes", confTypes);
+        model.addAttribute("otherConfs", otherConfs);
+        model.addAttribute("otherConfTypes", otherConfTypes);
         
         return "bus/create";
     }
@@ -97,7 +69,8 @@ public class BusController {
     @PostMapping("/create")
     public String createBus(@RequestParam String immatriculation,
                            @RequestParam Integer busClasseId,
-                           @RequestParam(required = false) List<Integer> busConfIds,
+                           @RequestParam(required = false) Map<String, String> placeTypeCapacities,
+                           @RequestParam(required = false) List<Integer> otherBusConfIds,
                            RedirectAttributes redirectAttributes) {
         try {
             // Validation
@@ -119,9 +92,49 @@ public class BusController {
             
             bus = busRepository.save(bus);
             
-            // Link configurations
-            if (busConfIds != null && !busConfIds.isEmpty()) {
-                for (Integer confId : busConfIds) {
+            // Process place type capacities
+            if (placeTypeCapacities != null) {
+                for (Map.Entry<String, String> entry : placeTypeCapacities.entrySet()) {
+                    String placeType = entry.getKey();
+                    String capacityStr = entry.getValue();
+                    
+                    if (capacityStr != null && !capacityStr.trim().isEmpty()) {
+                        int capacity = Integer.parseInt(capacityStr.trim());
+                        
+                        if (capacity > 0) {
+                            // Check if configuration exists
+                            String confLibelle = "nb_place_" + placeType;
+                            Optional<BusConf> existingConf = busConfRepository.findAll().stream()
+                                    .filter(c -> c.getLibelle().equals(confLibelle) && 
+                                                 c.getValeur().equals(String.valueOf(capacity)))
+                                    .findFirst();
+                            
+                            BusConf conf;
+                            if (existingConf.isPresent()) {
+                                conf = existingConf.get();
+                            } else {
+                                // Create new configuration
+                                conf = BusConf.builder()
+                                        .libelle(confLibelle)
+                                        .valeur(String.valueOf(capacity))
+                                        .build();
+                                conf = busConfRepository.save(conf);
+                            }
+                            
+                            // Link to bus
+                            BusBusConf link = BusBusConf.builder()
+                                    .bus(bus)
+                                    .busConf(conf)
+                                    .build();
+                            busBusConfRepository.save(link);
+                        }
+                    }
+                }
+            }
+            
+            // Link other configurations (wifi, climatisation, etc.)
+            if (otherBusConfIds != null && !otherBusConfIds.isEmpty()) {
+                for (Integer confId : otherBusConfIds) {
                     BusConf conf = busConfRepository.findById(confId)
                             .orElseThrow(() -> new RuntimeException("Configuration introuvable"));
                     
@@ -149,24 +162,45 @@ public class BusController {
         Bus bus = busRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Bus introuvable"));
         
-        List<BusConf> allConfs = busConfRepository.findAll();
-        List<String> confTypes = allConfs.stream()
-                .map(BusConf::getLibelle)
-                .distinct()
-                .collect(Collectors.toList());
-        
         // Get current configurations
         List<BusBusConf> currentLinks = busBusConfRepository.findByBus(bus);
-        List<Integer> selectedConfIds = currentLinks.stream()
-                .map(link -> link.getBusConf().getId())
+        
+        // Separate place type configs from other configs
+        Map<String, Integer> currentPlaceTypes = new HashMap<>();
+        List<Integer> selectedOtherConfIds = new ArrayList<>();
+        
+        for (BusBusConf link : currentLinks) {
+            String libelle = link.getBusConf().getLibelle();
+            if (libelle.startsWith("nb_place_")) {
+                String placeType = libelle.substring("nb_place_".length());
+                try {
+                    int capacity = Integer.parseInt(link.getBusConf().getValeur());
+                    currentPlaceTypes.put(placeType, capacity);
+                } catch (NumberFormatException e) {
+                    // Skip invalid values
+                }
+            } else {
+                selectedOtherConfIds.add(link.getBusConf().getId());
+            }
+        }
+        
+        // Get all non-seat-capacity configurations
+        List<BusConf> otherConfs = busConfRepository.findAll().stream()
+                .filter(conf -> !conf.getLibelle().startsWith("nb_place_"))
+                .collect(Collectors.toList());
+        
+        List<String> otherConfTypes = otherConfs.stream()
+                .map(BusConf::getLibelle)
+                .distinct()
                 .collect(Collectors.toList());
         
         model.addAttribute("pageTitle", "Modifier Bus");
         model.addAttribute("bus", bus);
         model.addAttribute("classes", busClasseRepository.findAll());
-        model.addAttribute("allConfs", allConfs);
-        model.addAttribute("confTypes", confTypes);
-        model.addAttribute("selectedConfIds", selectedConfIds);
+        model.addAttribute("currentPlaceTypes", currentPlaceTypes);
+        model.addAttribute("otherConfs", otherConfs);
+        model.addAttribute("otherConfTypes", otherConfTypes);
+        model.addAttribute("selectedOtherConfIds", selectedOtherConfIds);
         
         return "bus/edit";
     }
@@ -176,7 +210,8 @@ public class BusController {
     public String updateBus(@PathVariable Integer id,
                            @RequestParam String immatriculation,
                            @RequestParam Integer busClasseId,
-                           @RequestParam(required = false) List<Integer> busConfIds,
+                           @RequestParam(required = false) Map<String, String> placeTypeCapacities,
+                           @RequestParam(required = false) List<Integer> otherBusConfIds,
                            RedirectAttributes redirectAttributes) {
         try {
             Bus bus = busRepository.findById(id)
@@ -200,12 +235,50 @@ public class BusController {
             
             busRepository.save(bus);
             
-            // Update configurations - delete old links and create new ones
+            // Delete all old links
             List<BusBusConf> oldLinks = busBusConfRepository.findByBus(bus);
             busBusConfRepository.deleteAll(oldLinks);
             
-            if (busConfIds != null && !busConfIds.isEmpty()) {
-                for (Integer confId : busConfIds) {
+            // Add place type configurations
+            if (placeTypeCapacities != null) {
+                for (Map.Entry<String, String> entry : placeTypeCapacities.entrySet()) {
+                    String placeType = entry.getKey();
+                    String capacityStr = entry.getValue();
+                    
+                    if (capacityStr != null && !capacityStr.trim().isEmpty()) {
+                        int capacity = Integer.parseInt(capacityStr.trim());
+                        
+                        if (capacity > 0) {
+                            String confLibelle = "nb_place_" + placeType;
+                            Optional<BusConf> existingConf = busConfRepository.findAll().stream()
+                                    .filter(c -> c.getLibelle().equals(confLibelle) && 
+                                                 c.getValeur().equals(String.valueOf(capacity)))
+                                    .findFirst();
+                            
+                            BusConf conf;
+                            if (existingConf.isPresent()) {
+                                conf = existingConf.get();
+                            } else {
+                                conf = BusConf.builder()
+                                        .libelle(confLibelle)
+                                        .valeur(String.valueOf(capacity))
+                                        .build();
+                                conf = busConfRepository.save(conf);
+                            }
+                            
+                            BusBusConf link = BusBusConf.builder()
+                                    .bus(bus)
+                                    .busConf(conf)
+                                    .build();
+                            busBusConfRepository.save(link);
+                        }
+                    }
+                }
+            }
+            
+            // Add other configurations
+            if (otherBusConfIds != null && !otherBusConfIds.isEmpty()) {
+                for (Integer confId : otherBusConfIds) {
                     BusConf conf = busConfRepository.findById(confId)
                             .orElseThrow(() -> new RuntimeException("Configuration introuvable"));
                     

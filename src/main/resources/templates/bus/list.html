@@ -60,10 +60,7 @@
                                         <div th:with="configs=${busBusConfRepository.findByBus(bus)}">
                                             <div th:if="${!#lists.isEmpty(configs)}">
                                                 <div th:each="config : ${configs}" class="mb-2">
-                                                    <span class="badge me-1"
-                                                          th:classappend="${config.busConf.libelle == 'capacite' ? 'bg-primary' : 
-                                                                          (config.busConf.libelle == 'nb_place_premium' ? 'bg-warning' : 
-                                                                          (config.busConf.libelle == 'nb_place_standard' ? 'bg-info' : 'bg-secondary'))}"
+                                                    <span class="badge bg-secondary me-1"
                                                           th:text="${config.busConf.libelle}"></span>
                                                     <span class="text-muted">:</span>
                                                     <strong th:text="${config.busConf.valeur}"></strong>

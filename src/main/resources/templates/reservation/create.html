@@ -159,8 +159,13 @@
                         <h4 class="card-title">Sélectionner Place(s)</h4>
                         <p class="text-subtitle text-muted">
                             <i class="bi bi-info-circle me-1"></i>
-                            <span class="badge bg-warning me-2">Premium: <span th:text="${availablePremium}" id="availablePremiumBadge"></span> dispo</span>
-                            <span class="badge bg-info">Standard: <span th:text="${availableStandard}" id="availableStandardBadge"></span> dispo</span>
+                            Places disponibles par type:
+                            <span th:each="entry : ${availableSeatsByType}">
+                                <span class="badge bg-warning me-2">
+                                    <span th:text="${entry.key}"></span>: 
+                                    <span th:text="${entry.value}" th:id="'available' + ${entry.key} + 'Badge'"></span> dispo
+                                </span>
+                            </span>
                         </p>
                     </div>
                     <div class="card-content">
@@ -321,11 +326,18 @@
         <script th:inline="javascript">
             const busVoyageDate = /*[[${#temporals.format(busVoyage.dateDepart, 'yyyy-MM-dd')}]]*/ '';
             const classePlaces = /*[[${classePlaces}]]*/ [];
-            const availablePremiumCount = /*[[${availablePremium}]]*/ 0;
-            const availableStandardCount = /*[[${availableStandard}]]*/ 0;
+            const availableSeatsByType = /*[[${availableSeatsByType}]]*/ {};
             
-            let selectedPremiumCount = 0;
-            let selectedStandardCount = 0;
+            console.log('=== DEBUG: Reservation Create Page ===');
+            console.log('Available ClassePlaces:', classePlaces);
+            console.log('Available Seats By Type:', availableSeatsByType);
+            
+            let selectedSeatsByType = {};
+            
+            // Initialize seat counts
+            Object.keys(availableSeatsByType).forEach(type => {
+                selectedSeatsByType[type] = 0;
+            });
             
             const seatCheckboxes = document.querySelectorAll('.seat-checkbox');
             const selectedSeatsInfo = document.getElementById('selectedSeatsInfo');
@@ -346,32 +358,37 @@
             dateReservationInput.max = busVoyageDate;
             
             function countSeatClasses() {
-                selectedPremiumCount = 0;
-                selectedStandardCount = 0;
+                // Reset counts
+                Object.keys(selectedSeatsByType).forEach(type => {
+                    selectedSeatsByType[type] = 0;
+                });
                 
                 const selects = document.querySelectorAll('.seat-class-select');
                 selects.forEach(select => {
                     const selectedOption = classePlaces.find(cp => cp.id == select.value);
                     if (selectedOption) {
-                        if (selectedOption.libelle.toLowerCase() === 'premium') {
-                            selectedPremiumCount++;
-                        } else if (selectedOption.libelle.toLowerCase() === 'standard') {
-                            selectedStandardCount++;
-                        }
+                        selectedSeatsByType[selectedOption.libelle] = 
+                            (selectedSeatsByType[selectedOption.libelle] || 0) + 1;
                     }
                 });
                 
-                // Update badges
-                document.getElementById('availablePremiumBadge').textContent = 
-                    (availablePremiumCount - selectedPremiumCount);
-                document.getElementById('availableStandardBadge').textContent = 
-                    (availableStandardCount - selectedStandardCount);
+                // Update badges dynamically
+                Object.keys(availableSeatsByType).forEach(type => {
+                    const badge = document.getElementById('available' + type + 'Badge');
+                    if (badge) {
+                        const available = availableSeatsByType[type];
+                        const selected = selectedSeatsByType[type] || 0;
+                        badge.textContent = (available - selected);
+                    }
+                });
             }
             
             function updateSelectedSeats() {
                 const selected = Array.from(seatCheckboxes)
                     .filter(cb => cb.checked && !cb.disabled)
                     .map(cb => cb.value);
+                
+                console.log('Selected seats:', selected);
                 
                 if (selected.length > 0) {
                     selectedSeatsInfo.style.display = 'block';
@@ -400,6 +417,9 @@
                         `;
                         seatClassSelectors.appendChild(div);
                     });
+                    
+                    console.log('Created', selected.length, 'seat class selectors');
+                    console.log('Options in dropdown:', classePlaces.map(cp => cp.libelle));
                     
                     // Add event listeners to new selects
                     document.querySelectorAll('.seat-class-select').forEach(select => {
@@ -538,18 +558,16 @@
                     return false;
                 }
                 
-                // Validate premium/standard counts
-                if (selectedPremiumCount > availablePremiumCount) {
-                    e.preventDefault();
-                    alert(`Trop de places Premium sélectionnées (${selectedPremiumCount}/${availablePremiumCount})`);
-                    return false;
-                }
-                
-                if (selectedStandardCount > availableStandardCount) {
-                    e.preventDefault();
-                    alert(`Trop de places Standard sélectionnées (${selectedStandardCount}/${availableStandardCount})`);
-                    return false;
-                }
+                // Validate seat type availability
+                Object.keys(availableSeatsByType).forEach(type => {
+                    const available = availableSeatsByType[type];
+                    const selected = selectedSeatsByType[type] || 0;
+                    if (selected > available) {
+                        e.preventDefault();
+                        alert(`Trop de places ${type} sélectionnées (${selected}/${available})`);
+                        return false;
+                    }
+                });
                 
                 if (multiplePaymentToggle.checked) {
                     const totalPrice = calculateTotal();

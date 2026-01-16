@@ -1,19 +1,12 @@
 package com.itu.taxi_brousse.service;
 
-import com.itu.taxi_brousse.entity.BusBusConf;
-import com.itu.taxi_brousse.entity.BusVoyage;
-import com.itu.taxi_brousse.entity.Reservation;
-import com.itu.taxi_brousse.entity.ClassePlace;
-import com.itu.taxi_brousse.repository.BusBusConfRepository;
-import com.itu.taxi_brousse.repository.ReservationRepository;
-import com.itu.taxi_brousse.repository.ClassePlaceRepository;
+import com.itu.taxi_brousse.entity.*;
+import com.itu.taxi_brousse.repository.*;
 import com.itu.taxi_brousse.util.exception.CapacityConfigurationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,43 +17,74 @@ public class DisponibilitePlaceService {
     private final BusBusConfRepository busBusConfRepository;
     private final ClassePlaceRepository classePlaceRepository;
     
-    //?=== Get total capacity of a bus from BusConf
+    //?=== Get total capacity from sum of all nb_place_* configurations
     public Integer getBusCapacity(Integer busId) {
-        Optional<BusBusConf> capacityConfig = busBusConfRepository.findCapacityByBusId(busId);
+        List<BusBusConf> configs = busBusConfRepository.findByBusId(busId);
         
-        if (capacityConfig.isPresent()) {
-            try {
-                return Integer.parseInt(capacityConfig.get().getBusConf().getValeur());
-            } catch (NumberFormatException e) {
-                throw new CapacityConfigurationException(
-                    "Invalid capacity value '" + capacityConfig.get().getBusConf().getValeur() + "' for bus ID: " + busId
-                );
-            }
-        }
-        
-        // Fallback capacity if not configured
-        return 20;
-    }
-    
-    //?=== Get number of premium seats for a bus
-    public Integer getNbPlacePremium(Integer busId) {
-        return busBusConfRepository.findByBusId(busId).stream()
-            .filter(link -> "nb_place_premium".equalsIgnoreCase(link.getBusConf().getLibelle()))
-            .findFirst()
-            .map(link -> {
+        int totalCapacity = configs.stream()
+            .filter(link -> link.getBusConf().getLibelle().startsWith("nb_place_"))
+            .mapToInt(link -> {
                 try {
                     return Integer.parseInt(link.getBusConf().getValeur());
                 } catch (NumberFormatException e) {
                     return 0;
                 }
             })
-            .orElse(0);
+            .sum();
+        
+        if (totalCapacity == 0) {
+            throw new CapacityConfigurationException(
+                "No valid nb_place_* configurations found for bus ID: " + busId
+            );
+        }
+        
+        return totalCapacity;
     }
     
-    //?=== Get number of standard seats for a bus
-    public Integer getNbPlaceStandard(Integer busId) {
+    //?=== Get all place type configurations for a bus (nb_place_Premium, nb_place_Standard, etc.)
+    public Map<String, Integer> getPlaceTypeCapacities(Integer busId) {
+        List<BusBusConf> configs = busBusConfRepository.findByBusId(busId);
+        
+        Map<String, Integer> capacities = new HashMap<>();
+        
+        configs.stream()
+            .filter(link -> link.getBusConf().getLibelle().startsWith("nb_place_"))
+            .forEach(link -> {
+                // Extract place type from "nb_place_premium" -> "premium"
+                String placeType = link.getBusConf().getLibelle().substring("nb_place_".length());
+                
+                // Normalize to match ClassePlace using case-insensitive lookup
+                // This handles: premium->Premium, VIP->VIP, standard->Standard
+                String normalizedType = normalizeToClassePlaceCase(placeType);
+                
+                try {
+                    int capacity = Integer.parseInt(link.getBusConf().getValeur());
+                    capacities.put(normalizedType, capacity);
+                } catch (NumberFormatException e) {
+                    // Skip invalid configurations
+                }
+            });
+        
+        return capacities;
+    }
+    
+    //?=== Normalize place type name to match ClassePlace case (case-insensitive lookup)
+    private String normalizeToClassePlaceCase(String placeType) {
+        // Find matching ClassePlace ignoring case
+        Optional<ClassePlace> match = classePlaceRepository.findAll().stream()
+            .filter(cp -> cp.getLibelle().equalsIgnoreCase(placeType))
+            .findFirst();
+        
+        // Return exact ClassePlace libelle if found, otherwise use Title Case
+        return match.map(ClassePlace::getLibelle)
+                   .orElse(placeType.substring(0, 1).toUpperCase() + 
+                          placeType.substring(1).toLowerCase());
+    }
+    
+    //?=== Get number of seats for a specific place type (case-insensitive)
+    public Integer getPlaceTypeCapacity(Integer busId, String placeType) {
         return busBusConfRepository.findByBusId(busId).stream()
-            .filter(link -> "nb_place_standard".equalsIgnoreCase(link.getBusConf().getLibelle()))
+            .filter(link -> link.getBusConf().getLibelle().equalsIgnoreCase("nb_place_" + placeType))
             .findFirst()
             .map(link -> {
                 try {
@@ -107,51 +131,76 @@ public class DisponibilitePlaceService {
         return capacity - reservedCount.intValue();
     }
     
-    //?=== Get available Premium seats count
-    public Integer getAvailablePremiumSeats(BusVoyage busVoyage) {
-        Integer totalPremium = getNbPlacePremium(busVoyage.getBus().getId());
-        Integer occupiedPremium = getOccupiedPremiumSeats(busVoyage);
-        return totalPremium - occupiedPremium;
-    }
-    
-    //?=== Get available Standard seats count
-    public Integer getAvailableStandardSeats(BusVoyage busVoyage) {
-        Integer totalStandard = getNbPlaceStandard(busVoyage.getBus().getId());
-        Integer occupiedStandard = getOccupiedStandardSeats(busVoyage);
-        return totalStandard - occupiedStandard;
-    }
-    
-    //?=== Get occupied Premium seats count
-    private Integer getOccupiedPremiumSeats(BusVoyage busVoyage) {
-        ClassePlace premium = classePlaceRepository.findByLibelleIgnoreCase("Premium").orElse(null);
-        if (premium == null) return 0;
+    //?=== Get available seats count by place type (Premium, Standard, VIP, etc.)
+    public Map<String, Integer> getAvailableSeatsByType(BusVoyage busVoyage) {
+        Map<String, Integer> totalCapacities = getPlaceTypeCapacities(busVoyage.getBus().getId());
+        Map<String, Integer> occupiedSeats = getOccupiedSeatsByType(busVoyage);
         
-        return (int) reservationRepository.findByBusVoyage(busVoyage).stream()
-            .filter(r -> r.getClassePlace() != null && r.getClassePlace().getId().equals(premium.getId()))
-            .count();
+        Map<String, Integer> availableSeats = new HashMap<>();
+        
+        for (Map.Entry<String, Integer> entry : totalCapacities.entrySet()) {
+            String placeType = entry.getKey();
+            Integer total = entry.getValue();
+            Integer occupied = occupiedSeats.getOrDefault(placeType, 0);
+            availableSeats.put(placeType, total - occupied);
+        }
+        
+        return availableSeats;
     }
     
-    //?=== Get occupied Standard seats count
-    private Integer getOccupiedStandardSeats(BusVoyage busVoyage) {
-        ClassePlace standard = classePlaceRepository.findByLibelleIgnoreCase("Standard").orElse(null);
-        if (standard == null) return 0;
+    //?=== Get occupied seats count by place type
+    private Map<String, Integer> getOccupiedSeatsByType(BusVoyage busVoyage) {
+        List<Reservation> reservations = reservationRepository.findByBusVoyage(busVoyage);
+        Map<String, Integer> occupiedSeats = new HashMap<>();
         
-        return (int) reservationRepository.findByBusVoyage(busVoyage).stream()
-            .filter(r -> r.getClassePlace() != null && r.getClassePlace().getId().equals(standard.getId()))
-            .count();
+        for (Reservation reservation : reservations) {
+            if (reservation.getClassePlace() != null) {
+                String placeType = reservation.getClassePlace().getLibelle();
+                occupiedSeats.put(placeType, occupiedSeats.getOrDefault(placeType, 0) + 1);
+            }
+        }
+        
+        return occupiedSeats;
     }
     
     //?=== Calculate potential maximum revenue for a bus
     public Double calculatePotentialRevenue(Integer busId) {
-        Integer nbPremium = getNbPlacePremium(busId);
-        Integer nbStandard = getNbPlaceStandard(busId);
+        Map<String, Integer> placeCapacities = getPlaceTypeCapacities(busId);
+        Double totalRevenue = 0.0;
         
-        ClassePlace premium = classePlaceRepository.findByLibelleIgnoreCase("Premium").orElse(null);
-        ClassePlace standard = classePlaceRepository.findByLibelleIgnoreCase("Standard").orElse(null);
+        for (Map.Entry<String, Integer> entry : placeCapacities.entrySet()) {
+            String placeType = entry.getKey();
+            Integer capacity = entry.getValue();
+            
+            // Find corresponding ClassePlace
+            Optional<ClassePlace> classePlaceOpt = classePlaceRepository
+                .findByLibelleIgnoreCase(placeType);
+            
+            if (classePlaceOpt.isPresent() && classePlaceOpt.get().getPrixPlace() != null) {
+                totalRevenue += capacity * classePlaceOpt.get().getPrixPlace();
+            }
+        }
         
-        Double prixPremium = (premium != null && premium.getPrixPlace() != null) ? premium.getPrixPlace() : 0.0;
-        Double prixStandard = (standard != null && standard.getPrixPlace() != null) ? standard.getPrixPlace() : 0.0;
+        return totalRevenue;
+    }
+    
+    //?=== Validate if seat selection is valid for a bus voyage
+    public boolean validateSeatSelection(BusVoyage busVoyage, Map<Integer, ClassePlace> seatClasseMap) {
+        Map<String, Integer> availableByType = getAvailableSeatsByType(busVoyage);
+        Map<String, Long> requestedByType = seatClasseMap.values().stream()
+            .filter(Objects::nonNull)
+            .collect(Collectors.groupingBy(ClassePlace::getLibelle, Collectors.counting()));
         
-        return (nbPremium * prixPremium) + (nbStandard * prixStandard);
+        for (Map.Entry<String, Long> entry : requestedByType.entrySet()) {
+            String placeType = entry.getKey();
+            Long requested = entry.getValue();
+            Integer available = availableByType.getOrDefault(placeType, 0);
+            
+            if (requested > available) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 }

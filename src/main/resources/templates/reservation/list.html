@@ -70,21 +70,17 @@
                                                 </select>
                                             </div>
                                             <div class="col-md-2">
-                                                <label class="form-label">Classe Bus</label>
-                                                <select id="filterClasse" class="form-select form-select-sm">
-                                                    <option value="">Toutes les classes</option>
-                                                    <option th:each="classe : ${uniqueClasses}" 
-                                                            th:value="${classe.libelle}"
-                                                            th:text="${classe.libelle}">
-                                                    </option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-2">
                                                 <label class="form-label">Statut</label>
                                                 <select id="filterStatut" class="form-select form-select-sm">
                                                     <option value="">Tous les statuts</option>
                                                     <option value="Actif">Actif</option>
                                                     <option value="Annule">Annule</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Type de Place</label>
+                                                <select id="filterPlaceType" class="form-select form-select-sm">
+                                                    <option value="">Tous les types</option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 d-flex align-items-end">
@@ -164,7 +160,8 @@
                                         <th>Date Depart</th>
                                         <th>Date Reservation</th>
                                         <th>Place</th>
-                                        <th>Prix</th>
+                                        <th>Type Place</th>
+                                        <th>Montant Payé</th>
                                         <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
@@ -172,11 +169,12 @@
                                 <tbody>
                                     <tr th:each="reservation : ${reservations}"
                                         th:with="statut=${reservationStatutService.getLatestStatut(reservation)},
-                                                price=${reservationPrices.get(reservation.id)},
+                                                paidAmount=${reservationPaidAmounts.get(reservation.id)},
                                                 firstPaiement=${reservation.paiements.isEmpty() ? null : reservation.paiements.get(0)}"
                                         th:attr="data-date-depart=${#temporals.format(reservation.busVoyage.dateDepart, 'yyyy-MM-dd')},
                                                  data-heure-depart=${#temporals.format(reservation.busVoyage.heureDepart, 'HH:mm')},
-                                                 data-prix=${price}">
+                                                 data-prix=${paidAmount},
+                                                 data-place-type=${reservation.classePlace != null ? reservation.classePlace.libelle : 'N/A'}">
                                         <td th:text="${reservation.id}"></td>
                                         <td>
                                             <strong th:text="${reservation.client.nom + ' ' + reservation.client.prenom}"></strong><br>
@@ -208,9 +206,21 @@
                                             <span class="badge bg-primary" th:text="${reservation.numeroPlace}"></span>
                                         </td>
                                         <td>
+                                            <span th:if="${reservation.classePlace != null}" 
+                                                  class="badge bg-warning"
+                                                  th:text="${reservation.classePlace.libelle}"></span>
+                                            <span th:if="${reservation.classePlace == null}" 
+                                                  class="text-muted small">N/A</span>
+                                        </td>
+                                        <td>
                                             <span class="text-success fw-bold">
-                                                <span th:text="${#numbers.formatDecimal(price, 0, 'COMMA', 0, 'POINT')}"></span> Ar
+                                                <span th:text="${#numbers.formatDecimal(paidAmount, 0, 'COMMA', 0, 'POINT')}"></span> Ar
                                             </span>
+                                            <br>
+                                            <small th:if="${!paiementService.isReservationFullyPaid(reservation)}" 
+                                                   class="text-danger">
+                                                <i class="bi bi-exclamation-triangle"></i> Incomplet
+                                            </small>
                                         </td>
                                         <td>
                                             <span th:if="${statut != null && statut.isAnnule()}" 
@@ -228,20 +238,17 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <!-- <button th:if="${statut != null && !statut.isAnnule()}"
-                                                    type="button" 
-                                                    class="btn btn-danger btn-sm"
-                                                    data-bs-toggle="modal"
-                                                    th:data-bs-target="'#cancelModal' + ${reservation.id}">
-                                                <i class="bi bi-x-circle me-1"></i> Annuler
-                                            </button> -->
+                                            <!-- Cancelled reservations shown differently -->
                                             <span th:if="${statut != null && statut.isAnnule()}" 
                                                   class="text-muted small">
                                                 Deja annule
                                             </span>
                                             
-                                            <!-- Cancel Modal -->
-                                            <div class="modal fade" th:id="'cancelModal' + ${reservation.id}" tabindex="-1">
+                                            <!-- Cancel Modal (for active reservations) -->
+                                            <div th:if="${statut != null && !statut.isAnnule()}" 
+                                                 class="modal fade" 
+                                                 th:id="'cancelModal' + ${reservation.id}" 
+                                                 tabindex="-1">
                                                 <div class="modal-dialog">
                                                     <div class="modal-content">
                                                         <div class="modal-header">
@@ -297,6 +304,22 @@
                 const table = document.querySelector('#reservationsTable');
                 if (!table) return;
                 
+                //*-- Populate place type filter
+                const placeTypeFilter = document.getElementById('filterPlaceType');
+                const placeTypes = new Set();
+                table.querySelectorAll('tbody tr').forEach(row => {
+                    const placeType = row.getAttribute('data-place-type');
+                    if (placeType && placeType !== 'N/A') {
+                        placeTypes.add(placeType);
+                    }
+                });
+                placeTypes.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    placeTypeFilter.appendChild(option);
+                });
+                
                 //*-- Simple initialization
                 const dataTable = new simpleDatatables.DataTable(table, {
                     searchable: true,
@@ -311,8 +334,8 @@
                     const clientFilter = document.getElementById('filterClient').value.toLowerCase().trim();
                     const busFilter = document.getElementById('filterBus').value.trim();
                     const trajetFilter = document.getElementById('filterTrajet').value.trim();
-                    const classeFilter = document.getElementById('filterClasse').value.trim();
                     const statutFilter = document.getElementById('filterStatut').value.trim();
+                    const placeTypeFilter = document.getElementById('filterPlaceType').value.trim();
                     const dateMinFilter = document.getElementById('filterDateMin').value;
                     const dateMaxFilter = document.getElementById('filterDateMax').value;
                     const heureMinFilter = document.getElementById('filterHeureMin').value;
@@ -325,17 +348,17 @@
                         const clientText = row.cells[1].textContent.toLowerCase();
                         const trajetText = row.cells[2].textContent.trim();
                         const busImmat = row.cells[3].querySelector('span:first-child').textContent.trim();
-                        const classeText = row.cells[3].querySelector('.badge').textContent.trim();
-                        const statutText = row.cells[8].textContent.trim();
+                        const statutText = row.cells[9].textContent.trim();
                         const dateDepart = row.getAttribute('data-date-depart');
                         const heureDepart = row.getAttribute('data-heure-depart');
                         const prix = parseFloat(row.getAttribute('data-prix'));
+                        const placeType = row.getAttribute('data-place-type');
                         
                         const clientMatch = !clientFilter || clientText.includes(clientFilter);
                         const busMatch = !busFilter || busImmat === busFilter;
                         const trajetMatch = !trajetFilter || trajetText === trajetFilter;
-                        const classeMatch = !classeFilter || classeText === classeFilter;
                         const statutMatch = !statutFilter || statutText.includes(statutFilter);
+                        const placeTypeMatch = !placeTypeFilter || placeType === placeTypeFilter;
                         const heureMatch = !heureMinFilter || heureDepart >= heureMinFilter;
                         
                         // Date range matching
@@ -347,7 +370,7 @@
                             dateMatch = false;
                         }
                         
-                        if (clientMatch && busMatch && trajetMatch && classeMatch && statutMatch && dateMatch && heureMatch) {
+                        if (clientMatch && busMatch && trajetMatch && statutMatch && placeTypeMatch && dateMatch && heureMatch) {
                             row.style.display = '';
                             totalRevenue += prix;
                             visibleCount++;
@@ -377,8 +400,8 @@
                 document.getElementById('filterClient').addEventListener('input', applyFilters);
                 document.getElementById('filterBus').addEventListener('change', applyFilters);
                 document.getElementById('filterTrajet').addEventListener('change', applyFilters);
-                document.getElementById('filterClasse').addEventListener('change', applyFilters);
                 document.getElementById('filterStatut').addEventListener('change', applyFilters);
+                document.getElementById('filterPlaceType').addEventListener('change', applyFilters);
                 document.getElementById('filterDateMin').addEventListener('change', applyFilters);
                 document.getElementById('filterDateMax').addEventListener('change', applyFilters);
                 document.getElementById('filterHeureMin').addEventListener('change', applyFilters);
@@ -388,8 +411,8 @@
                     document.getElementById('filterClient').value = '';
                     document.getElementById('filterBus').value = '';
                     document.getElementById('filterTrajet').value = '';
-                    document.getElementById('filterClasse').value = '';
                     document.getElementById('filterStatut').value = '';
+                    document.getElementById('filterPlaceType').value = '';
                     document.getElementById('filterDateMin').value = '';
                     document.getElementById('filterDateMax').value = '';
                     document.getElementById('filterHeureMin').value = '';
