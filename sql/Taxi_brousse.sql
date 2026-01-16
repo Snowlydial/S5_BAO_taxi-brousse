@@ -18,7 +18,6 @@ CREATE TABLE CategorieGenre(
 CREATE TABLE CategorieGroupeAge(
    id_categorieGroupeAge SERIAL,
    libelle VARCHAR(50) ,
-   prix_standard_override DOUBLE PRECISION,
    PRIMARY KEY(id_categorieGroupeAge)
 );
 
@@ -42,13 +41,6 @@ CREATE TABLE BusConf(
    PRIMARY KEY(id_busConf)
 );
 
-CREATE TABLE ClassePlace(
-   id_classePlace SERIAL,
-   libelle VARCHAR(50) ,
-   prix_place DOUBLE PRECISION,
-   PRIMARY KEY(id_classePlace)
-);
-
 CREATE TABLE HistoriquePrixClasse(
    id_histoPrixClasse SERIAL,
    date_ecriture TIMESTAMP,
@@ -56,6 +48,25 @@ CREATE TABLE HistoriquePrixClasse(
    id_busClasse INTEGER NOT NULL,
    PRIMARY KEY(id_histoPrixClasse),
    FOREIGN KEY(id_busClasse) REFERENCES BusClasse(id_busClasse)
+);
+
+CREATE TABLE ClassePlace(
+   id_classePlace SERIAL,
+   libelle VARCHAR(50) ,
+   prix_place DOUBLE PRECISION,
+   PRIMARY KEY(id_classePlace)
+);
+
+CREATE TABLE Conf_AgeClasse(
+   id_conf_ageClasse SERIAL,
+   prix_place_override DOUBLE PRECISION NOT NULL,
+   date_debut DATE,
+   date_fin DATE,
+   id_categorieGroupeAge INTEGER NOT NULL,
+   id_classePlace INTEGER NOT NULL,
+   PRIMARY KEY(id_conf_ageClasse),
+   FOREIGN KEY(id_categorieGroupeAge) REFERENCES CategorieGroupeAge(id_categorieGroupeAge),
+   FOREIGN KEY(id_classePlace) REFERENCES ClassePlace(id_classePlace)
 );
 
 CREATE TABLE Bus(
@@ -158,3 +169,4 @@ CREATE TABLE Bus_BusConf(
    FOREIGN KEY(id_bus) REFERENCES Bus(id_bus),
    FOREIGN KEY(id_busConf) REFERENCES BusConf(id_busConf)
 );
+
