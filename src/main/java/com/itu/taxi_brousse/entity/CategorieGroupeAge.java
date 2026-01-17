@@ -24,6 +24,4 @@ public class CategorieGroupeAge {
     @Column(name = "libelle", nullable = false)
     private String libelle;
 
-    @Column(name = "prix_standard_override")
-    private Double prixStandardOverride;
 }
