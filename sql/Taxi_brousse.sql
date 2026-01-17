@@ -41,14 +41,14 @@ CREATE TABLE ClassePlace(
    PRIMARY KEY(id_classePlace)
 );
 
-CREATE TABLE Conf_AgeClasse(
-   id_conf_ageClasse SERIAL,
+CREATE TABLE ClasseAgeConf(
+   id_classeAge_conf SERIAL,
    prix_place_override DOUBLE PRECISION NOT NULL,
    date_debut DATE,
    date_fin DATE,
    id_categorieGroupeAge INTEGER NOT NULL,
    id_classePlace INTEGER NOT NULL,
-   PRIMARY KEY(id_conf_ageClasse),
+   PRIMARY KEY(id_classeAge_conf),
    FOREIGN KEY(id_categorieGroupeAge) REFERENCES CategorieGroupeAge(id_categorieGroupeAge),
    FOREIGN KEY(id_classePlace) REFERENCES ClassePlace(id_classePlace)
 );
