@@ -27,27 +27,11 @@ CREATE TABLE Gare(
    PRIMARY KEY(id_gare)
 );
 
-CREATE TABLE BusClasse(
-   id_busClasse SERIAL,
-   libelle VARCHAR(50) ,
-   prix_classe DOUBLE PRECISION,
-   PRIMARY KEY(id_busClasse)
-);
-
 CREATE TABLE BusConf(
    id_busConf SERIAL,
    libelle VARCHAR(50) ,
    valeur VARCHAR(255) ,
    PRIMARY KEY(id_busConf)
-);
-
-CREATE TABLE HistoriquePrixClasse(
-   id_histoPrixClasse SERIAL,
-   date_ecriture TIMESTAMP,
-   prix_classe DOUBLE PRECISION,
-   id_busClasse INTEGER NOT NULL,
-   PRIMARY KEY(id_histoPrixClasse),
-   FOREIGN KEY(id_busClasse) REFERENCES BusClasse(id_busClasse)
 );
 
 CREATE TABLE ClassePlace(
@@ -72,10 +56,8 @@ CREATE TABLE Conf_AgeClasse(
 CREATE TABLE Bus(
    id_bus SERIAL,
    immatriculation VARCHAR(50) ,
-   id_busClasse INTEGER NOT NULL,
    PRIMARY KEY(id_bus),
-   UNIQUE(immatriculation),
-   FOREIGN KEY(id_busClasse) REFERENCES BusClasse(id_busClasse)
+   UNIQUE(immatriculation)
 );
 
 CREATE TABLE Voyage(

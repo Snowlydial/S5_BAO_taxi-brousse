@@ -53,7 +53,7 @@ public class PricingService {
         return isEnfant && isStandardPlace && hasOverridePrice;
     }
     
-    //?=== Calculate price using hierarchy: Bus_Voyage → Voyage → BusClasse
+    //?=== Calculate price using hierarchy: Bus_Voyage → Voyage
     public Double calculatePrice(BusVoyage busVoyage) {
         //*-- Check Bus_Voyage specific price
         if (busVoyage.getPrixSpecifique() != null) {
@@ -61,12 +61,7 @@ public class PricingService {
         }
         
         //*-- Check Voyage price
-        if (busVoyage.getVoyage().getPrixVoyage() != null) {
-            return busVoyage.getVoyage().getPrixVoyage();
-        }
-        
-        //*-- Fallback to BusClasse price
-        return busVoyage.getBus().getBusClasse().getPrixClasse();
+        return busVoyage.getVoyage().getPrixVoyage();
     }
     
     //?=== Record initial price when BusVoyage is created

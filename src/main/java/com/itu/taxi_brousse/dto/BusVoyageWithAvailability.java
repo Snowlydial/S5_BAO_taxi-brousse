@@ -1,6 +1,5 @@
 package com.itu.taxi_brousse.dto;
 
-import com.itu.taxi_brousse.entity.BusClasse;
 import com.itu.taxi_brousse.entity.BusVoyage;
 import lombok.Builder;
 import lombok.Data;
@@ -15,7 +14,6 @@ public class BusVoyageWithAvailability {
     private Integer availableSeats;
     private Integer capacity;
     private List<Integer> availableSeatNumbers;
-    private BusClasse busClasse;
     
     // New fields for place types
     private Map<String, Integer> placeTypeCapacities; // e.g., {"Premium": 10, "Standard": 20}

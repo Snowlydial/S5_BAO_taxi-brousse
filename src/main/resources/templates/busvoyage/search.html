@@ -101,18 +101,6 @@
                                     <input type="time" name="heureMin" class="form-control" th:value="${selectedHeureMin}">
                                 </div>
                                 
-                                <div class="col-md-6 col-lg-2 mb-3">
-                                    <label class="form-label">Classe Bus</label>
-                                    <select name="classeId" class="form-select">
-                                        <option value="">-- Toutes --</option>
-                                        <option th:each="classe : ${classes}" 
-                                                th:value="${classe.id}" 
-                                                th:text="${classe.libelle}"
-                                                th:selected="${classe.id == selectedClasse}">
-                                        </option>
-                                    </select>
-                                </div>
-                                
                                 <!-- Price Filters -->
                                 <div class="col-md-6 col-lg-2 mb-3">
                                     <label class="form-label">Prix Min (Ar)</label>
@@ -177,9 +165,6 @@
                                             <div class="col-6">
                                                 <small class="text-muted d-block">Bus</small>
                                                 <span th:text="${result.busVoyage.bus.immatriculation}"></span>
-                                            </div>
-                                            <div class="col-6 text-end">
-                                                <span class="badge bg-info" th:text="${result.busClasse.libelle}"></span>
                                             </div>
                                             
                                             <div class="col-12">

@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 public class BusController {
     
     private final BusRepository busRepository;
-    private final BusClasseRepository busClasseRepository;
     private final BusConfRepository busConfRepository;
     private final BusBusConfRepository busBusConfRepository;
     private final ClassePlaceRepository classePlaceRepository;
@@ -62,7 +61,6 @@ public class BusController {
         List<ClassePlace> classePlaceTypes = classePlaceRepository.findAll();
         
         model.addAttribute("pageTitle", "Nouveau Bus");
-        model.addAttribute("classes", busClasseRepository.findAll());
         model.addAttribute("otherConfs", otherConfs);
         model.addAttribute("otherConfTypes", otherConfTypes);
         model.addAttribute("classePlaceTypes", classePlaceTypes);
@@ -73,7 +71,6 @@ public class BusController {
     //?=== Create bus
     @PostMapping("/create")
     public String createBus(@RequestParam String immatriculation,
-                           @RequestParam Integer busClasseId,
                            @RequestParam(required = false) Map<String, String> placeTypeCapacities,
                            @RequestParam(required = false) List<Integer> otherBusConfIds,
                            RedirectAttributes redirectAttributes) {
@@ -91,8 +88,6 @@ public class BusController {
             // Create bus
             Bus bus = Bus.builder()
                     .immatriculation(immatriculation.trim())
-                    .busClasse(busClasseRepository.findById(busClasseId)
-                            .orElseThrow(() -> new RuntimeException("Classe de bus introuvable")))
                     .build();
             
             bus = busRepository.save(bus);
@@ -204,7 +199,6 @@ public class BusController {
         
         model.addAttribute("pageTitle", "Modifier Bus");
         model.addAttribute("bus", bus);
-        model.addAttribute("classes", busClasseRepository.findAll());
         model.addAttribute("currentPlaceTypes", currentPlaceTypes);
         model.addAttribute("otherConfs", otherConfs);
         model.addAttribute("otherConfTypes", otherConfTypes);
@@ -218,7 +212,6 @@ public class BusController {
     @PostMapping("/edit/{id}")
     public String updateBus(@PathVariable Integer id,
                            @RequestParam String immatriculation,
-                           @RequestParam Integer busClasseId,
                            @RequestParam(required = false) Map<String, String> placeTypeCapacities,
                            @RequestParam(required = false) List<Integer> otherBusConfIds,
                            RedirectAttributes redirectAttributes) {
@@ -239,8 +232,6 @@ public class BusController {
             
             // Update bus
             bus.setImmatriculation(immatriculation.trim());
-            bus.setBusClasse(busClasseRepository.findById(busClasseId)
-                    .orElseThrow(() -> new RuntimeException("Classe de bus introuvable")));
             
             busRepository.save(bus);
             

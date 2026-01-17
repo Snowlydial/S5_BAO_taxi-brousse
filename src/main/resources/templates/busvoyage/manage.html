@@ -68,16 +68,6 @@
                                         <input type="text" id="filterBus" class="form-control form-control-sm" placeholder="Immatriculation...">
                                     </div>
                                     <div class="col-md-2">
-                                        <label class="form-label">Classe Bus</label>
-                                        <select id="filterClasse" class="form-select form-select-sm">
-                                            <option value="">Toutes</option>
-                                            <option th:each="classe : ${classes}" 
-                                                    th:value="${classe.libelle}"
-                                                    th:text="${classe.libelle}">
-                                            </option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2">
                                         <label class="form-label">Heure Min</label>
                                         <input type="time" id="filterHeureMin" class="form-control form-control-sm">
                                     </div>
@@ -152,7 +142,6 @@
                                         th:attr="data-gare-depart=${bv.voyage.gareDepart.libelle},
                                                  data-gare-arrivee=${bv.voyage.gareArrivee.libelle},
                                                  data-bus=${bv.bus.immatriculation},
-                                                 data-classe=${bv.bus.busClasse.libelle},
                                                  data-date=${#temporals.format(bv.dateDepart, 'yyyy-MM-dd')},
                                                  data-year=${#temporals.format(bv.dateDepart, 'yyyy')},
                                                  data-heure=${#temporals.format(bv.heureDepart, 'HH:mm')},
@@ -160,7 +149,6 @@
                                         <td th:text="${bv.id}"></td>
                                         <td>
                                             <strong th:text="${bv.bus.immatriculation}"></strong><br>
-                                            <span class="badge bg-info" th:text="${bv.bus.busClasse.libelle}"></span>
                                         </td>
                                         <td>
                                             <i class="bi bi-geo-alt-fill text-success me-1"></i>

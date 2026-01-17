@@ -18,7 +18,4 @@ public class Bus {
     @Column(name = "immatriculation", length = 50, unique = true)
     private String immatriculation;
     
-    @ManyToOne
-    @JoinColumn(name = "id_busclasse", nullable = false)
-    private BusClasse busClasse;
 }

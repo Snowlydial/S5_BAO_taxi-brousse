@@ -31,10 +31,10 @@ public class BusVoyageService {
 
     //?=== Search bus voyages with multiple filters
     public List<BusVoyage> searchBusVoyages(Gare gareDepart, Gare gareArrivee, LocalDate dateDepart, LocalTime heureDepartMin, 
-                                            Integer busClasseId, Double prixMin, Double prixMax) {
+                                            Double prixMin, Double prixMax) {
         
         //*-- First filter by basic criteria
-        List<BusVoyage> results = busVoyageRepository.findWithFilters(gareDepart, gareArrivee, dateDepart, heureDepartMin, busClasseId);
+        List<BusVoyage> results = busVoyageRepository.findWithFilters(gareDepart, gareArrivee, dateDepart, heureDepartMin);
         
         //*-- Then apply price filtering if specified
         if (prixMin != null || prixMax != null) {
@@ -71,10 +71,10 @@ public class BusVoyageService {
     
     //?=== Get bus voyages with availability info
     public List<BusVoyageWithAvailability> searchWithAvailability(Gare gareDepart, Gare gareArrivee, LocalDate dateDepart, 
-                                                                  LocalTime heureDepartMin, Integer busClasseId, 
+                                                                  LocalTime heureDepartMin, 
                                                                   Double prixMin, Double prixMax) {
         
-        List<BusVoyage> busVoyages = searchBusVoyages(gareDepart, gareArrivee, dateDepart, heureDepartMin, busClasseId, prixMin, prixMax);
+        List<BusVoyage> busVoyages = searchBusVoyages(gareDepart, gareArrivee, dateDepart, heureDepartMin, prixMin, prixMax);
         
         return busVoyages.stream()
                 .map(this::toBusVoyageWithAvailability)
@@ -83,11 +83,10 @@ public class BusVoyageService {
 
     //?=== Search bus voyages across a whole year (returns DTOs with availability)
     public List<BusVoyageWithAvailability> searchByYear(Gare gareDepart, Gare gareArrivee, Integer year,
-                                                       LocalTime heureDepartMin, Integer busClasseId,
-                                                       Double prixMin, Double prixMax) {
+                                                       LocalTime heureDepartMin, Double prixMin, Double prixMax) {
         if (year == null) {
             // fallback to searching by specific date (today) if year not provided
-            return searchWithAvailability(gareDepart, gareArrivee, LocalDate.now(), heureDepartMin, busClasseId, prixMin, prixMax);
+            return searchWithAvailability(gareDepart, gareArrivee, LocalDate.now(), heureDepartMin, prixMin, prixMax);
         }
 
         LocalDate start = LocalDate.of(year, 1, 1);
@@ -112,16 +111,7 @@ public class BusVoyageService {
                         heureOk = bv.getHeureDepart() != null && !bv.getHeureDepart().isBefore(heureDepartMin);
                     }
 
-                    boolean classeOk = true;
-                    if (busClasseId != null) {
-                        if (bv.getBus() != null && bv.getBus().getBusClasse() != null && bv.getBus().getBusClasse().getId() != null) {
-                            classeOk = bv.getBus().getBusClasse().getId().equals(busClasseId);
-                        } else {
-                            classeOk = false;
-                        }
-                    }
-
-                    return departOk && arriveeOk && heureOk && classeOk;
+                    return departOk && arriveeOk && heureOk;
                 })
                 .collect(Collectors.toList());
 
@@ -152,7 +142,6 @@ public class BusVoyageService {
                 .capacity(capacity)
                 .availableSeats(availableSeats)
                 .availableSeatNumbers(availableSeatNumbers)
-                .busClasse(busVoyage.getBus().getBusClasse())
                 .placeTypeCapacities(placeTypeCapacities)
                 .placeTypeAvailableSeats(placeTypeAvailableSeats)
                 .placeTypePrices(placeTypePrices)
@@ -167,7 +156,6 @@ public class BusVoyageService {
                 gareArrivee,
                 dateDepart,
                 null, // No heure filter
-                null, // No classe filter
                 null, // No prix min
                 null  // No prix max
         );

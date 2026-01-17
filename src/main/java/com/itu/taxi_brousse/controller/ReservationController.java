@@ -52,12 +52,6 @@ public class ReservationController {
             .distinct()
             .collect(Collectors.toList());
         
-        List<BusClasse> uniqueClasses = allReservations.stream()
-            .map(r -> r.getBusVoyage().getBus().getBusClasse())
-            .distinct()
-            .sorted((c1, c2) -> c1.getLibelle().compareTo(c2.getLibelle()))
-            .collect(Collectors.toList());
-        
         //*-- Get ACTUAL paid amounts for each reservation
         Map<Integer, Double> reservationPaidAmounts = new HashMap<>();
         for (Reservation reservation : allReservations) {
@@ -72,7 +66,6 @@ public class ReservationController {
         model.addAttribute("paiementService", paiementService);
         model.addAttribute("uniqueBuses", uniqueBuses);
         model.addAttribute("uniqueVoyages", uniqueVoyages);
-        model.addAttribute("uniqueClasses", uniqueClasses);
         
         return "reservation/list";
     }

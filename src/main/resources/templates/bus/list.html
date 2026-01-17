@@ -52,7 +52,6 @@
                                                 <i class="bi bi-bus-front me-2"></i>
                                                 <span th:text="${bus.immatriculation}"></span>
                                             </h5>
-                                            <span class="badge bg-info" th:text="${bus.busClasse.libelle}"></span>
                                         </div>
                                     </div>
                                     <div class="card-body" style="padding-top: 24px;">
@@ -72,13 +71,6 @@
                                         </div>
                                         
                                         <hr>
-                                        
-                                        <div class="mb-3">
-                                            <small class="text-muted">Prix Classe:</small><br>
-                                            <span class="text-success fw-bold">
-                                                <span th:text="${#numbers.formatDecimal(bus.busClasse.prixClasse, 0, 'COMMA', 0, 'POINT')}"></span> Ar
-                                            </span>
-                                        </div>
                                         
                                         <div class="mb-3 p-2 bg-light-success rounded">
                                             <small class="text-muted d-block mb-1">
@@ -125,7 +117,6 @@
                                                         <strong>Immatriculation :</strong>
                                                         <span th:text="${bus.immatriculation}"></span><br>
                                                         <strong>Classe :</strong>
-                                                        <span th:text="${bus.busClasse.libelle}"></span>
                                                     </div>
                                                     <p class="text-danger">
                                                         <i class="bi bi-exclamation-triangle me-1"></i>

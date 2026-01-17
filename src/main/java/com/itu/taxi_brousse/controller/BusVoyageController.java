@@ -3,7 +3,6 @@ package com.itu.taxi_brousse.controller;
 import com.itu.taxi_brousse.dto.BusVoyageWithAvailability;
 import com.itu.taxi_brousse.entity.BusVoyage;
 import com.itu.taxi_brousse.entity.Gare;
-import com.itu.taxi_brousse.repository.BusClasseRepository;
 import com.itu.taxi_brousse.repository.BusRepository;
 import com.itu.taxi_brousse.repository.BusVoyageRepository;
 import com.itu.taxi_brousse.repository.GareRepository;
@@ -34,7 +33,6 @@ public class BusVoyageController {
     private final BusRepository busRepository;
     private final VoyageRepository voyageRepository;
     private final BusVoyageRepository busVoyageRepository;
-    private final BusClasseRepository busClasseRepository;
     private final GareRepository gareRepository;
     private final BusVoyageService busVoyageService;
     private final PricingService pricingService;
@@ -43,12 +41,11 @@ public class BusVoyageController {
     public String searchPage(Model model) {
         int today = LocalDate.now().getYear();
         List<BusVoyageWithAvailability> defaultResults = busVoyageService.searchByYear(
-            null, null, today, null, null, 0.00, 200000.00
+            null, null, today, null, 0.00, 200000.00
         );
         
         model.addAttribute("pageTitle", "Rechercher un Voyage");
         model.addAttribute("gares", gareRepository.findAll());
-        model.addAttribute("classes", busClasseRepository.findAll());
         model.addAttribute("results", defaultResults);
         model.addAttribute("searchPerformed", true);
         model.addAttribute("selectedDate", today);
@@ -64,7 +61,6 @@ public class BusVoyageController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDepart,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime heureMin,
-            @RequestParam(required = false) Integer classeId,
             @RequestParam(required = false) Double prixMin,
             @RequestParam(required = false) Double prixMax,
             Model model) {
@@ -80,28 +76,26 @@ public class BusVoyageController {
             // Search by year - get all voyages for that year
             searchByYear = true;
             results = busVoyageService.searchByYear(
-                depart, arrivee, year, heureMin, classeId, prixMin, prixMax
+                depart, arrivee, year, heureMin, prixMin, prixMax
             );
             model.addAttribute("selectedYear", year);
         } else {
             // Search by specific date
             LocalDate searchDate = dateDepart != null ? dateDepart : LocalDate.now();
             results = busVoyageService.searchWithAvailability(
-                depart, arrivee, searchDate, heureMin, classeId, prixMin, prixMax
+                depart, arrivee, searchDate, heureMin, prixMin, prixMax
             );
             model.addAttribute("selectedDate", searchDate);
         }
         
         model.addAttribute("pageTitle", "Résultats de Recherche");
         model.addAttribute("gares", gareRepository.findAll());
-        model.addAttribute("classes", busClasseRepository.findAll());
         model.addAttribute("results", results);
         model.addAttribute("searchPerformed", true);
         model.addAttribute("searchByYear", searchByYear);
         model.addAttribute("selectedGareDepart", gareDepart);
         model.addAttribute("selectedGareArrivee", gareArrivee);
         model.addAttribute("selectedHeureMin", heureMin);
-        model.addAttribute("selectedClasse", classeId);
         model.addAttribute("selectedPrixMin", prixMin);
         model.addAttribute("selectedPrixMax", prixMax);
         
@@ -117,7 +111,6 @@ public class BusVoyageController {
         model.addAttribute("busVoyages", busVoyages);
         model.addAttribute("pricingService", pricingService);
         model.addAttribute("gares", gareRepository.findAll());
-        model.addAttribute("classes", busClasseRepository.findAll());
         
         return "busvoyage/manage";
     }
