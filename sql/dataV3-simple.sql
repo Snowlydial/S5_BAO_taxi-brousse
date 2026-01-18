@@ -1,9 +1,9 @@
 \c taxibroussedb;
 
 INSERT INTO ClassePlace (libelle, prix_place) VALUES 
+('Standard', 80000),
 ('Premium', 140000),
-('VIP', 180000),
-('Standard', 80000);
+('VIP', 180000);
 
 INSERT INTO Caisse (libelle) VALUES 
 ('Espece'),
@@ -91,7 +91,7 @@ INSERT INTO Bus_Voyage (heure_depart, date_depart, prix_specifique, id_bus, id_v
 INSERT INTO Client (nom, prenom, id_categorieGenre, id_categorieGroupeAge) VALUES 
 ('Enfant1', 'Test', 1, 1),
 ('Enfant2', 'Test', 2, 1),
-('Adulte', 'Test', 1, 2),
-('Adulte', 'Test', 2, 2),
+('Adulte1', 'Test', 1, 2),
+('Adulte2', 'Test', 2, 2),
 ('Senior1', 'Test', 1, 3),
 ('Senior2', 'Test', 2, 3);
