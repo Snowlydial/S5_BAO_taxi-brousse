@@ -499,7 +499,7 @@
                                 priceDisplay.textContent = '';
                             }
                             
-                            calculateTotal();
+                            calculateTotal(); // Only call calculateTotal here
                         });
                     });
                     
@@ -514,7 +514,7 @@
                 }
                 
                 countSeatClasses();
-                updateRemainingAmount();
+                updateRemainingAmount(); // Safe to call here (no recursion)
             }
             
             function calculateTotal() {
@@ -595,7 +595,7 @@
             
             document.getElementById('paymentMethods').addEventListener('input', function(e) {
                 if (e.target.classList.contains('montant-input')) {
-                    const totalPrice = calculateTotal();
+                    const totalPrice = parseFloat(totalAmountSpan.textContent.replace(/\s/g, '')) || 0;
                     let value = parseFloat(e.target.value) || 0;
                     
                     if (value < 0) {
@@ -621,7 +621,7 @@
             function updateRemainingAmount() {
                 if (!multiplePaymentToggle.checked) return;
                 
-                const totalPrice = calculateTotal();
+                const totalPrice = parseFloat(totalAmountSpan.textContent.replace(/\s/g, '')) || 0;
                 const montantInputs = Array.from(document.querySelectorAll('.montant-input'));
                 const totalPaid = montantInputs.reduce((sum, input) => {
                     return sum + (parseFloat(input.value) || 0);
@@ -674,7 +674,7 @@
                 });
                 
                 if (multiplePaymentToggle.checked) {
-                    const totalPrice = calculateTotal();
+                    const totalPrice = parseFloat(totalAmountSpan.textContent.replace(/\s/g, '')) || 0;
                     const montantInputs = Array.from(document.querySelectorAll('.montant-input'));
                     const totalPaid = montantInputs.reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
                     
