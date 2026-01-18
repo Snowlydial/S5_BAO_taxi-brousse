@@ -18,8 +18,11 @@ public class ClasseAgeConf {
     @Column(name = "id_classeage_conf")
     private Integer id;
     
-    @Column(name = "prix_place_override", nullable = false)
-    private Double prixPlaceOverride;
+    @Column(name = "valeur_override", nullable = false)
+    private Double valeurOverride;
+    
+    @Column(name = "est_pourcentage", nullable = false)
+    private Boolean estPourcentage;
     
     @Column(name = "date_debut")
     private LocalDate dateDebut;
@@ -35,9 +38,7 @@ public class ClasseAgeConf {
     @JoinColumn(name = "id_classeplace", nullable = false)
     private ClassePlace classePlace;
     
-    /**
-     * Check if this configuration is active for a given date
-     */
+    //?== Check if this configuration is active for a given date
     public boolean isActiveOn(LocalDate date) {
         if (date == null) {
             date = LocalDate.now();
@@ -47,5 +48,15 @@ public class ClasseAgeConf {
         boolean beforeEnd = (dateFin == null) || !date.isAfter(dateFin);
         
         return afterStart && beforeEnd;
+    }
+    
+    //?== Calculate the effective price based on base price
+    // basePrice The reference price (usually adult price for this seat class)
+    public Double calculatePrice(Double basePrice) {
+        if (estPourcentage) {
+            return basePrice * (1 + valeurOverride);
+        } else {
+            return valeurOverride;
+        }
     }
 }

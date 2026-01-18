@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -22,9 +23,9 @@ public class PaiementService {
     //?=== Create single payment for a reservation with custom date
     @Transactional
     public Paiement createSinglePayment(Reservation reservation, Caisse caisse, LocalDateTime datePaiement) {
-        //*-- Calculate price at payment time using reservation-specific pricing
-        //*-- This will handle enfant discount, classe place prices, etc.
-        Double prixTotal = pricingService.calculatePrice(reservation);
+        // Calculate price using date of payment for accurate historical pricing
+        LocalDate pricingDate = datePaiement != null ? datePaiement.toLocalDate() : LocalDate.now();
+        Double prixTotal = pricingService.calculatePrice(reservation, pricingDate);
         
         Paiement paiement = Paiement.builder()
                 .datePaiement(datePaiement)
@@ -43,8 +44,8 @@ public class PaiementService {
             throw new RuntimeException("Number of payment methods must match number of amounts");
         }
         
-        //*-- Calculate expected total price (now supports ClassePlace)
-        Double prixTotal = pricingService.calculatePrice(reservation);
+        LocalDate pricingDate = datePaiement != null ? datePaiement.toLocalDate() : LocalDate.now();
+        Double prixTotal = pricingService.calculatePrice(reservation, pricingDate);
         Double totalMontant = montants.stream().mapToDouble(Double::doubleValue).sum();
         
         //*-- Validate total amount

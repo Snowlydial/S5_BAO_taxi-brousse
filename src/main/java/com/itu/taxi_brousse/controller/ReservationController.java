@@ -92,24 +92,17 @@ public class ReservationController {
         //*-- Get all clients with their age category information
         List<Client> clients = clientRepository.findAll();
         
-        System.out.println("=== DEBUG: Reservation Create Form ===");
-        System.out.println("Bus Place Types Config: " + busPlaceTypes);
-        System.out.println("Available Seats By Type: " + availableSeatsByType);
-        System.out.println("All ClassePlace in DB: " + classePlaceRepository.findAll().stream()
-            .map(cp -> cp.getLibelle()).collect(Collectors.toList()));
-        System.out.println("ClassePlace options to show: " + availableClassePlaces.stream()
-            .map(ClassePlace::getLibelle).collect(Collectors.toList()));
-        
         model.addAttribute("pageTitle", "Nouvelle Réservation");
         model.addAttribute("busVoyage", busVoyage);
         model.addAttribute("availableSeats", availableSeats);
         model.addAttribute("capacity", capacity);
         model.addAttribute("availableSeatsByType", availableSeatsByType);
         model.addAttribute("classePlaces", availableClassePlaces);
-        model.addAttribute("clients", clients);  // Already includes age category info
+        model.addAttribute("clients", clients);
         model.addAttribute("caisses", caisseRepository.findAll());
         model.addAttribute("genres", categorieGenreRepository.findAll());
         model.addAttribute("groupesAge", categorieGroupeAgeRepository.findAll());
+        model.addAttribute("pricingService", pricingService); // Pass service to view for dynamic price calculation there
         
         return "reservation/create";
     }
@@ -161,9 +154,9 @@ public class ReservationController {
                 client, busVoyage, selectedSeats, seatClasseMap
             );
             
-            //*-- Calculate total price (PricingService will handle enfant discount)
+            // Calculate total using pricing date
             Double totalPrice = reservations.stream()
-                .mapToDouble(r -> pricingService.calculatePrice(r))
+                .mapToDouble(r -> pricingService.calculatePrice(r, dateReservation))
                 .sum();
             
             //*-- Clean up payment inputs
@@ -201,7 +194,7 @@ public class ReservationController {
                 
                 //*-- Distribute payments proportionally
                 for (Reservation reservation : reservations) {
-                    Double reservationPrice = pricingService.calculatePrice(reservation);
+                    Double reservationPrice = pricingService.calculatePrice(reservation, dateReservation);
                     List<Double> proportionalMontants = new ArrayList<>();
                     for (Double montant : validMontants) {
                         proportionalMontants.add(montant * (reservationPrice / totalPrice));
@@ -209,7 +202,7 @@ public class ReservationController {
                     paiementService.createMultiplePayments(reservation, caisses, proportionalMontants, datePaiement);
                 }
             } else {
-                // Single payment method
+                //*-- Single payment method
                 Integer caisseId = validCaisseIds.isEmpty() ? null : validCaisseIds.get(0);
                 if (caisseId == null) {
                     throw new RuntimeException("Aucun mode de paiement sélectionné");
@@ -222,20 +215,17 @@ public class ReservationController {
                 }
             }
             
-            // Check if any enfant discount was applied
-            boolean hasEnfantDiscount = reservations.stream()
-                .anyMatch(r -> {
-                    if (r.getClient() != null && r.getClient().getCategorieGroupeAge() != null) {
-                        boolean isEnfant = "Enfant (0-12 ans)".equals(r.getClient().getCategorieGroupeAge().getLibelle());
-                        boolean isStandard = r.getClassePlace() != null && "Standard".equals(r.getClassePlace().getLibelle());
-                        return isEnfant && isStandard;
-                    }
-                    return false;
-                });
+            // Check if any discount was applied (generic check)
+            boolean hasDiscount = reservations.stream()
+                .anyMatch(r -> pricingService.hasDiscount(
+                    r.getClient().getCategorieGroupeAge(), 
+                    r.getClassePlace(), 
+                    dateReservation
+                ));
             
             String successMessage = selectedSeats.size() + " réservation(s) créée(s) avec succès!";
-            if (hasEnfantDiscount) {
-                successMessage += " (Tarif enfant appliqué pour les places Standard)";
+            if (hasDiscount) {
+                successMessage += " (Tarif réduit appliqué)";
             }
             
             redirectAttributes.addFlashAttribute("success", successMessage);

@@ -41,9 +41,10 @@ CREATE TABLE ClassePlace(
    PRIMARY KEY(id_classePlace)
 );
 
-CREATE TABLE ClasseAgeConf(
+CREATE TABLE ClasseAge_Conf(
    id_classeAge_conf SERIAL,
-   prix_place_override DOUBLE PRECISION NOT NULL,
+   valeur_override DOUBLE PRECISION NOT NULL,
+   est_pourcentage BOOLEAN NOT NULL DEFAULT FALSE,
    date_debut DATE,
    date_fin DATE,
    id_categorieGroupeAge INTEGER NOT NULL,
