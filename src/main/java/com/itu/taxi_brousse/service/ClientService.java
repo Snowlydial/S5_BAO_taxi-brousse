@@ -24,12 +24,12 @@ public class ClientService {
     
     //?=== Get all clients
     public List<Client> getAllClients() {
-        return clientRepository.findAllWithCategorieGroupeAge();
+        return clientRepository.findAll();
     }
     
     //?=== Get client by ID
     public Optional<Client> getClientById(Integer id) {
-        return clientRepository.findByIdWithDetails(id);
+        return clientRepository.findById(id);
     }
     
     //?=== Create or update client

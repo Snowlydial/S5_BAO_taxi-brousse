@@ -40,12 +40,13 @@ public class PricingApiController {
             Double effectivePrice = pricingService.getEffectivePrice(ageGroup, classePlace, date);
             boolean hasDiscount = pricingService.hasDiscount(ageGroup, classePlace, date);
             Double percentage = pricingService.getDiscountPercentage(ageGroup, classePlace, date);
+            Double baselinePrice = pricingService.getBaselinePrice(classePlace, date);
             
             Map<String, Object> priceInfo = new HashMap<>();
             priceInfo.put("price", effectivePrice);
             priceInfo.put("hasDiscount", hasDiscount);
             priceInfo.put("percentage", percentage);
-            priceInfo.put("basePrice", classePlace.getPrixPlace());
+            priceInfo.put("basePrice", baselinePrice);
             
             pricingData.put(classePlace.getId(), priceInfo);
         }
@@ -69,12 +70,13 @@ public class PricingApiController {
         Double effectivePrice = pricingService.getEffectivePrice(ageGroup, classePlace, date);
         boolean hasDiscount = pricingService.hasDiscount(ageGroup, classePlace, date);
         Double percentage = pricingService.getDiscountPercentage(ageGroup, classePlace, date);
-        
+        Double basePrice = pricingService.getBaselinePrice(classePlace, date);
+
         Map<String, Object> response = new HashMap<>();
         response.put("price", effectivePrice);
         response.put("hasDiscount", hasDiscount);
         response.put("percentage", percentage);
-        response.put("basePrice", classePlace.getPrixPlace());
+        response.put("basePrice", basePrice);
         response.put("ageGroupLabel", ageGroup.getLibelle());
         response.put("classePlaceLabel", classePlace.getLibelle());
         

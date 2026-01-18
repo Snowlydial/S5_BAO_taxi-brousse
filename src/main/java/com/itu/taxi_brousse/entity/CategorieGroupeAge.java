@@ -18,7 +18,7 @@ public class CategorieGroupeAge {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_categorieGroupeAge")  // Match database column name
+    @Column(name = "id_categoriegroupeage")
     private Integer id;
     
     @Column(name = "libelle", nullable = false)

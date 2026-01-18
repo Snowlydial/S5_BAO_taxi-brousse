@@ -102,7 +102,6 @@ public class ReservationController {
         model.addAttribute("caisses", caisseRepository.findAll());
         model.addAttribute("genres", categorieGenreRepository.findAll());
         model.addAttribute("groupesAge", categorieGroupeAgeRepository.findAll());
-        model.addAttribute("pricingService", pricingService); // Pass service to view for dynamic price calculation there
         
         return "reservation/create";
     }

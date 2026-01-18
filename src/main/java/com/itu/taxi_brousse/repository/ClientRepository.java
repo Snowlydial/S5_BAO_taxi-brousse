@@ -14,6 +14,5 @@ public interface ClientRepository extends JpaRepository<Client, Integer> {
     // List<Client> findByCategorieGenreId(Integer genreId);
     List<Client> findByCategorieGroupeAgeId(Integer ageGroupId);
     List<Client> findByNomContainingOrPrenomContaining(String nom, String prenom);
-    List<Client> findAllWithCategorieGroupeAge();
-    Optional<Client> findByIdWithDetails(Integer id);
+    Optional<Client> findById(Integer id);
 }

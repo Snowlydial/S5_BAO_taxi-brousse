@@ -18,6 +18,7 @@ public class Client {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_client")
     private Integer id;
     
     @Column(name = "nom", nullable = false)
@@ -27,10 +28,10 @@ public class Client {
     private String prenom;
     
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_categorieGenre", nullable = false)
+    @JoinColumn(name = "id_categoriegenre", nullable = false)
     private CategorieGenre categorieGenre;
     
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_categorieGroupeAge", nullable = false)
+    @JoinColumn(name = "id_categoriegroupeage", nullable = false)
     private CategorieGroupeAge categorieGroupeAge;
 }

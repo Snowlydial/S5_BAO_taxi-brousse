@@ -61,16 +61,12 @@ public class PricingService {
     }
 
     private Double getCategorieGroupeAgeUsedForBaselinePrice(ClassePlace classePlace, LocalDate date, String libelleAgeGroup) {
-        if(date == null) {
-            date = LocalDate.now();
-        }
-        
         List<ClasseAgeConf> allConfigs = classeAgeConfRepository.findByClassePlace(classePlace);
 
         // Look for absolute price configs (aka non-percentage)
         Optional<ClasseAgeConf> baseConfig = allConfigs.stream()
             .filter(c -> !c.getEstPourcentage())
-            .filter(c -> c.isActiveOn(LocalDate.now()))
+            .filter(c -> c.isActiveOn(date == null ? date : LocalDate.now()))
             .filter(c -> c.getCategorieGroupeAge().getLibelle().contains(libelleAgeGroup))
             .findFirst();
 
@@ -159,7 +155,7 @@ public class PricingService {
         }
     }
     
-    //?== Get discount percentage (for display)
+    //?== Get discount percentage based on baseline price (for display)
     public Double getDiscountPercentage(CategorieGroupeAge ageGroup, ClassePlace classePlace, LocalDate date) {
         Double effectivePrice = getEffectivePrice(ageGroup, classePlace, date);
         if (effectivePrice == null) {
@@ -240,5 +236,10 @@ public class PricingService {
     //?=== Get historical prices for a specific Bus_Voyage
     public List<HistoriquePrixSpecifique> getPriceHistory(BusVoyage busVoyage) {
         return historiquePrixSpecifiqueRepository.findByBusVoyageOrderByDateEcritureDesc(busVoyage);
+    }
+
+    //?=== Get the baseline age group label
+    public Double getBaselinePrice(ClassePlace classePlace, LocalDate date) {
+        return getCategorieGroupeAgeUsedForBaselinePrice(classePlace, date, DEFAULT_BASELINE_AGE_GROUP_LIBELLE);
     }
 }
