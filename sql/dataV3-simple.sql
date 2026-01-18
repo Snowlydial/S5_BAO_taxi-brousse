@@ -95,3 +95,16 @@ INSERT INTO Client (nom, prenom, id_categorieGenre, id_categorieGroupeAge) VALUE
 ('Adulte2', 'Test', 2, 2),
 ('Senior1', 'Test', 1, 3),
 ('Senior2', 'Test', 2, 3);
+
+--? Alea update the price conf of adulte
+-- UPDATE ClasseAge_Conf
+-- SET valeur_override = 15000
+-- WHERE id_categorieGroupeAge = 2 AND id_classePlace = 1;
+
+-- UPDATE ClasseAge_Conf
+-- SET valeur_override = 20000
+-- WHERE id_categorieGroupeAge = 2 AND id_classePlace = 2;
+
+-- UPDATE ClasseAge_Conf
+-- SET valeur_override = 25000
+-- WHERE id_categorieGroupeAge = 2 AND id_classePlace = 3;
