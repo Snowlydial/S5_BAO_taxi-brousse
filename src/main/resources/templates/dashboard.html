@@ -66,6 +66,22 @@
                                 </div>
                             </div>
                             
+                            <!-- Revenue Type Toggle -->
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Type de montant</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="revenueTypeToggle">
+                                        <label class="form-check-label" for="revenueTypeToggle">
+                                            <span id="revenueTypeLabel">Chiffre d'Affaires</span>
+                                        </label>
+                                    </div>
+                                    <small class="text-muted" id="revenueTypeDescription">
+                                        Calculé selon config actuelle
+                                    </small>
+                                </div>
+                            </div>
+                            
                             <div class="col-md-2">
                                 <button class="btn btn-primary w-100" id="loadStatsBtn">
                                     <i class="bi bi-search"></i> Charger
@@ -112,8 +128,9 @@
         <div class="row">
             <div class="col-md-6">
                 <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title">Évolution du Chiffre d'Affaires Global</h4>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0" id="globalRevenueTitle">Évolution du Chiffre d'Affaires Global</h4>
+                        <span class="badge" id="globalRevenueBadge"></span>
                     </div>
                     <div class="card-body">
                         <canvas id="globalRevenueChart"></canvas>
@@ -122,8 +139,9 @@
             </div>
             <div class="col-md-6">
                 <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title">Chiffre d'Affaires par Caisse</h4>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0" id="caisseRevenueTitle">Chiffre d'Affaires par Caisse</h4>
+                        <span class="badge" id="caisseRevenueBadge"></span>
                     </div>
                     <div class="card-body">
                         <canvas id="revenueByCaisseChart"></canvas>
@@ -146,8 +164,9 @@
             </div>
             <div class="col-md-6">
                 <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title">Top 10 Clients les Plus Lucratifs</h4>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0" id="topClientsTitle">Top 10 Clients les Plus Lucratifs</h4>
+                        <span class="badge" id="topClientsBadge"></span>
                     </div>
                     <div class="card-body">
                         <canvas id="topClientsChart"></canvas>
@@ -184,7 +203,6 @@
     <div layout:fragment="scripts">
         <script src="/vendors/chartjs/Chart.min.js"></script>
         <script th:inline="javascript">
-            // Chart instances
             let charts = {
                 globalRevenue: null,
                 revenueByCaisse: null,
@@ -193,6 +211,40 @@
                 gender: null,
                 ageGroup: null
             };
+
+            const revenueTypeToggle = document.getElementById('revenueTypeToggle');
+            const revenueTypeLabel = document.getElementById('revenueTypeLabel');
+            const revenueTypeDescription = document.getElementById('revenueTypeDescription');
+
+            // Revenue type toggle handler
+            revenueTypeToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    revenueTypeLabel.textContent = 'Montant Encaissé';
+                    revenueTypeDescription.textContent = 'Montants réellement payés';
+                    updateBadges('bg-success', 'Montant Encaissé');
+                } else {
+                    revenueTypeLabel.textContent = 'Chiffre d\'Affaires';
+                    revenueTypeDescription.textContent = 'Calculé selon config actuelle';
+                    updateBadges('bg-info', 'CA Dynamique');
+                }
+                loadStats();
+            });
+
+            function updateBadges(badgeClass, badgeText) {
+                ['globalRevenueBadge', 'caisseRevenueBadge', 'topClientsBadge'].forEach(id => {
+                    const badge = document.getElementById(id);
+                    badge.className = 'badge ' + badgeClass;
+                    badge.textContent = badgeText;
+                });
+
+                // Update titles
+                const prefix = revenueTypeToggle.checked ? 'Montant Encaissé' : 'Chiffre d\'Affaires';
+                document.getElementById('globalRevenueTitle').textContent = `Évolution du ${prefix} Global`;
+                document.getElementById('caisseRevenueTitle').textContent = `${prefix} par Caisse`;
+                document.getElementById('topClientsTitle').textContent = revenueTypeToggle.checked 
+                    ? 'Top 10 Clients (Paiements)'
+                    : 'Top 10 Clients les Plus Lucratifs';
+            }
 
             // Period type toggle
             document.querySelectorAll('input[name="periodType"]').forEach(radio => {
@@ -207,15 +259,17 @@
                 });
             });
 
-            // Load stats button
             document.getElementById('loadStatsBtn').addEventListener('click', loadStats);
-
-            // Load initial stats
-            window.addEventListener('DOMContentLoaded', loadStats);
+            window.addEventListener('DOMContentLoaded', () => {
+                updateBadges('bg-info', 'CA Dynamique');
+                loadStats();
+            });
 
             function loadStats() {
                 const periodType = document.querySelector('input[name="periodType"]:checked').value;
-                let url = '/api/stats?periodType=' + periodType;
+                const usePaidAmounts = revenueTypeToggle.checked;
+                
+                let url = '/api/stats?periodType=' + periodType + '&usePaidAmounts=' + usePaidAmounts;
 
                 if (periodType === 'monthly') {
                     const year = document.getElementById('yearInput').value;
@@ -258,10 +312,10 @@
                     data: {
                         labels: labels,
                         datasets: [{
-                            label: 'Chiffre d\'Affaires (Ar)',
+                            label: revenueTypeToggle.checked ? 'Montant Encaissé (Ar)' : 'Chiffre d\'Affaires (Ar)',
                             data: values,
-                            borderColor: 'rgb(75, 192, 192)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: revenueTypeToggle.checked ? 'rgb(40, 167, 69)' : 'rgb(75, 192, 192)',
+                            backgroundColor: revenueTypeToggle.checked ? 'rgba(40, 167, 69, 0.2)' : 'rgba(75, 192, 192, 0.2)',
                             tension: 0.1
                         }]
                     },
@@ -365,10 +419,10 @@
                     data: {
                         labels: labels,
                         datasets: [{
-                            label: 'Chiffre d\'Affaires (Ar)',
+                            label: revenueTypeToggle.checked ? 'Montant Encaissé (Ar)' : 'Chiffre d\'Affaires (Ar)',
                             data: values,
-                            backgroundColor: 'rgba(255, 206, 86, 0.5)',
-                            borderColor: 'rgb(255, 206, 86)',
+                            backgroundColor: revenueTypeToggle.checked ? 'rgba(40, 167, 69, 0.5)' : 'rgba(255, 206, 86, 0.5)',
+                            borderColor: revenueTypeToggle.checked ? 'rgb(40, 167, 69)' : 'rgb(255, 206, 86)',
                             borderWidth: 1
                         }]
                     },

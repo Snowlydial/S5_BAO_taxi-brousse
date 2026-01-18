@@ -111,30 +111,43 @@
                             </div>
                         </div>
 
-                        <!-- Revenue Summary Card -->
-                        <div class="card shadow-sm mb-4 bg-light-success">
-                            <div class="card-body py-3">
-                                <div class="row align-items-center">
-                                    <div class="col-md-4">
-                                        <h6 class="mb-1 text-muted">Chiffre d'Affaires (filtré)</h6>
-                                        <h3 class="mb-0 text-success">
-                                            <i class="bi bi-currency-exchange me-2"></i>
-                                            <span id="totalRevenue">0</span> Ar
+                        <!-- Revenue Summary Cards -->
+                        <div class="row mb-4">
+                            <!-- Chiffre d'Affaires (Dynamic) -->
+                            <div class="col-md-6">
+                                <div class="card shadow-sm bg-light-info">
+                                    <div class="card-body py-3">
+                                        <h6 class="mb-1 text-muted">
+                                            <i class="bi bi-calculator me-2"></i>
+                                            Chiffre d'Affaires (filtré)
+                                        </h6>
+                                        <small class="text-muted d-block mb-2">Calculé selon la configuration actuelle</small>
+                                        <h3 class="mb-0 text-info">
+                                            <span id="totalDynamicRevenue">0</span> Ar
                                         </h3>
+                                        <div class="mt-2">
+                                            <small class="text-muted">Nombre: <strong id="totalReservations">0</strong></small>
+                                            <small class="text-muted ms-3">Moyen: <strong id="avgDynamicPrice">0</strong> Ar</small>
+                                        </div>
                                     </div>
-                                    <div class="col-md-4">
-                                        <h6 class="mb-1 text-muted">Nombre de réservations</h6>
-                                        <h4 class="mb-0">
-                                            <i class="bi bi-ticket-perforated me-2"></i>
-                                            <span id="totalReservations">0</span>
-                                        </h4>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <h6 class="mb-1 text-muted">Prix moyen</h6>
-                                        <h4 class="mb-0">
-                                            <i class="bi bi-graph-up-arrow me-2"></i>
-                                            <span id="avgPrice">0</span> Ar
-                                        </h4>
+                                </div>
+                            </div>
+                            
+                            <!-- Montant Encaissé (Recorded) -->
+                            <div class="col-md-6">
+                                <div class="card shadow-sm bg-light-success">
+                                    <div class="card-body py-3">
+                                        <h6 class="mb-1 text-muted">
+                                            <i class="bi bi-currency-exchange me-2"></i>
+                                            Montant Encaissé (filtré)
+                                        </h6>
+                                        <small class="text-muted d-block mb-2">Montant réellement payé et enregistré</small>
+                                        <h3 class="mb-0 text-success">
+                                            <span id="totalPaidRevenue">0</span> Ar
+                                        </h3>
+                                        <div class="mt-2">
+                                            <small class="text-muted">Moyen: <strong id="avgPaidPrice">0</strong> Ar</small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -161,7 +174,8 @@
                                         <th>Date Reservation</th>
                                         <th>Place</th>
                                         <th>Type Place</th>
-                                        <th>Montant Payé</th>
+                                        <th>Chiffre d'Affaires</th>
+                                        <th>Montant Encaissé</th>
                                         <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
@@ -170,10 +184,12 @@
                                     <tr th:each="reservation : ${reservations}"
                                         th:with="statut=${reservationStatutService.getLatestStatut(reservation)},
                                                 paidAmount=${reservationPaidAmounts.get(reservation.id)},
+                                                dynamicPrice=${reservationDynamicPrices.get(reservation.id)},
                                                 firstPaiement=${reservation.paiements.isEmpty() ? null : reservation.paiements.get(0)}"
                                         th:attr="data-date-depart=${#temporals.format(reservation.busVoyage.dateDepart, 'yyyy-MM-dd')},
                                                  data-heure-depart=${#temporals.format(reservation.busVoyage.heureDepart, 'HH:mm')},
-                                                 data-prix=${paidAmount},
+                                                 data-prix-paid=${paidAmount},
+                                                 data-prix-dynamic=${dynamicPrice},
                                                  data-place-type=${reservation.classePlace != null ? reservation.classePlace.libelle : 'N/A'}">
                                         <td th:text="${reservation.id}"></td>
                                         <td>
@@ -212,6 +228,15 @@
                                                   class="text-muted small">N/A</span>
                                         </td>
                                         <td>
+                                            <span class="text-info fw-bold">
+                                                <span th:text="${#numbers.formatDecimal(dynamicPrice, 0, 'COMMA', 0, 'POINT')}"></span> Ar
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">
+                                                <i class="bi bi-calculator"></i> Dynamique
+                                            </small>
+                                        </td>
+                                        <td>
                                             <span class="text-success fw-bold">
                                                 <span th:text="${#numbers.formatDecimal(paidAmount, 0, 'COMMA', 0, 'POINT')}"></span> Ar
                                             </span>
@@ -219,6 +244,10 @@
                                             <small th:if="${!paiementService.isReservationFullyPaid(reservation)}" 
                                                    class="text-danger">
                                                 <i class="bi bi-exclamation-triangle"></i> Incomplet
+                                            </small>
+                                            <small th:if="${paiementService.isReservationFullyPaid(reservation)}" 
+                                                   class="text-muted">
+                                                <i class="bi bi-check-circle"></i> Payé
                                             </small>
                                         </td>
                                         <td>
@@ -339,7 +368,8 @@
                     const dateMaxFilter = document.getElementById('filterDateMax').value;
                     const heureMinFilter = document.getElementById('filterHeureMin').value;
                     
-                    let totalRevenue = 0;
+                    let totalPaidRevenue = 0;
+                    let totalDynamicRevenue = 0;
                     let visibleCount = 0;
                     
                     const rows = table.querySelectorAll('tbody tr');
@@ -347,10 +377,11 @@
                         const clientText = row.cells[1].textContent.toLowerCase();
                         const trajetText = row.cells[2].textContent.trim();
                         const busImmat = row.cells[3].querySelector('span:first-child').textContent.trim();
-                        const statutText = row.cells[9].textContent.trim();
+                        const statutText = row.cells[10].textContent.trim();
                         const dateDepart = row.getAttribute('data-date-depart');
                         const heureDepart = row.getAttribute('data-heure-depart');
-                        const prix = parseFloat(row.getAttribute('data-prix'));
+                        const prixPaid = parseFloat(row.getAttribute('data-prix-paid'));
+                        const prixDynamic = parseFloat(row.getAttribute('data-prix-dynamic'));
                         const placeType = row.getAttribute('data-place-type');
                         
                         const clientMatch = !clientFilter || clientText.includes(clientFilter);
@@ -371,25 +402,31 @@
                         
                         if (clientMatch && busMatch && trajetMatch && statutMatch && placeTypeMatch && dateMatch && heureMatch) {
                             row.style.display = '';
-                            totalRevenue += prix;
+                            totalPaidRevenue += prixPaid;
+                            totalDynamicRevenue += prixDynamic;
                             visibleCount++;
                         } else {
                             row.style.display = 'none';
                         }
                     });
                     
-                    // Update revenue display
-                    updateRevenueDisplay(totalRevenue, visibleCount);
+                    // Update revenue displays
+                    updateRevenueDisplay(totalPaidRevenue, totalDynamicRevenue, visibleCount);
                 }
                 
-                function updateRevenueDisplay(total, count) {
-                    const avgPrice = count > 0 ? total / count : 0;
+                function updateRevenueDisplay(totalPaid, totalDynamic, count) {
+                    const avgPaidPrice = count > 0 ? totalPaid / count : 0;
+                    const avgDynamicPrice = count > 0 ? totalDynamic / count : 0;
                     
-                    document.getElementById('totalRevenue').textContent = 
-                        new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(total);
+                    document.getElementById('totalPaidRevenue').textContent = 
+                        new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(totalPaid);
+                    document.getElementById('totalDynamicRevenue').textContent = 
+                        new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(totalDynamic);
                     document.getElementById('totalReservations').textContent = count;
-                    document.getElementById('avgPrice').textContent = 
-                        new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(avgPrice);
+                    document.getElementById('avgPaidPrice').textContent = 
+                        new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(avgPaidPrice);
+                    document.getElementById('avgDynamicPrice').textContent = 
+                        new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(avgDynamicPrice);
                 }
                 
                 // Initial calculation

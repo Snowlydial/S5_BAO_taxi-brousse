@@ -85,7 +85,7 @@ public class PaiementService {
         Double totalPaid = getTotalPaid(reservation);
         Double prixTotal = pricingService.calculatePrice(reservation);
         
-        return Math.abs(totalPaid - prixTotal) <= 0.01;
+        return Math.abs(totalPaid - prixTotal) <= 0.01 || totalPaid > prixTotal;
     }
     
     //?=== Calculate remaining amount to pay

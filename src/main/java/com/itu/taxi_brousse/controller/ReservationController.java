@@ -52,17 +52,25 @@ public class ReservationController {
             .distinct()
             .collect(Collectors.toList());
         
-        //*-- Get ACTUAL paid amounts for each reservation
+        //*-- Get ACTUAL paid amounts (Montant Encaissé)
         Map<Integer, Double> reservationPaidAmounts = new HashMap<>();
         for (Reservation reservation : allReservations) {
             Double totalPaid = paiementService.getTotalPaid(reservation);
             reservationPaidAmounts.put(reservation.getId(), totalPaid);
         }
         
+        //*-- Get DYNAMIC prices (Chiffre d'Affaires - using current config)
+        Map<Integer, Double> reservationDynamicPrices = new HashMap<>();
+        for (Reservation reservation : allReservations) {
+            Double dynamicPrice = pricingService.calculatePrice(reservation, LocalDate.now());
+            reservationDynamicPrices.put(reservation.getId(), dynamicPrice);
+        }
+        
         model.addAttribute("pageTitle", "Liste des Reservations");
         model.addAttribute("reservations", allReservations);
         model.addAttribute("reservationStatutService", reservationStatutService);
         model.addAttribute("reservationPaidAmounts", reservationPaidAmounts);
+        model.addAttribute("reservationDynamicPrices", reservationDynamicPrices);
         model.addAttribute("paiementService", paiementService);
         model.addAttribute("uniqueBuses", uniqueBuses);
         model.addAttribute("uniqueVoyages", uniqueVoyages);

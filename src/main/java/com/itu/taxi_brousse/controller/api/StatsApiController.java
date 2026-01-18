@@ -15,13 +15,18 @@ public class StatsApiController {
 
     private final StatService statService;
 
-    //?=== API endpoint for fetching stats
+    //?=== API endpoint for fetching stats with toggle for CA vs Montant Encaissé
     @GetMapping("/api/stats")
     @ResponseBody
-    public ResponseEntity<DashboardStatsDTO> getStats(@RequestParam String periodType, @RequestParam(required = false) Integer year,
-                                                      @RequestParam(required = false) Integer yearMin, @RequestParam(required = false) Integer yearMax) {
+    public ResponseEntity<DashboardStatsDTO> getStats(
+            @RequestParam String periodType, 
+            @RequestParam(required = false, defaultValue = "false") Boolean usePaidAmounts,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer yearMin, 
+            @RequestParam(required = false) Integer yearMax) {
         
         DashboardStatsDTO stats;
+        LocalDate referenceDate = usePaidAmounts ? null : LocalDate.now();
         
         if ("monthly".equals(periodType)) {
             if (year == null) {
@@ -31,10 +36,16 @@ public class StatsApiController {
             stats = DashboardStatsDTO.builder()
                     .periodType("monthly")
                     .year(year)
-                    .globalRevenue(statService.getMonthlyGlobalRevenue(year))
-                    .revenueByCaisse(statService.getMonthlyRevenueByCaisse(year))
+                    .globalRevenue(usePaidAmounts ? 
+                        statService.getMonthlyPaidRevenue(year) : 
+                        statService.getMonthlyGlobalRevenue(year))
+                    .revenueByCaisse(usePaidAmounts ?
+                        statService.getMonthlyPaidRevenueByCaisse(year) :
+                        statService.getMonthlyRevenueByCaisse(year, referenceDate))
                     .topVoyages(statService.getMostReservedVoyages(year, year, 5))
-                    .topClients(statService.getMostLucrativeClients(year, year, 10))
+                    .topClients(usePaidAmounts ?
+                        statService.getMostPayingClients(year, year, 10) :
+                        statService.getMostLucrativeClients(year, year, 10))
                     .genderUsage(statService.getUsageByGender(year, year))
                     .ageGroupUsage(statService.getUsageByAgeGroup(year, year))
                     .build();
@@ -46,10 +57,16 @@ public class StatsApiController {
                     .periodType("yearly")
                     .yearMin(yearMin)
                     .yearMax(yearMax)
-                    .globalRevenue(statService.getYearlyGlobalRevenue(yearMin, yearMax))
-                    .revenueByCaisse(statService.getYearlyRevenueByCaisse(yearMin, yearMax))
+                    .globalRevenue(usePaidAmounts ?
+                        statService.getYearlyPaidRevenue(yearMin, yearMax) :
+                        statService.getYearlyGlobalRevenue(yearMin, yearMax))
+                    .revenueByCaisse(usePaidAmounts ?
+                        statService.getYearlyPaidRevenueByCaisse(yearMin, yearMax) :
+                        statService.getYearlyRevenueByCaisse(yearMin, yearMax))
                     .topVoyages(statService.getMostReservedVoyages(yearMin, yearMax, 5))
-                    .topClients(statService.getMostLucrativeClients(yearMin, yearMax, 10))
+                    .topClients(usePaidAmounts ?
+                        statService.getMostPayingClients(yearMin, yearMax, 10) :
+                        statService.getMostLucrativeClients(yearMin, yearMax, 10))
                     .genderUsage(statService.getUsageByGender(yearMin, yearMax))
                     .ageGroupUsage(statService.getUsageByAgeGroup(yearMin, yearMax))
                     .build();
