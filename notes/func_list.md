@@ -12,3 +12,12 @@
 - Un trajet can be done on multiple days
 2. Fonctionnalites
 -> Scenario: One client want to do reservations for a Voyage between Gare Fasankarana - Gare Ambolomadinika for January 14th at 2PM (14h)
+
+# Week of [15/01/26]
+1. Places now have classes at different prices
+2. Depending on the client's group age, they can have special reductions:
+- Kids pay less
+- Seniors price are based on the Adult's and they get a -20% reduction from those
+
+# Week of [22/01/26]
+

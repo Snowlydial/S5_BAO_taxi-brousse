@@ -3,13 +3,13 @@ package com.itu.taxi_brousse.service;
 import com.itu.taxi_brousse.entity.*;
 import com.itu.taxi_brousse.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -57,6 +57,40 @@ public class ReservationService {
                     .client(client)
                     .busVoyage(busVoyage)
                     .numeroPlace(seatNumber)
+                    .build();
+            
+            reservations.add(reservation);
+        }
+        
+        //*-- Save all reservations
+        reservations = reservationRepository.saveAll(reservations);
+        
+        //*-- Create active status for each reservation
+        for (Reservation reservation : reservations) {
+            reservationStatutService.createActiveStatus(reservation);
+        }
+        
+        return reservations;
+    }
+    
+    //?=== Create multiple reservations with ClassePlace
+    @Transactional
+    public List<Reservation> createMultipleReservations(Client client, BusVoyage busVoyage, List<Integer> seatNumbers, Map<Integer, ClassePlace> seatClasseMap) {
+        List<Reservation> reservations = new ArrayList<>();
+        
+        for (Integer seatNumber : seatNumbers) {
+            //*-- Validate each seat
+            if (!availabilityService.isSeatAvailable(busVoyage, seatNumber)) {
+                throw new RuntimeException("Seat " + seatNumber + " is not available");
+            }
+            
+            ClassePlace classePlace = seatClasseMap.get(seatNumber);
+            
+            Reservation reservation = Reservation.builder()
+                    .numeroPlace(seatNumber)
+                    .classePlace(classePlace)
+                    .client(client)
+                    .busVoyage(busVoyage)
                     .build();
             
             reservations.add(reservation);

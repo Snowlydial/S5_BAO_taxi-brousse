@@ -1,21 +1,27 @@
 package com.itu.taxi_brousse.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 @Entity
 @Table(name = "categoriegroupeage")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class CategorieGroupeAge {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_categoriegroupeage")
     private Integer id;
     
-    @Column(name = "libelle", length = 50)
+    @Column(name = "libelle", nullable = false)
     private String libelle;
-    
+
 }

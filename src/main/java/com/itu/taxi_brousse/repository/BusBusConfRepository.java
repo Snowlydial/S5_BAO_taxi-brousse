@@ -20,4 +20,5 @@ public interface BusBusConfRepository extends JpaRepository<BusBusConf, Integer>
     Optional<BusBusConf> findCapacityByBusId(@Param("busId") Integer busId);
 
     List<BusBusConf> findByBus(Bus bus);
+    List<BusBusConf> findByBusId(Integer busId);
 }

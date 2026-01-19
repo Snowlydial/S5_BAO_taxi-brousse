@@ -5,6 +5,8 @@ import com.itu.taxi_brousse.repository.PaiementRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,8 +23,9 @@ public class PaiementService {
     //?=== Create single payment for a reservation with custom date
     @Transactional
     public Paiement createSinglePayment(Reservation reservation, Caisse caisse, LocalDateTime datePaiement) {
-        //*-- Calculate price at payment time
-        Double prixTotal = pricingService.calculatePrice(reservation.getBusVoyage());
+        // Calculate price using date of payment for accurate historical pricing
+        LocalDate pricingDate = datePaiement != null ? datePaiement.toLocalDate() : LocalDate.now();
+        Double prixTotal = pricingService.calculatePrice(reservation, pricingDate);
         
         Paiement paiement = Paiement.builder()
                 .datePaiement(datePaiement)
@@ -37,8 +40,12 @@ public class PaiementService {
     //?=== Create multiple payments for a reservation (split payment) with custom date
     @Transactional
     public List<Paiement> createMultiplePayments(Reservation reservation, List<Caisse> caisses, List<Double> montants, LocalDateTime datePaiement) {
-        //*-- Calculate expected total price
-        Double prixTotal = pricingService.calculatePrice(reservation.getBusVoyage());
+        if (caisses.size() != montants.size()) {
+            throw new RuntimeException("Number of payment methods must match number of amounts");
+        }
+        
+        LocalDate pricingDate = datePaiement != null ? datePaiement.toLocalDate() : LocalDate.now();
+        Double prixTotal = pricingService.calculatePrice(reservation, pricingDate);
         Double totalMontant = montants.stream().mapToDouble(Double::doubleValue).sum();
         
         //*-- Validate total amount
@@ -47,10 +54,6 @@ public class PaiementService {
                 String.format("Total payment %.2f does not match calculated price %.2f", 
                     totalMontant, prixTotal)
             );
-        }
-        
-        if (caisses.size() != montants.size()) {
-            throw new RuntimeException("Number of payment methods must match number of amounts");
         }
         
         List<Paiement> paiements = new ArrayList<>();
@@ -80,22 +83,22 @@ public class PaiementService {
     //?=== Check if reservation is fully paid
     public boolean isReservationFullyPaid(Reservation reservation) {
         Double totalPaid = getTotalPaid(reservation);
-        Double prixTotal = pricingService.calculatePrice(reservation.getBusVoyage());
+        Double prixTotal = pricingService.calculatePrice(reservation);
         
-        return Math.abs(totalPaid - prixTotal) <= 0.01;
+        return Math.abs(totalPaid - prixTotal) <= 0.01 || totalPaid > prixTotal;
     }
     
     //?=== Calculate remaining amount to pay
     public Double getRemainingAmount(Reservation reservation) {
         Double totalPaid = getTotalPaid(reservation);
-        Double prixTotal = pricingService.calculatePrice(reservation.getBusVoyage());
+        Double prixTotal = pricingService.calculatePrice(reservation);
         
         return Math.max(0, prixTotal - totalPaid);
     }
     
     //?=== Get payments for auto-complete in UI
     public Map<String, Double> suggestSplitPayments(Reservation reservation, List<Caisse> selectedCaisses) {
-        Double prixTotal = pricingService.calculatePrice(reservation.getBusVoyage());
+        Double prixTotal = pricingService.calculatePrice(reservation);
         Map<String, Double> suggestions = new LinkedHashMap<>();
         
         if (selectedCaisses.isEmpty()) {

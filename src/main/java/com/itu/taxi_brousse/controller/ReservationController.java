@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @Controller
@@ -32,12 +34,13 @@ public class ReservationController {
     private final DisponibilitePlaceService disponibilitePlaceService;
     private final CategorieGenreRepository categorieGenreRepository;
     private final CategorieGroupeAgeRepository categorieGroupeAgeRepository;
+    private final ClassePlaceRepository classePlaceRepository;
     
     @GetMapping("/list")
     public String listReservations(Model model) {
         List<Reservation> allReservations = reservationRepository.findAll();
         
-        //*-- Get unique values for filters (avoiding duplicates)
+        //*-- Get unique values for filters
         List<Bus> uniqueBuses = allReservations.stream()
             .map(r -> r.getBusVoyage().getBus())
             .distinct()
@@ -49,18 +52,28 @@ public class ReservationController {
             .distinct()
             .collect(Collectors.toList());
         
-        List<BusClasse> uniqueClasses = allReservations.stream()
-            .map(r -> r.getBusVoyage().getBus().getBusClasse())
-            .distinct()
-            .sorted((c1, c2) -> c1.getLibelle().compareTo(c2.getLibelle()))
-            .collect(Collectors.toList());
+        //*-- Get ACTUAL paid amounts (Montant Encaissé)
+        Map<Integer, Double> reservationPaidAmounts = new HashMap<>();
+        for (Reservation reservation : allReservations) {
+            Double totalPaid = paiementService.getTotalPaid(reservation);
+            reservationPaidAmounts.put(reservation.getId(), totalPaid);
+        }
+        
+        //*-- Get DYNAMIC prices (Chiffre d'Affaires - using current config)
+        Map<Integer, Double> reservationDynamicPrices = new HashMap<>();
+        for (Reservation reservation : allReservations) {
+            Double dynamicPrice = pricingService.calculatePrice(reservation, LocalDate.now());
+            reservationDynamicPrices.put(reservation.getId(), dynamicPrice);
+        }
         
         model.addAttribute("pageTitle", "Liste des Reservations");
         model.addAttribute("reservations", allReservations);
         model.addAttribute("reservationStatutService", reservationStatutService);
+        model.addAttribute("reservationPaidAmounts", reservationPaidAmounts);
+        model.addAttribute("reservationDynamicPrices", reservationDynamicPrices);
+        model.addAttribute("paiementService", paiementService);
         model.addAttribute("uniqueBuses", uniqueBuses);
         model.addAttribute("uniqueVoyages", uniqueVoyages);
-        model.addAttribute("uniqueClasses", uniqueClasses);
         
         return "reservation/list";
     }
@@ -70,16 +83,30 @@ public class ReservationController {
         BusVoyage busVoyage = busVoyageRepository.findById(busVoyageId)
             .orElseThrow(() -> new RuntimeException("Bus voyage not found"));
         
-        Double price = pricingService.calculatePrice(busVoyage);
         List<Integer> availableSeats = disponibilitePlaceService.getAvailableSeats(busVoyage);
         Integer capacity = disponibilitePlaceService.getBusCapacity(busVoyage.getBus().getId());
         
+        //*-- Get available seats by type dynamically
+        Map<String, Integer> availableSeatsByType = disponibilitePlaceService.getAvailableSeatsByType(busVoyage);
+        
+        //*-- Get place types configured for this bus
+        Map<String, Integer> busPlaceTypes = disponibilitePlaceService.getPlaceTypeCapacities(busVoyage.getBus().getId());
+        
+        //*-- Get all ClassePlace entities that match the bus configuration (not just available ones)
+        List<ClassePlace> availableClassePlaces = classePlaceRepository.findAll().stream()
+            .filter(cp -> busPlaceTypes.containsKey(cp.getLibelle()))
+            .collect(Collectors.toList());
+        
+        //*-- Get all clients with their age category information
+        List<Client> clients = clientRepository.findAll();
+        
         model.addAttribute("pageTitle", "Nouvelle Réservation");
         model.addAttribute("busVoyage", busVoyage);
-        model.addAttribute("price", price);
         model.addAttribute("availableSeats", availableSeats);
         model.addAttribute("capacity", capacity);
-        model.addAttribute("clients", clientRepository.findAll());
+        model.addAttribute("availableSeatsByType", availableSeatsByType);
+        model.addAttribute("classePlaces", availableClassePlaces);
+        model.addAttribute("clients", clients);
         model.addAttribute("caisses", caisseRepository.findAll());
         model.addAttribute("genres", categorieGenreRepository.findAll());
         model.addAttribute("groupesAge", categorieGroupeAgeRepository.findAll());
@@ -91,6 +118,7 @@ public class ReservationController {
     public String createReservation(@RequestParam Integer busVoyageId, 
                                     @RequestParam Integer clientId,
                                     @RequestParam List<Integer> selectedSeats, 
+                                    @RequestParam List<Integer> seatClasses,
                                     @RequestParam LocalDate dateReservation,
                                     @RequestParam(required = false) LocalTime heureReservation,
                                     @RequestParam(required = false) Boolean multiplePayment,
@@ -104,24 +132,41 @@ public class ReservationController {
             BusVoyage busVoyage = busVoyageRepository.findById(busVoyageId)
                 .orElseThrow(() -> new RuntimeException("Bus voyage not found"));
             
-            //*-- Validate reservation date is before departure date
+            //*-- Validate reservation date
             if (dateReservation.isAfter(busVoyage.getDateDepart())) {
                 throw new RuntimeException("La date de réservation ne peut pas être après la date de départ");
             }
             
-            //*-- Create LocalDateTime for payment
+            //*-- Create seat to ClassePlace mapping
+            Map<Integer, ClassePlace> seatClasseMap = new HashMap<>();
+            for (int i = 0; i < selectedSeats.size(); i++) {
+                Integer seatNumber = selectedSeats.get(i);
+                Integer classePlaceId = seatClasses.get(i);
+                ClassePlace classePlace = classePlaceRepository.findById(classePlaceId)
+                    .orElseThrow(() -> new RuntimeException("ClassePlace not found"));
+                seatClasseMap.put(seatNumber, classePlace);
+            }
+            
+            //*-- Validate seat selection dynamically
+            if (!disponibilitePlaceService.validateSeatSelection(busVoyage, seatClasseMap)) {
+                throw new RuntimeException("Sélection de places invalide - certains types de places ne sont plus disponibles");
+            }
+            
+            //*-- Create payment datetime
             LocalTime timeToUse = heureReservation != null ? heureReservation : LocalTime.now();
             LocalDateTime datePaiement = LocalDateTime.of(dateReservation, timeToUse);
             
-            // Create reservations for each selected seat
+            //*-- Create reservations
             List<Reservation> reservations = reservationService.createMultipleReservations(
-                client, busVoyage, selectedSeats
+                client, busVoyage, selectedSeats, seatClasseMap
             );
             
-            // Process payment for each reservation
-            Double pricePerSeat = pricingService.calculatePrice(busVoyage);
+            // Calculate total using pricing date
+            Double totalPrice = reservations.stream()
+                .mapToDouble(r -> pricingService.calculatePrice(r, dateReservation))
+                .sum();
             
-            // Clean up caisseIds and montants - remove nulls and empty values
+            //*-- Clean up payment inputs
             List<Integer> validCaisseIds = new ArrayList<>();
             List<Double> validMontants = new ArrayList<>();
             
@@ -137,18 +182,16 @@ public class ReservationController {
                 }
             }
             
+            //*-- Process payments
             if (Boolean.TRUE.equals(multiplePayment) && validMontants.size() > 1) {
-                // Multiple payment methods - split across ALL reservations
+                // Multiple payment methods
                 List<Caisse> caisses = new ArrayList<>();
                 for (Integer caisseId : validCaisseIds) {
                     caisseRepository.findById(caisseId).ifPresent(caisses::add);
                 }
                 
-                //*-- Calculate total price for all seats
-                Double totalPrice = pricePerSeat * reservations.size();
                 Double totalPaid = validMontants.stream().mapToDouble(Double::doubleValue).sum();
                 
-                //*-- Validate total matches
                 if (Math.abs(totalPaid - totalPrice) > 0.01) {
                     throw new RuntimeException(
                         String.format("Le montant total %.2f ne correspond pas au prix total %.2f", 
@@ -156,33 +199,43 @@ public class ReservationController {
                     );
                 }
                 
-                //*-- Distribute payments proportionally across reservations
-                for (int i = 0; i < reservations.size(); i++) {
-                    Reservation reservation = reservations.get(i);
-                    
-                    //*-- Each reservation gets the split payment proportionally
+                //*-- Distribute payments proportionally
+                for (Reservation reservation : reservations) {
+                    Double reservationPrice = pricingService.calculatePrice(reservation, dateReservation);
                     List<Double> proportionalMontants = new ArrayList<>();
                     for (Double montant : validMontants) {
-                        proportionalMontants.add(montant / reservations.size());
+                        proportionalMontants.add(montant * (reservationPrice / totalPrice));
                     }
-                    
                     paiementService.createMultiplePayments(reservation, caisses, proportionalMontants, datePaiement);
                 }
             } else {
-                // Single payment method for each reservation
+                //*-- Single payment method
                 Integer caisseId = validCaisseIds.isEmpty() ? null : validCaisseIds.get(0);
                 if (caisseId == null) {
                     throw new RuntimeException("Aucun mode de paiement sélectionné");
                 }
                 Caisse caisse = caisseRepository.findById(caisseId)
                     .orElseThrow(() -> new RuntimeException("Caisse not found"));
+                
                 for (Reservation reservation : reservations) {
                     paiementService.createSinglePayment(reservation, caisse, datePaiement);
                 }
             }
             
-            redirectAttributes.addFlashAttribute("success", 
-                selectedSeats.size() + " réservation(s) créée(s) avec succès!");
+            // Check if any discount was applied (generic check)
+            boolean hasDiscount = reservations.stream()
+                .anyMatch(r -> pricingService.hasDiscount(
+                    r.getClient().getCategorieGroupeAge(), 
+                    r.getClassePlace(), 
+                    dateReservation
+                ));
+            
+            String successMessage = selectedSeats.size() + " réservation(s) créée(s) avec succès!";
+            if (hasDiscount) {
+                successMessage += " (Tarif réduit appliqué)";
+            }
+            
+            redirectAttributes.addFlashAttribute("success", successMessage);
             return "redirect:/reservation/list";
             
         } catch (Exception e) {
@@ -192,8 +245,6 @@ public class ReservationController {
         }
     }
     
-    // Not working yet -- this need to affect the nb place dispo as well...
-    // Mayhaps I could add a boolean valid in the place as well
     @PostMapping("/cancel/{id}")
     public String cancelReservation(@PathVariable Integer id, 
                                      @RequestParam LocalDate dateAnnulation,

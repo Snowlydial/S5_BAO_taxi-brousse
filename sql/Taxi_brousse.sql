@@ -27,13 +27,6 @@ CREATE TABLE Gare(
    PRIMARY KEY(id_gare)
 );
 
-CREATE TABLE BusClasse(
-   id_busClasse SERIAL,
-   libelle VARCHAR(50) ,
-   prix_classe DOUBLE PRECISION,
-   PRIMARY KEY(id_busClasse)
-);
-
 CREATE TABLE BusConf(
    id_busConf SERIAL,
    libelle VARCHAR(50) ,
@@ -41,22 +34,31 @@ CREATE TABLE BusConf(
    PRIMARY KEY(id_busConf)
 );
 
-CREATE TABLE HistoriquePrixClasse(
-   id_histoPrixClasse SERIAL,
-   date_ecriture TIMESTAMP,
-   prix_classe DOUBLE PRECISION,
-   id_busClasse INTEGER NOT NULL,
-   PRIMARY KEY(id_histoPrixClasse),
-   FOREIGN KEY(id_busClasse) REFERENCES BusClasse(id_busClasse)
+CREATE TABLE ClassePlace(
+   id_classePlace SERIAL,
+   libelle VARCHAR(50) ,
+   prix_place DOUBLE PRECISION,
+   PRIMARY KEY(id_classePlace)
+);
+
+CREATE TABLE ClasseAge_Conf(
+   id_classeAge_conf SERIAL,
+   valeur_override DOUBLE PRECISION NOT NULL,
+   est_pourcentage BOOLEAN NOT NULL DEFAULT FALSE,
+   date_debut DATE,
+   date_fin DATE,
+   id_categorieGroupeAge INTEGER NOT NULL,
+   id_classePlace INTEGER NOT NULL,
+   PRIMARY KEY(id_classeAge_conf),
+   FOREIGN KEY(id_categorieGroupeAge) REFERENCES CategorieGroupeAge(id_categorieGroupeAge),
+   FOREIGN KEY(id_classePlace) REFERENCES ClassePlace(id_classePlace)
 );
 
 CREATE TABLE Bus(
    id_bus SERIAL,
    immatriculation VARCHAR(50) ,
-   id_busClasse INTEGER NOT NULL,
    PRIMARY KEY(id_bus),
-   UNIQUE(immatriculation),
-   FOREIGN KEY(id_busClasse) REFERENCES BusClasse(id_busClasse)
+   UNIQUE(immatriculation)
 );
 
 CREATE TABLE Voyage(
@@ -114,9 +116,11 @@ CREATE TABLE HistoriquePrixSpecifique(
 CREATE TABLE Reservation(
    id_reservation SERIAL,
    numero_place INTEGER,
+   id_classePlace INTEGER,
    id_client INTEGER NOT NULL,
    id_bus_voyage INTEGER NOT NULL,
    PRIMARY KEY(id_reservation),
+   FOREIGN KEY(id_classePlace) REFERENCES ClassePlace(id_classePlace),
    FOREIGN KEY(id_client) REFERENCES Client(id_client),
    FOREIGN KEY(id_bus_voyage) REFERENCES Bus_Voyage(id_bus_voyage)
 );
@@ -148,3 +152,4 @@ CREATE TABLE Bus_BusConf(
    FOREIGN KEY(id_bus) REFERENCES Bus(id_bus),
    FOREIGN KEY(id_busConf) REFERENCES BusConf(id_busConf)
 );
+
