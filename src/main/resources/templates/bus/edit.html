@@ -266,11 +266,11 @@
                         <div class="col-md-3">
                             <label class="form-label">Nombre de places *</label>
                             <input type="number" 
-                                   name="placeTypeCapacities" 
-                                   class="form-control place-type-capacity" 
-                                   placeholder="Ex: 10"
-                                   min="1"
-                                   required>
+                                name="placeTypeCapacities" 
+                                class="form-control place-type-capacity" 
+                                placeholder="Ex: 10"
+                                min="1"
+                                required>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Prix (référence)</label>
@@ -367,33 +367,23 @@
                     });
                 });
                 
-                // Form submission
+                // Form validation before submit
                 document.getElementById('busForm').addEventListener('submit', function(e) {
                     const names = Array.from(document.querySelectorAll('.place-type-name'))
-                        .map(input => input.value.trim());
-                    const capacities = Array.from(document.querySelectorAll('.place-type-capacity'))
-                        .map(input => input.value);
+                        .map(select => select.value)
+                        .filter(val => val);
                     
-                    if (names.some(name => !name) || capacities.some(cap => !cap || cap < 1)) {
+                    const capacities = Array.from(document.querySelectorAll('.place-type-capacity'))
+                        .map(input => input.value)
+                        .filter(val => val);
+                    
+                    if (names.length === 0 || capacities.length === 0 || names.length !== capacities.length) {
                         e.preventDefault();
-                        alert('Veuillez remplir tous les types de places et capacités');
+                        alert('Veuillez remplir au moins un type de place avec une capacité valide');
                         return false;
                     }
                     
-                    const form = e.target;
-                    
-                    form.querySelectorAll('input[name^="placeTypeCapacities["]').forEach(input => input.remove());
-                    
-                    names.forEach((name, index) => {
-                        const hiddenInput = document.createElement('input');
-                        hiddenInput.type = 'hidden';
-                        hiddenInput.name = `placeTypeCapacities[${name}]`;
-                        hiddenInput.value = capacities[index];
-                        form.appendChild(hiddenInput);
-                    });
-                    
-                    form.querySelectorAll('.place-type-name').forEach(input => input.disabled = true);
-                    form.querySelectorAll('.place-type-capacity').forEach(input => input.disabled = true);
+                    console.log('Submitting with names:', names, 'and capacities:', capacities);
                 });
             });
         </script>

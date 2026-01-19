@@ -44,28 +44,42 @@ public class BusVoyageService {
         return results;
     }
     
-    //?=== Filter results by price range
+    //?=== Filter results by MINIMUM base ClassePlace price (no age discounts)
+    // This gives "starting from" pricing - the cheapest seat type on the bus
     private List<BusVoyage> filterByPrice(List<BusVoyage> busVoyages, Double prixMin, Double prixMax) {
         return busVoyages.stream()
                 .filter(bv -> {
-                    // Get the minimum price among all place types
-                    Double minPrice = getMinPlaceTypePrice(bv);
-                    boolean minOk = prixMin == null || minPrice >= prixMin;
-                    boolean maxOk = prixMax == null || minPrice <= prixMax;
+                    Double minBasePrice = getMinimumBasePlacePrice(bv);
+                    
+                    // If no place types configured, fall back to voyage/bus_voyage price
+                    if (minBasePrice == null) {
+                        minBasePrice = pricingService.calculatePrice(bv);
+                    }
+                    
+                    boolean minOk = prixMin == null || minBasePrice >= prixMin;
+                    boolean maxOk = prixMax == null || minBasePrice <= prixMax;
                     return minOk && maxOk;
                 })
                 .collect(Collectors.toList());
     }
     
-    //?=== Get minimum price among all place types for a bus voyage
-    private Double getMinPlaceTypePrice(BusVoyage busVoyage) {
+    //?=== Get minimum BASE price (ClassePlace.prix_place) for this bus
+    // Returns the cheapest seat type's base price (before any age discounts)
+    private Double getMinimumBasePlacePrice(BusVoyage busVoyage) {
         try {
-            return availabilityService.getPlaceTypePrices(busVoyage)
-                .values().stream()
-                .min(Double::compare)
-                .orElse(pricingService.calculatePrice(busVoyage));
+            // Get all place type prices (these are base ClassePlace prices)
+            java.util.Map<String, Double> placeTypePrices = availabilityService.getPlaceTypePrices(busVoyage);
+            
+            if (placeTypePrices == null || placeTypePrices.isEmpty()) {
+                return null;
+            }
+            
+            // Return the minimum base price
+            return placeTypePrices.values().stream()
+                    .min(Double::compare)
+                    .orElse(null);
         } catch (Exception e) {
-            return pricingService.calculatePrice(busVoyage);
+            return null;
         }
     }
     
@@ -85,7 +99,6 @@ public class BusVoyageService {
     public List<BusVoyageWithAvailability> searchByYear(Gare gareDepart, Gare gareArrivee, Integer year,
                                                        LocalTime heureDepartMin, Double prixMin, Double prixMax) {
         if (year == null) {
-            // fallback to searching by specific date (today) if year not provided
             return searchWithAvailability(gareDepart, gareArrivee, LocalDate.now(), heureDepartMin, prixMin, prixMax);
         }
 

@@ -71,69 +71,97 @@ public class BusController {
     //?=== Create bus
     @PostMapping("/create")
     public String createBus(@RequestParam String immatriculation,
-                           @RequestParam(required = false) Map<String, String> placeTypeCapacities,
+                           @RequestParam(required = false) List<String> placeTypeNames,
+                           @RequestParam(required = false) List<String> placeTypeCapacities,
                            @RequestParam(required = false) List<Integer> otherBusConfIds,
                            RedirectAttributes redirectAttributes) {
         try {
-            // Validation
+            System.out.println("=== DEBUG BUS CREATION ===");
+            System.out.println("Immatriculation: " + immatriculation);
+            System.out.println("placeTypeNames: " + placeTypeNames);
+            System.out.println("placeTypeCapacities: " + placeTypeCapacities);
+            System.out.println("otherBusConfIds: " + otherBusConfIds);
+            
+            //*-- Validation
             if (immatriculation == null || immatriculation.trim().isEmpty()) {
                 throw new RuntimeException("L'immatriculation est obligatoire");
             }
             
-            // Check if immatriculation already exists
+            //*-- Check if immatriculation already exists
             if (busRepository.findByImmatriculation(immatriculation.trim()).isPresent()) {
                 throw new RuntimeException("Un bus avec cette immatriculation existe déjà");
             }
             
-            // Create bus
+            //*-- Create bus
             Bus bus = Bus.builder()
                     .immatriculation(immatriculation.trim())
                     .build();
             
             bus = busRepository.save(bus);
+            System.out.println("Bus created with ID: " + bus.getId());
             
-            // Process place type capacities
-            if (placeTypeCapacities != null) {
-                for (Map.Entry<String, String> entry : placeTypeCapacities.entrySet()) {
-                    String placeType = entry.getKey();
-                    String capacityStr = entry.getValue();
+            //*-- Process place type capacities (arrays)
+            if (placeTypeNames != null && placeTypeCapacities != null && 
+                !placeTypeNames.isEmpty() && placeTypeNames.size() == placeTypeCapacities.size()) {
+                
+                System.out.println("Processing " + placeTypeNames.size() + " place types");
+                
+                for (int i = 0; i < placeTypeNames.size(); i++) {
+                    String placeType = placeTypeNames.get(i);
+                    String capacityStr = placeTypeCapacities.get(i);
                     
-                    if (capacityStr != null && !capacityStr.trim().isEmpty()) {
-                        int capacity = Integer.parseInt(capacityStr.trim());
+                    System.out.println("  [" + i + "] placeType='" + placeType + "', capacity='" + capacityStr + "'");
+                    
+                    if (placeType != null && !placeType.trim().isEmpty() &&
+                        capacityStr != null && !capacityStr.trim().isEmpty()) {
                         
-                        if (capacity > 0) {
-                            // Check if configuration exists
-                            String confLibelle = "nb_place_" + placeType;
-                            Optional<BusConf> existingConf = busConfRepository.findAll().stream()
-                                    .filter(c -> c.getLibelle().equals(confLibelle) && 
-                                                 c.getValeur().equals(String.valueOf(capacity)))
-                                    .findFirst();
+                        try {
+                            int capacity = Integer.parseInt(capacityStr.trim());
+                            System.out.println("  Parsed capacity: " + capacity);
                             
-                            BusConf conf;
-                            if (existingConf.isPresent()) {
-                                conf = existingConf.get();
-                            } else {
-                                // Create new configuration
-                                conf = BusConf.builder()
-                                        .libelle(confLibelle)
-                                        .valeur(String.valueOf(capacity))
+                            if (capacity > 0) {
+                                //*-- Check if configuration exists (normalize to lowercase)
+                                String confLibelle = "nb_place_" + placeType.toLowerCase();
+                                Optional<BusConf> existingConf = busConfRepository.findAll().stream()
+                                        .filter(c -> c.getLibelle().equalsIgnoreCase(confLibelle) && 
+                                                     c.getValeur().equals(String.valueOf(capacity)))
+                                        .findFirst();
+                                
+                                BusConf conf;
+                                if (existingConf.isPresent()) {
+                                    conf = existingConf.get();
+                                    System.out.println("  Using existing BusConf ID: " + conf.getId());
+                                } else {
+                                    //*-- Create new configuration
+                                    conf = BusConf.builder()
+                                            .libelle(confLibelle)
+                                            .valeur(String.valueOf(capacity))
+                                            .build();
+                                    conf = busConfRepository.save(conf);
+                                    System.out.println("  Created new BusConf ID: " + conf.getId());
+                                }
+                                
+                                //*-- Link to bus
+                                BusBusConf link = BusBusConf.builder()
+                                        .bus(bus)
+                                        .busConf(conf)
                                         .build();
-                                conf = busConfRepository.save(conf);
+                                busBusConfRepository.save(link);
+                                System.out.println("  Linked BusConf to Bus");
                             }
-                            
-                            // Link to bus
-                            BusBusConf link = BusBusConf.builder()
-                                    .bus(bus)
-                                    .busConf(conf)
-                                    .build();
-                            busBusConfRepository.save(link);
+                        } catch (NumberFormatException e) {
+                            System.err.println("  ERROR: Cannot parse capacity '" + capacityStr + "' as integer");
+                            throw new RuntimeException("Capacité invalide pour " + placeType + ": '" + capacityStr + "'");
                         }
                     }
                 }
+            } else {
+                System.out.println("No place type capacities provided or mismatched arrays");
             }
             
-            // Link other configurations (wifi, climatisation, etc.)
+            //*-- Link other configurations (wifi, climatisation, etc.)
             if (otherBusConfIds != null && !otherBusConfIds.isEmpty()) {
+                System.out.println("Linking " + otherBusConfIds.size() + " other configurations");
                 for (Integer confId : otherBusConfIds) {
                     BusConf conf = busConfRepository.findById(confId)
                             .orElseThrow(() -> new RuntimeException("Configuration introuvable"));
@@ -147,10 +175,13 @@ public class BusController {
                 }
             }
             
+            System.out.println("=== BUS CREATION SUCCESS ===");
             redirectAttributes.addFlashAttribute("success", "Bus créé avec succès!");
             return "redirect:/bus/list";
             
         } catch (Exception e) {
+            System.err.println("=== BUS CREATION ERROR ===");
+            e.printStackTrace();
             redirectAttributes.addFlashAttribute("error", "Erreur: " + e.getMessage());
             return "redirect:/bus/create";
         }
@@ -212,71 +243,91 @@ public class BusController {
     @PostMapping("/edit/{id}")
     public String updateBus(@PathVariable Integer id,
                            @RequestParam String immatriculation,
-                           @RequestParam(required = false) Map<String, String> placeTypeCapacities,
+                           @RequestParam(required = false) List<String> placeTypeNames,
+                           @RequestParam(required = false) List<String> placeTypeCapacities,
                            @RequestParam(required = false) List<Integer> otherBusConfIds,
                            RedirectAttributes redirectAttributes) {
         try {
+            System.out.println("=== DEBUG BUS UPDATE ===");
+            System.out.println("Bus ID: " + id);
+            System.out.println("Immatriculation: " + immatriculation);
+            System.out.println("placeTypeNames: " + placeTypeNames);
+            System.out.println("placeTypeCapacities: " + placeTypeCapacities);
+            
             Bus bus = busRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Bus introuvable"));
             
-            // Validation
+            //*-- Validation
             if (immatriculation == null || immatriculation.trim().isEmpty()) {
                 throw new RuntimeException("L'immatriculation est obligatoire");
             }
             
-            // Check if immatriculation exists for another bus
+            //*-- Check if immatriculation exists for another bus
             Optional<Bus> existingBusOpt = busRepository.findByImmatriculation(immatriculation.trim());
             if (existingBusOpt.isPresent() && !existingBusOpt.get().getId().equals(id)) {
                 throw new RuntimeException("Un autre bus avec cette immatriculation existe déjà");
             }
             
-            // Update bus
+            //*-- Update bus
             bus.setImmatriculation(immatriculation.trim());
-            
             busRepository.save(bus);
             
-            // Delete all old links
+            //*-- Delete all old links
             List<BusBusConf> oldLinks = busBusConfRepository.findByBus(bus);
             busBusConfRepository.deleteAll(oldLinks);
+            System.out.println("Deleted " + oldLinks.size() + " old configurations");
             
-            // Add place type configurations
-            if (placeTypeCapacities != null) {
-                for (Map.Entry<String, String> entry : placeTypeCapacities.entrySet()) {
-                    String placeType = entry.getKey();
-                    String capacityStr = entry.getValue();
+            //*-- Add place type configurations
+            if (placeTypeNames != null && placeTypeCapacities != null && 
+                !placeTypeNames.isEmpty() && placeTypeNames.size() == placeTypeCapacities.size()) {
+                
+                System.out.println("Processing " + placeTypeNames.size() + " place types");
+                
+                for (int i = 0; i < placeTypeNames.size(); i++) {
+                    String placeType = placeTypeNames.get(i);
+                    String capacityStr = placeTypeCapacities.get(i);
                     
-                    if (capacityStr != null && !capacityStr.trim().isEmpty()) {
-                        int capacity = Integer.parseInt(capacityStr.trim());
+                    System.out.println("  [" + i + "] placeType='" + placeType + "', capacity='" + capacityStr + "'");
+                    
+                    if (placeType != null && !placeType.trim().isEmpty() &&
+                        capacityStr != null && !capacityStr.trim().isEmpty()) {
                         
-                        if (capacity > 0) {
-                            String confLibelle = "nb_place_" + placeType;
-                            Optional<BusConf> existingConf = busConfRepository.findAll().stream()
-                                    .filter(c -> c.getLibelle().equals(confLibelle) && 
-                                                 c.getValeur().equals(String.valueOf(capacity)))
-                                    .findFirst();
+                        try {
+                            int capacity = Integer.parseInt(capacityStr.trim());
                             
-                            BusConf conf;
-                            if (existingConf.isPresent()) {
-                                conf = existingConf.get();
-                            } else {
-                                conf = BusConf.builder()
-                                        .libelle(confLibelle)
-                                        .valeur(String.valueOf(capacity))
+                            if (capacity > 0) {
+                                String confLibelle = "nb_place_" + placeType.toLowerCase();
+                                Optional<BusConf> existingConf = busConfRepository.findAll().stream()
+                                        .filter(c -> c.getLibelle().equalsIgnoreCase(confLibelle) && 
+                                                     c.getValeur().equals(String.valueOf(capacity)))
+                                        .findFirst();
+                                
+                                BusConf conf;
+                                if (existingConf.isPresent()) {
+                                    conf = existingConf.get();
+                                } else {
+                                    conf = BusConf.builder()
+                                            .libelle(confLibelle)
+                                            .valeur(String.valueOf(capacity))
+                                            .build();
+                                    conf = busConfRepository.save(conf);
+                                }
+                                
+                                BusBusConf link = BusBusConf.builder()
+                                        .bus(bus)
+                                        .busConf(conf)
                                         .build();
-                                conf = busConfRepository.save(conf);
+                                busBusConfRepository.save(link);
                             }
-                            
-                            BusBusConf link = BusBusConf.builder()
-                                    .bus(bus)
-                                    .busConf(conf)
-                                    .build();
-                            busBusConfRepository.save(link);
+                        } catch (NumberFormatException e) {
+                            System.err.println("  ERROR: Cannot parse capacity '" + capacityStr + "' as integer");
+                            throw new RuntimeException("Capacité invalide pour " + placeType + ": '" + capacityStr + "'");
                         }
                     }
                 }
             }
             
-            // Add other configurations
+            //*-- Add other configurations
             if (otherBusConfIds != null && !otherBusConfIds.isEmpty()) {
                 for (Integer confId : otherBusConfIds) {
                     BusConf conf = busConfRepository.findById(confId)
@@ -291,10 +342,13 @@ public class BusController {
                 }
             }
             
+            System.out.println("=== BUS UPDATE SUCCESS ===");
             redirectAttributes.addFlashAttribute("success", "Bus modifié avec succès!");
             return "redirect:/bus/list";
             
         } catch (Exception e) {
+            System.err.println("=== BUS UPDATE ERROR ===");
+            e.printStackTrace();
             redirectAttributes.addFlashAttribute("error", "Erreur: " + e.getMessage());
             return "redirect:/bus/edit/" + id;
         }
