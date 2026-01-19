@@ -1,17 +1,26 @@
 package com.itu.taxi_brousse.service;
 
+import com.itu.taxi_brousse.entity.CategorieGenre;
+import com.itu.taxi_brousse.entity.CategorieGroupeAge;
 import com.itu.taxi_brousse.entity.Client;
 import com.itu.taxi_brousse.repository.ClientRepository;
+import com.itu.taxi_brousse.repository.CategorieGenreRepository;
+import com.itu.taxi_brousse.repository.CategorieGroupeAgeRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
+
 
 @Service
 @RequiredArgsConstructor
 public class ClientService {
     
     private final ClientRepository clientRepository;
+    private final CategorieGenreRepository categorieGenreRepository;
+    private final CategorieGroupeAgeRepository categorieGroupeAgeRepository;
     
     //?=== Get all clients
     public List<Client> getAllClients() {
@@ -25,6 +34,19 @@ public class ClientService {
     
     //?=== Create or update client
     public Client saveClient(Client client) {
+        // Ensure relationships are properly loaded
+        if (client.getCategorieGenre() != null && client.getCategorieGenre().getId() != null) {
+            CategorieGenre genre = categorieGenreRepository.findById(client.getCategorieGenre().getId())
+                    .orElseThrow(() -> new RuntimeException("Genre non trouvé"));
+            client.setCategorieGenre(genre);
+        }
+        
+        if (client.getCategorieGroupeAge() != null && client.getCategorieGroupeAge().getId() != null) {
+            CategorieGroupeAge ageGroup = categorieGroupeAgeRepository.findById(client.getCategorieGroupeAge().getId())
+                    .orElseThrow(() -> new RuntimeException("Groupe d'âge non trouvé"));
+            client.setCategorieGroupeAge(ageGroup);
+        }
+        
         return clientRepository.save(client);
     }
     
@@ -46,5 +68,33 @@ public class ClientService {
     //?=== Get clients by age group category
     public List<Client> getClientsByAgeGroup(Integer ageGroupId) {
         return clientRepository.findByCategorieGroupeAgeId(ageGroupId);
+    }
+    
+    // Create client from data map (for API endpoint)
+    @Transactional
+    public Client createClientFromMap(String nom, String prenom, Integer categorieGenreId, Integer categorieGroupeAgeId) {
+        Client client = new Client();
+        client.setNom(nom);
+        client.setPrenom(prenom);
+        
+        if (categorieGenreId != null) {
+            client.setCategorieGenre(getCategorieGenreById(categorieGenreId));
+        }
+        
+        if (categorieGroupeAgeId != null) {
+            client.setCategorieGroupeAge(getCategorieGroupeAgeById(categorieGroupeAgeId));
+        }
+        
+        return saveClient(client);
+    }
+
+    public CategorieGenre getCategorieGenreById(int id) {
+        return categorieGenreRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Genre non trouvé"));
+    }
+
+    public CategorieGroupeAge getCategorieGroupeAgeById(int id) {
+        return categorieGroupeAgeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Groupe d'âge non trouvé"));
     }
 }

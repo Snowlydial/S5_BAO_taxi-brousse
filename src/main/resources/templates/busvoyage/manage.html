@@ -68,16 +68,6 @@
                                         <input type="text" id="filterBus" class="form-control form-control-sm" placeholder="Immatriculation...">
                                     </div>
                                     <div class="col-md-2">
-                                        <label class="form-label">Classe Bus</label>
-                                        <select id="filterClasse" class="form-select form-select-sm">
-                                            <option value="">Toutes</option>
-                                            <option th:each="classe : ${classes}" 
-                                                    th:value="${classe.libelle}"
-                                                    th:text="${classe.libelle}">
-                                            </option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2">
                                         <label class="form-label">Heure Min</label>
                                         <input type="time" id="filterHeureMin" class="form-control form-control-sm">
                                     </div>
@@ -152,7 +142,6 @@
                                         th:attr="data-gare-depart=${bv.voyage.gareDepart.libelle},
                                                  data-gare-arrivee=${bv.voyage.gareArrivee.libelle},
                                                  data-bus=${bv.bus.immatriculation},
-                                                 data-classe=${bv.bus.busClasse.libelle},
                                                  data-date=${#temporals.format(bv.dateDepart, 'yyyy-MM-dd')},
                                                  data-year=${#temporals.format(bv.dateDepart, 'yyyy')},
                                                  data-heure=${#temporals.format(bv.heureDepart, 'HH:mm')},
@@ -160,7 +149,6 @@
                                         <td th:text="${bv.id}"></td>
                                         <td>
                                             <strong th:text="${bv.bus.immatriculation}"></strong><br>
-                                            <span class="badge bg-info" th:text="${bv.bus.busClasse.libelle}"></span>
                                         </td>
                                         <td>
                                             <i class="bi bi-geo-alt-fill text-success me-1"></i>
@@ -284,7 +272,6 @@
                     const gareDepart = document.getElementById('filterGareDepart').value.trim();
                     const gareArrivee = document.getElementById('filterGareArrivee').value.trim();
                     const bus = document.getElementById('filterBus').value.toLowerCase().trim();
-                    const classe = document.getElementById('filterClasse').value.trim();
                     const heureMin = document.getElementById('filterHeureMin').value;
                     const prixMin = document.getElementById('filterPrixMin').value;
                     const prixMax = document.getElementById('filterPrixMax').value;
@@ -293,11 +280,12 @@
                     const useYear = filterByYear.checked;
                     
                     const rows = table.querySelectorAll('tbody tr');
+                    let visibleCount = 0;
+                    
                     rows.forEach(row => {
                         const rowGareDepart = row.getAttribute('data-gare-depart');
                         const rowGareArrivee = row.getAttribute('data-gare-arrivee');
                         const rowBus = row.getAttribute('data-bus').toLowerCase();
-                        const rowClasse = row.getAttribute('data-classe');
                         const rowDate = row.getAttribute('data-date');
                         const rowYear = row.getAttribute('data-year');
                         const rowHeure = row.getAttribute('data-heure');
@@ -306,7 +294,6 @@
                         const gareDepMatch = !gareDepart || rowGareDepart === gareDepart;
                         const gareArrMatch = !gareArrivee || rowGareArrivee === gareArrivee;
                         const busMatch = !bus || rowBus.includes(bus);
-                        const classeMatch = !classe || rowClasse === classe;
                         const heureMatch = !heureMin || rowHeure >= heureMin;
                         const prixMinMatch = !prixMin || rowPrix >= parseFloat(prixMin);
                         const prixMaxMatch = !prixMax || rowPrix <= parseFloat(prixMax);
@@ -318,20 +305,22 @@
                             dateMatch = rowDate === date;
                         }
                         
-                        if (gareDepMatch && gareArrMatch && busMatch && classeMatch && heureMatch && 
+                        if (gareDepMatch && gareArrMatch && busMatch && heureMatch && 
                             prixMinMatch && prixMaxMatch && dateMatch) {
                             row.style.display = '';
+                            visibleCount++;
                         } else {
                             row.style.display = 'none';
                         }
                     });
+                    
+                    console.log(`Filters applied. Showing ${visibleCount} of ${rows.length} rows.`);
                 }
                 
                 // Attach event listeners
                 document.getElementById('filterGareDepart').addEventListener('change', applyFilters);
                 document.getElementById('filterGareArrivee').addEventListener('change', applyFilters);
                 document.getElementById('filterBus').addEventListener('input', applyFilters);
-                document.getElementById('filterClasse').addEventListener('change', applyFilters);
                 document.getElementById('filterHeureMin').addEventListener('change', applyFilters);
                 document.getElementById('filterPrixMin').addEventListener('input', applyFilters);
                 document.getElementById('filterPrixMax').addEventListener('input', applyFilters);
@@ -345,19 +334,24 @@
                     document.getElementById('filterGareDepart').value = '';
                     document.getElementById('filterGareArrivee').value = '';
                     document.getElementById('filterBus').value = '';
-                    document.getElementById('filterClasse').value = '';
                     document.getElementById('filterHeureMin').value = '';
                     document.getElementById('filterPrixMin').value = '';
                     document.getElementById('filterPrixMax').value = '';
                     document.getElementById('filterDate').value = '';
                     document.getElementById('filterYear').value = '';
                     
+                    // Reset to date mode
+                    filterByDate.checked = true;
+                    toggleDateFilter();
+                    
                     // Show all rows
                     const rows = table.querySelectorAll('tbody tr');
                     rows.forEach(row => row.style.display = '');
+                    
+                    console.log('Filters cleared. Showing all rows.');
                 });
             });
-        </script>
+            </script>
     </div>
 </body>
 </html>

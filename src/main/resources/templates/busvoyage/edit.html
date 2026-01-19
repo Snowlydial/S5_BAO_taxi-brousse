@@ -48,7 +48,7 @@
                                         <option value="">-- Choisir un bus --</option>
                                         <option th:each="bus : ${buses}" 
                                                 th:value="${bus.id}" 
-                                                th:text="${bus.immatriculation + ' (' + bus.busClasse.libelle + ')'}"
+                                                th:text="${bus.immatriculation}"
                                                 th:selected="${bus.id == busVoyage.bus.id}">
                                         </option>
                                     </select>

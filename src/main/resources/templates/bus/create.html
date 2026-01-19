@@ -34,7 +34,7 @@
                 </div>
                 <div class="card-content">
                     <div class="card-body">
-                        <form th:action="@{/bus/create}" method="post">
+                        <form th:action="@{/bus/create}" method="post" id="busForm">
                             <div class="row">
                                 <!-- Immatriculation -->
                                 <div class="col-md-6 mb-3">
@@ -44,38 +44,97 @@
                                            class="form-control" 
                                            placeholder="Ex: 1234 TAA"
                                            required>
-                                    <small class="form-text text-muted">
-                                        Format: XXXX TAA (doit être unique)
-                                    </small>
                                 </div>
 
-                                <!-- Classe Bus -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Classe de Bus *</label>
-                                    <select name="busClasseId" class="form-select" required>
-                                        <option value="">-- Choisir une classe --</option>
-                                        <option th:each="classe : ${classes}" 
-                                                th:value="${classe.id}" 
-                                                th:text="${classe.libelle + ' (' + #numbers.formatDecimal(classe.prixClasse, 0, 'COMMA', 0, 'POINT') + ' Ar)'}">
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <!-- Configurations -->
+                                <!-- Place Type Configurations -->
                                 <div class="col-12 mb-3">
-                                    <label class="form-label">Configurations du Bus</label>
                                     <div class="card">
+                                        <div class="card-header bg-light-primary">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0">
+                                                    <i class="bi bi-grid-3x3-gap me-2"></i>
+                                                    Configuration des Places
+                                                </h6>
+                                                <button type="button" class="btn btn-sm btn-primary" id="addPlaceType">
+                                                    <i class="bi bi-plus-circle me-1"></i> Ajouter type de place
+                                                </button>
+                                            </div>
+                                        </div>
                                         <div class="card-body">
-                                            <div th:each="confType : ${confTypes}" class="mb-3">
+                                            <div id="placeTypeInputs">
+                                                <!-- Initial row with Standard selected by default -->
+                                                <div class="row mb-3 place-type-row">
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">Type de Place *</label>
+                                                        <select name="placeTypeNames" class="form-select place-type-name" required>
+                                                            <option value="">-- Choisir un type --</option>
+                                                            <option th:each="cp : ${classePlaceTypes}" 
+                                                                    th:value="${cp.libelle}" 
+                                                                    th:text="${cp.libelle + ' (' + #numbers.formatDecimal(cp.prixPlace, 0, 'COMMA', 0, 'POINT') + ' Ar)'}"
+                                                                    th:selected="${cp.libelle == 'Standard'}"
+                                                                    th:attr="data-prix=${cp.prixPlace}">
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label class="form-label">Nombre de places *</label>
+                                                        <input type="number" 
+                                                               name="placeTypeCapacities" 
+                                                               class="form-control place-type-capacity" 
+                                                               placeholder="Ex: 10"
+                                                               min="1"
+                                                               required>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label class="form-label">Prix (référence)</label>
+                                                        <div class="price-display text-success fw-bold pt-2">
+                                                            <span class="price-value">-</span> Ar
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">&nbsp;</label>
+                                                        <button type="button" class="btn btn-danger btn-sm w-100 remove-place-type" disabled>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="alert alert-light-info mt-3">
+                                                <small>
+                                                    <i class="bi bi-info-circle me-1"></i>
+                                                    <strong>Note:</strong> Le type de place doit correspondre à une ClassePlace existante (Premium, Standard, VIP, etc.). 
+                                                    La capacité totale du bus sera la somme de toutes les places.
+                                                </small>
+                                            </div>
+                                            
+                                            <div class="mt-3 p-2 bg-light rounded">
+                                                <strong>Capacité totale: <span id="totalCapacity">0</span> places</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Other Configurations -->
+                                <div class="col-12 mb-3">
+                                    <div class="card">
+                                        <div class="card-header bg-light-secondary">
+                                            <h6 class="mb-0">
+                                                <i class="bi bi-sliders me-2"></i>
+                                                Autres Configurations
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div th:each="confType : ${otherConfTypes}" class="mb-3">
                                                 <h6 class="text-capitalize mb-2" th:text="${confType}"></h6>
                                                 <div class="row">
-                                                    <div th:each="conf : ${allConfs}" 
+                                                    <div th:each="conf : ${otherConfs}" 
                                                          th:if="${conf.libelle == confType}"
                                                          class="col-md-4">
                                                         <div class="form-check">
-                                                            <input class="form-check-input conf-checkbox" 
+                                                            <input class="form-check-input other-conf-checkbox" 
                                                                    type="checkbox" 
-                                                                   name="busConfIds" 
+                                                                   name="otherBusConfIds" 
                                                                    th:value="${conf.id}" 
                                                                    th:id="'conf' + ${conf.id}"
                                                                    th:attr="data-conf-type=${confType}">
@@ -87,17 +146,21 @@
                                                 </div>
                                                 <hr th:if="${!confTypeStat.last}">
                                             </div>
+                                            <div th:if="${#lists.isEmpty(otherConfTypes)}" class="text-muted fst-italic">
+                                                Aucune autre configuration disponible
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Info Box -->
                                 <div class="col-12 mb-3">
-                                    <div class="alert alert-light-info">
-                                        <h6><i class="bi bi-info-circle me-2"></i>Important</h6>
+                                    <div class="alert alert-light-warning">
+                                        <h6><i class="bi bi-exclamation-triangle me-2"></i>Important</h6>
                                         <ul class="mb-0">
                                             <li>L'immatriculation doit être unique dans le système</li>
-                                            <li>La <strong>capacité</strong> est essentielle pour la gestion des places</li>
+                                            <li>Les types de places doivent correspondre aux ClassePlace existantes</li>
+                                            <li>La capacité totale = somme de tous les types de places</li>
                                             <li>Les configurations peuvent être modifiées ultérieurement</li>
                                         </ul>
                                     </div>
@@ -123,17 +186,147 @@
     </div>
 
     <div layout:fragment="scripts">
-        <script>
+        <script th:inline="javascript">
+            // Get all ClassePlace data from server
+            const classePlaceData = /*[[${classePlaceTypes}]]*/ [];
+            const classePlacePrices = {};
+            
+            // Build price lookup map
+            classePlaceData.forEach(cp => {
+                classePlacePrices[cp.libelle] = cp.prixPlace;
+            });
+            
+            console.log('Available ClassePlace types:', classePlaceData);
+            console.log('Price lookup map:', classePlacePrices);
+            
             document.addEventListener('DOMContentLoaded', function() {
-                const checkboxes = document.querySelectorAll('.conf-checkbox');
+                const placeTypeInputsContainer = document.getElementById('placeTypeInputs');
+                const addPlaceTypeBtn = document.getElementById('addPlaceType');
+                const totalCapacitySpan = document.getElementById('totalCapacity');
                 
-                checkboxes.forEach(checkbox => {
+                // Add new place type row
+                addPlaceTypeBtn.addEventListener('click', function() {
+                    const newRow = document.createElement('div');
+                    newRow.className = 'row mb-3 place-type-row';
+                    
+                    // Build options HTML
+                    const optionsHtml = `
+                        <option value="">-- Choisir un type --</option>
+                        ${classePlaceData.map(cp => 
+                            `<option value="${cp.libelle}" data-prix="${cp.prixPlace}">
+                                ${cp.libelle} (${cp.prixPlace.toLocaleString('fr-FR')} Ar)
+                            </option>`
+                        ).join('')}
+                    `;
+                    
+                    newRow.innerHTML = `
+                        <div class="col-md-4">
+                            <label class="form-label">Type de Place *</label>
+                            <select name="placeTypeNames" class="form-select place-type-name" required>
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Nombre de places *</label>
+                            <input type="number" 
+                                name="placeTypeCapacities" 
+                                class="form-control place-type-capacity" 
+                                placeholder="Ex: 10"
+                                min="1"
+                                required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Prix (référence)</label>
+                            <div class="price-display text-success fw-bold pt-2">
+                                <span class="price-value">-</span> Ar
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-danger btn-sm w-100 remove-place-type">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    placeTypeInputsContainer.appendChild(newRow);
+                    
+                    // Add event listeners to new inputs
+                    attachPlaceTypeListeners(newRow);
+                    updateRemoveButtons();
+                });
+                
+                // Remove place type row
+                placeTypeInputsContainer.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('remove-place-type') || 
+                        e.target.closest('.remove-place-type')) {
+                        const row = e.target.closest('.place-type-row');
+                        row.remove();
+                        updateTotalCapacity();
+                        updateRemoveButtons();
+                    }
+                });
+                
+                // Update total capacity
+                function updateTotalCapacity() {
+                    const capacities = Array.from(document.querySelectorAll('.place-type-capacity'))
+                        .map(input => parseInt(input.value) || 0);
+                    const total = capacities.reduce((sum, val) => sum + val, 0);
+                    totalCapacitySpan.textContent = total;
+                }
+                
+                // Update remove button states
+                function updateRemoveButtons() {
+                    const rows = document.querySelectorAll('.place-type-row');
+                    const removeButtons = document.querySelectorAll('.remove-place-type');
+                    
+                    removeButtons.forEach((btn, index) => {
+                        btn.disabled = rows.length === 1;
+                    });
+                }
+                
+                // Attach event listeners to place type inputs
+                function attachPlaceTypeListeners(container) {
+                    const nameSelect = container.querySelector('.place-type-name');
+                    const capacityInput = container.querySelector('.place-type-capacity');
+                    const priceDisplay = container.querySelector('.price-value');
+                    
+                    // Update price when place type is selected
+                    nameSelect.addEventListener('change', function() {
+                        const selectedOption = this.options[this.selectedIndex];
+                        const prix = selectedOption.dataset.prix;
+                        
+                        if (prix) {
+                            priceDisplay.textContent = parseFloat(prix).toLocaleString('fr-FR');
+                        } else {
+                            priceDisplay.textContent = '-';
+                        }
+                    });
+                    
+                    // Trigger change event to set initial price if option is pre-selected
+                    if (nameSelect.value) {
+                        nameSelect.dispatchEvent(new Event('change'));
+                    }
+                    
+                    capacityInput.addEventListener('input', updateTotalCapacity);
+                }
+                
+                // Attach to initial row
+                attachPlaceTypeListeners(document.querySelector('.place-type-row'));
+                
+                // Trigger initial price display for Standard (if selected)
+                const initialSelect = document.querySelector('.place-type-name');
+                if (initialSelect && initialSelect.value) {
+                    initialSelect.dispatchEvent(new Event('change'));
+                }
+                
+                // Other configuration checkboxes (only one per type)
+                const otherConfCheckboxes = document.querySelectorAll('.other-conf-checkbox');
+                otherConfCheckboxes.forEach(checkbox => {
                     checkbox.addEventListener('change', function() {
                         if (this.checked) {
                             const confType = this.getAttribute('data-conf-type');
                             
-                            // Uncheck all other checkboxes with the same conf type
-                            checkboxes.forEach(otherCheckbox => {
+                            otherConfCheckboxes.forEach(otherCheckbox => {
                                 if (otherCheckbox !== this && 
                                     otherCheckbox.getAttribute('data-conf-type') === confType) {
                                     otherCheckbox.checked = false;
@@ -141,6 +334,25 @@
                             });
                         }
                     });
+                });
+                
+                // Form validation before submit
+                document.getElementById('busForm').addEventListener('submit', function(e) {
+                    const names = Array.from(document.querySelectorAll('.place-type-name'))
+                        .map(select => select.value)
+                        .filter(val => val);
+                    
+                    const capacities = Array.from(document.querySelectorAll('.place-type-capacity'))
+                        .map(input => input.value)
+                        .filter(val => val);
+                    
+                    if (names.length === 0 || capacities.length === 0 || names.length !== capacities.length) {
+                        e.preventDefault();
+                        alert('Veuillez remplir au moins un type de place avec une capacité valide');
+                        return false;
+                    }
+                    
+                    console.log('Submitting with names:', names, 'and capacities:', capacities);
                 });
             });
         </script>
