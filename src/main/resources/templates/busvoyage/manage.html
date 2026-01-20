@@ -72,15 +72,6 @@
                                         <input type="time" id="filterHeureMin" class="form-control form-control-sm">
                                     </div>
                                     
-                                    <div class="col-md-2">
-                                        <label class="form-label">Prix Min (Ar)</label>
-                                        <input type="number" id="filterPrixMin" class="form-control form-control-sm" placeholder="0">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Prix Max (Ar)</label>
-                                        <input type="number" id="filterPrixMax" class="form-control form-control-sm" placeholder="200000">
-                                    </div>
-                                    
                                     <div class="col-md-3">
                                         <label class="form-label">Période</label>
                                         <div class="form-check">
@@ -273,8 +264,6 @@
                     const gareArrivee = document.getElementById('filterGareArrivee').value.trim();
                     const bus = document.getElementById('filterBus').value.toLowerCase().trim();
                     const heureMin = document.getElementById('filterHeureMin').value;
-                    const prixMin = document.getElementById('filterPrixMin').value;
-                    const prixMax = document.getElementById('filterPrixMax').value;
                     const date = document.getElementById('filterDate').value;
                     const year = document.getElementById('filterYear').value;
                     const useYear = filterByYear.checked;
@@ -295,8 +284,6 @@
                         const gareArrMatch = !gareArrivee || rowGareArrivee === gareArrivee;
                         const busMatch = !bus || rowBus.includes(bus);
                         const heureMatch = !heureMin || rowHeure >= heureMin;
-                        const prixMinMatch = !prixMin || rowPrix >= parseFloat(prixMin);
-                        const prixMaxMatch = !prixMax || rowPrix <= parseFloat(prixMax);
                         
                         let dateMatch = true;
                         if (useYear && year) {
@@ -305,8 +292,7 @@
                             dateMatch = rowDate === date;
                         }
                         
-                        if (gareDepMatch && gareArrMatch && busMatch && heureMatch && 
-                            prixMinMatch && prixMaxMatch && dateMatch) {
+                        if (gareDepMatch && gareArrMatch && busMatch && heureMatch && dateMatch) {
                             row.style.display = '';
                             visibleCount++;
                         } else {
@@ -322,8 +308,6 @@
                 document.getElementById('filterGareArrivee').addEventListener('change', applyFilters);
                 document.getElementById('filterBus').addEventListener('input', applyFilters);
                 document.getElementById('filterHeureMin').addEventListener('change', applyFilters);
-                document.getElementById('filterPrixMin').addEventListener('input', applyFilters);
-                document.getElementById('filterPrixMax').addEventListener('input', applyFilters);
                 document.getElementById('filterDate').addEventListener('change', applyFilters);
                 document.getElementById('filterYear').addEventListener('input', applyFilters);
                 filterByDate.addEventListener('change', applyFilters);
@@ -335,8 +319,6 @@
                     document.getElementById('filterGareArrivee').value = '';
                     document.getElementById('filterBus').value = '';
                     document.getElementById('filterHeureMin').value = '';
-                    document.getElementById('filterPrixMin').value = '';
-                    document.getElementById('filterPrixMax').value = '';
                     document.getElementById('filterDate').value = '';
                     document.getElementById('filterYear').value = '';
                     
