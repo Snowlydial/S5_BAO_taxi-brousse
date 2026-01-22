@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "Diffusion")
+@Table(name = "diffusion")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,6 +17,15 @@ public class Diffusion {
     @Column(name = "id_diffusion")
     private Integer id;
 
+    @Column(name= "date_diffusion")
+    private LocalDate dateDiffusion;
+
+    @Column(name = "heure_diffusion")
+    private LocalTime heureDiffusion;
+
+    @Column(name = "description")
+    private String description;
+
     @ManyToOne
     @JoinColumn(name = "id_societe")
     private Societe societe;
@@ -25,14 +34,4 @@ public class Diffusion {
     @JoinColumn(name = "id_bus_voyage")
     private BusVoyage busVoyage;
 
-    @ManyToOne
-    @JoinColumn(name = "id_diffusionConf")
-    private DiffusionConf diffusionConf;
-    private LocalDate dateDiffusion;
-
-    @Column(name = "heure_diffusion")
-    private LocalTime heureDiffusion;
-
-    @Column(name = "description")
-    private String description;
 }

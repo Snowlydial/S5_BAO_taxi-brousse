@@ -1,10 +1,12 @@
 package com.itu.taxi_brousse.entity;
 
+import java.time.LocalDate;
+
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "DiffusionConf")
+@Table(name = "diffusionconf")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,12 +19,11 @@ public class DiffusionConf {
     
     @Column(name = "prix")
     private Double prix;
-    
-    //?=== Get prix diffusion for a date range (nombre de diffusions * prix)
-    public Double getPrixDiffusion(long nbDiffusion) {
-        if (this.prix == null) {
-            return 0.0;
-        }
-        return nbDiffusion * this.prix;
-    }
+
+    @Column(name= "date_debut")
+    private LocalDate dateDebut;
+
+    @Column(name= "date_fin")
+    private LocalDate dateFin;
+
 }

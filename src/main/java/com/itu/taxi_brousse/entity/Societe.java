@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "Societe")
+@Table(name = "societe")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -15,6 +15,6 @@ public class Societe {
     @Column(name = "id_societe")
     private Integer id;
     
-    @Column(name = "nom_societe", length = 100, nullable = false)
-    private String nomSociete;
+    @Column(name = "nom", nullable = false)
+    private String nom;
 }
