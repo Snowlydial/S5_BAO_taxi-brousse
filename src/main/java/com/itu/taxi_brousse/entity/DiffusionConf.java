@@ -2,7 +2,6 @@ package com.itu.taxi_brousse.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDate;
 
 @Entity
 @Table(name = "DiffusionConf")
