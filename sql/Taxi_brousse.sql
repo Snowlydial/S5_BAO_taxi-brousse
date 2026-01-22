@@ -49,9 +49,11 @@ CREATE TABLE ClasseAge_Conf(
    date_fin DATE,
    id_categorieGroupeAge INTEGER NOT NULL,
    id_classePlace INTEGER NOT NULL,
+   id_voyage INTEGER NOT NULL,
    PRIMARY KEY(id_classeAge_conf),
    FOREIGN KEY(id_categorieGroupeAge) REFERENCES CategorieGroupeAge(id_categorieGroupeAge),
-   FOREIGN KEY(id_classePlace) REFERENCES ClassePlace(id_classePlace)
+   FOREIGN KEY(id_classePlace),
+   FOREIGN KEY (id_voyage) REFERENCES Voyage(id_voyage)  
 );
 
 CREATE TABLE Bus(
