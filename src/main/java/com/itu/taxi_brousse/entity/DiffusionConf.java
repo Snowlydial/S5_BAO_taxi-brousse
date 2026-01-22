@@ -14,7 +14,7 @@ import lombok.*;
 public class DiffusionConf {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_diffusionConf")
+    @Column(name = "id_diffusionconf")
     private Integer id;
     
     @Column(name = "prix")
