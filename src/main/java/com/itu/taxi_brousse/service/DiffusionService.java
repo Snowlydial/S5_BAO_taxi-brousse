@@ -11,8 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -76,4 +78,69 @@ public class DiffusionService {
     public List<Diffusion> getDiffusionsBySocieteAndDate(Integer societeId, LocalDate date) {
         return diffusionRepository.findBySocieteIdAndDateDiffusion(societeId, date);
     }
+
+    //?=== Filter diffusions by date range
+    public List<Diffusion> filterDiffusionByDate(List<Diffusion> diffusions, LocalDate dateMin, LocalDate dateMax) {
+        if (dateMin == null || dateMax == null) {
+            return diffusions;
+        }
+        return diffusions.stream()
+                .filter(d -> {
+                    LocalDate date = d.getDateDiffusion();
+                    return date != null && !date.isBefore(dateMin) && !date.isAfter(dateMax);
+                })
+                .collect(Collectors.toList());
+    }
+
+    //?=== Filter diffusions by time
+    public List<Diffusion> filterDiffusionByHeure(List<Diffusion> diffusions, LocalTime heureMin) {
+        if (heureMin == null) {
+            return diffusions;
+        }
+        return diffusions.stream()
+                .filter(d -> {
+                    LocalTime heure = d.getHeureDiffusion();
+                    return heure != null && !heure.isBefore(heureMin);
+                })
+                .collect(Collectors.toList());
+    }
+
+    //?=== Calculate total revenue from diffusions
+    public Double getChiffreAffaire(List<Diffusion> diffusions, LocalDate dateMin, LocalDate dateMax) {
+        if (diffusions == null || diffusions.isEmpty()) {
+            return 0.0;
+        }
+        
+        // Filter diffusions by date range
+        List<Diffusion> filtered = filterDiffusionByDate(diffusions, dateMin, dateMax);
+        
+        if (filtered.isEmpty()) {
+            return 0.0;
+        }
+        
+        // Group by DiffusionConf and calculate revenue for each
+        return filtered.stream()
+                .collect(Collectors.groupingBy(
+                        Diffusion::getDiffusionConf,
+                        Collectors.counting()
+                ))
+                .entrySet()
+                .stream()
+                .mapToDouble(entry -> {
+                    DiffusionConf config = entry.getKey();
+                    long count = entry.getValue();
+                    if (config != null) {
+                        return config.getPrixDiffusion(count);
+                    }
+                    return 0.0;
+                })
+                .sum();
+    }
+    
+    //?=== Count diffusions in a filtered list
+    public long countDiffusions(List<Diffusion> diffusions) {
+        return diffusions != null ? diffusions.size() : 0L;
+    }
+
 }
+

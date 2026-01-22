@@ -25,7 +25,9 @@ public class Diffusion {
     @JoinColumn(name = "id_bus_voyage")
     private BusVoyage busVoyage;
 
-    @Column(name = "date_diffusion")
+    @ManyToOne
+    @JoinColumn(name = "id_diffusionConf")
+    private DiffusionConf diffusionConf;
     private LocalDate dateDiffusion;
 
     @Column(name = "heure_diffusion")
