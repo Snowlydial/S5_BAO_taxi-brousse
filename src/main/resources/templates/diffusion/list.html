@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Liste des diffusions</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.css}" />
+</head>
+<body>
+<div class="container mt-4">
+    <h1>Liste des diffusions</h1>
+
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>Societe</th>
+            <th>Bus</th>
+            <th>Trajet</th>
+            <th>Description</th>
+            <th>Date / Heure diffusion</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="diff : ${diffusions}">
+            <td th:text="${diff.societe != null ? diff.societe.nomSociete : '-'}">Societe</td>
+            <td th:text="${diff.busVoyage != null && diff.busVoyage.bus != null ? diff.busVoyage.bus.immatriculation : '-'}">Bus</td>
+            <td th:text="${(diff.busVoyage != null && diff.busVoyage.voyage != null) ? (diff.busVoyage.voyage.gareDepart.libelle + ' → ' + diff.busVoyage.voyage.gareArrivee.libelle) : '-'}">Trajet</td>
+            <td th:text="${diff.description}">Description</td>
+            <td>
+                <span th:text="${diff.dateDiffusion != null ? #dates.format(diff.dateDiffusion, 'dd/MM/yyyy') : '-'}"></span>
+                &nbsp;
+                <span th:text="${diff.heureDiffusion != null ? #dates.format(diff.heureDiffusion, 'HH:mm') : '-'}"></span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

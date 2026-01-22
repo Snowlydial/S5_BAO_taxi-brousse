@@ -57,6 +57,13 @@
                             </a>
                         </li>
 
+                        <li class="sidebar-item" th:classappend="${#strings.contains(currentPath, '/diffusion')} ? 'active' : ''">
+                            <a th:href="@{/diffusion/list}" class='sidebar-link'>
+                                <i class="bi bi-list-check"></i>
+                                <span>Liste Diffusion</span>
+                            </a>
+                        </li>
+
                         <!-- Add more menu items here as needed -->
                         <li class="sidebar-title">Gestion</li>
 
