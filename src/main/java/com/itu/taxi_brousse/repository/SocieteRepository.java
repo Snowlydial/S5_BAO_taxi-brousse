@@ -8,5 +8,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SocieteRepository extends JpaRepository<Societe, Integer> {
-    List<Societe> findByNomSocieteContaining(String keyword);
+    List<Societe> findByNomContaining(String keyword);
 }

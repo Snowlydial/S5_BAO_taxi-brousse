@@ -42,6 +42,6 @@ public class SocieteService {
         if (keyword == null || keyword.trim().isEmpty()) {
             return getAllSocietes();
         }
-        return societeRepository.findByNomSocieteContaining(keyword);
+        return societeRepository.findByNomContaining(keyword);
     }
 }

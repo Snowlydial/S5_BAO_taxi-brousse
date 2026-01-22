@@ -21,14 +21,14 @@
         </thead>
         <tbody>
         <tr th:each="diff : ${diffusions}">
-            <td th:text="${diff.societe != null ? diff.societe.nomSociete : '-'}">Societe</td>
+            <td th:text="${diff.societe != null ? diff.societe.nom : '-'}">Societe</td>
             <td th:text="${diff.busVoyage != null && diff.busVoyage.bus != null ? diff.busVoyage.bus.immatriculation : '-'}">Bus</td>
             <td th:text="${(diff.busVoyage != null && diff.busVoyage.voyage != null) ? (diff.busVoyage.voyage.gareDepart.libelle + ' → ' + diff.busVoyage.voyage.gareArrivee.libelle) : '-'}">Trajet</td>
             <td th:text="${diff.description}">Description</td>
             <td>
-                <span th:text="${diff.dateDiffusion != null ? #dates.format(diff.dateDiffusion, 'dd/MM/yyyy') : '-'}"></span>
+                <span th:text="${diff.dateDiffusion != null ? #temporals.format(diff.dateDiffusion, 'dd/MM/yyyy') : '-'}"></span>
                 &nbsp;
-                <span th:text="${diff.heureDiffusion != null ? #dates.format(diff.heureDiffusion, 'HH:mm') : '-'}"></span>
+                <span th:text="${diff.heureDiffusion != null ? #temporals.format(diff.heureDiffusion, 'HH:mm') : '-'}"></span>
             </td>
         </tr>
         </tbody>
