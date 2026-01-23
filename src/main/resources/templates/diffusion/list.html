@@ -1,38 +1,252 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
 <head>
-    <meta charset="UTF-8" />
-    <title>Liste des diffusions</title>
+    <title>Liste des Diffusions</title>
+    <link rel="stylesheet" th:href="@{/vendors/simple-datatables/style.css}">
     <link rel="stylesheet" th:href="@{/css/bootstrap.css}" />
 </head>
 <body>
-<div class="container mt-4">
-    <h1>Liste des diffusions</h1>
+    <div layout:fragment="content">
+        <div class="page-heading">
+            <div class="page-title">
+                <div class="row">
+                    <div class="col-12 col-md-6 order-md-1 order-last">
+                        <h3>Liste des Diffusions</h3>
+                        <p class="text-subtitle text-muted">Gerez les diffusions publicitaires</p>
+                    </div>
+                    <div class="col-12 col-md-6 order-md-2 order-first">
+                        <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de Bord</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Liste Diffusions</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    <table class="table table-striped">
-        <thead>
-        <tr>
-            <th>Societe</th>
-            <th>Bus</th>
-            <th>Trajet</th>
-            <th>Description</th>
-            <th>Date / Heure diffusion</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="diff : ${diffusions}">
-            <td th:text="${diff.societe != null ? diff.societe.nom : '-'}">Societe</td>
-            <td th:text="${diff.busVoyage != null && diff.busVoyage.bus != null ? diff.busVoyage.bus.immatriculation : '-'}">Bus</td>
-            <td th:text="${(diff.busVoyage != null && diff.busVoyage.voyage != null) ? (diff.busVoyage.voyage.gareDepart.libelle + ' → ' + diff.busVoyage.voyage.gareArrivee.libelle) : '-'}">Trajet</td>
-            <td th:text="${diff.description}">Description</td>
-            <td>
-                <span th:text="${diff.dateDiffusion != null ? #temporals.format(diff.dateDiffusion, 'dd/MM/yyyy') : '-'}"></span>
-                &nbsp;
-                <span th:text="${diff.heureDiffusion != null ? #temporals.format(diff.heureDiffusion, 'HH:mm') : '-'}"></span>
-            </td>
-        </tr>
-        </tbody>
-    </table>
-</div>
+        <section class="section">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">Diffusions</h4>
+                </div>
+                <div class="card-content">
+                    <div class="card-body">
+
+                        <!-- Filters -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card shadow-sm">
+                                    <div class="card-header py-2">
+                                        <h6 class="mb-0"><i class="bi bi-funnel me-1"></i> Filtres</h6>
+                                    </div>
+                                    <div class="card-body py-3">
+                                        <div class="row g-2">
+                                            <div class="col-md-3">
+                                                <label class="form-label small mb-1">Societe</label>
+                                                <input id="filterSociete" class="form-control form-control-sm" placeholder="Rechercher societe..." />
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small mb-1">Bus</label>
+                                                <select id="filterBus" class="form-select form-select-sm">
+                                                    <option value="">Tous les bus</option>
+                                                    <option th:each="b : ${uniqueBuses}" 
+                                                            th:value="${b.immatriculation}" 
+                                                            th:text="${b.immatriculation}"></option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small mb-1">Trajet (Gare Départ → Arrivée)</label>
+                                                <select id="filterTrajet" class="form-select form-select-sm">
+                                                    <option value="">Tous les trajets</option>
+                                                    <option th:each="v : ${uniqueVoyages}" 
+                                                            th:value="${v.gareDepart.libelle + ' →  ' + v.gareArrivee.libelle}" 
+                                                            th:text="${v.gareDepart.libelle + ' →  ' + v.gareArrivee.libelle}"></option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small mb-1">Date Min</label>
+                                                <input id="filterDateMin" type="date" class="form-control form-control-sm" />
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small mb-1">Date Max</label>
+                                                <input id="filterDateMax" type="date" class="form-control form-control-sm" />
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small mb-1">Heure Départ Min</label>
+                                                <input id="filterHeureMin" type="time" class="form-control form-control-sm" />
+                                            </div>
+                                            <div class="col-md-1 d-flex align-items-end">
+                                                <button id="clearFilters" class="btn btn-light btn-sm w-100" title="Effacer tous les filtres">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Revenue Summary Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card shadow-sm bg-light-info">
+                                    <div class="card-body py-3">
+                                        <h6 class="mb-1 text-muted">
+                                            <i class="bi bi-calculator me-2"></i>
+                                            Chiffre d'Affaires (calculé)
+                                        </h6>
+                                        <small class="text-muted d-block mb-2">Calculé à partir de la configuration actuelle</small>
+                                        <h3 class="mb-0 text-info">
+                                            <span id="totalDynamicRevenue" th:text="${#numbers.formatDecimal(totalDynamic, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </h3>
+                                        <div class="mt-2">
+                                            <small class="text-muted">Nombre: <strong id="totalDiffusions" th:text="${#lists.size(diffusions)}">0</strong></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card shadow-sm bg-light-success">
+                                    <div class="card-body py-3">
+                                        <h6 class="mb-1 text-muted">
+                                            <i class="bi bi-currency-exchange me-2"></i>
+                                            Montant Encaissé (enregistré)
+                                        </h6>
+                                        <small class="text-muted d-block mb-2">Montant réellement payé et enregistré</small>
+                                        <h3 class="mb-0 text-success">
+                                            <span id="totalPaidRevenue" th:text="${#numbers.formatDecimal(totalPaid, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Debug info -->
+                        <div class="alert alert-info" th:if="${#lists.isEmpty(diffusions)}">
+                            Aucune diffusion trouvée.
+                        </div>
+
+                        <!-- Table -->
+                        <div th:if="${!#lists.isEmpty(diffusions)}">
+                            <table class="table table-striped" id="diffusionsTable">
+                                <thead>
+                                <tr>
+                                    <th>Societe</th>
+                                    <th>Bus</th>
+                                    <th>Trajet</th>
+                                    <th>Description</th>
+                                    <th>Date / Heure</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="diff : ${diffusions}"
+                                    th:attr="data-date-diffusion=${diff.dateDiffusion != null ? #temporals.format(diff.dateDiffusion, 'yyyy-MM-dd') : ''},
+                                             data-heure-diffusion=${diff.heureDiffusion != null ? #temporals.format(diff.heureDiffusion, 'HH:mm') : ''},
+                                             data-bus=${diff.busVoyage != null && diff.busVoyage.bus != null ? diff.busVoyage.bus.immatriculation : ''},
+                                             data-trajet=${(diff.busVoyage != null && diff.busVoyage.voyage != null) ? (diff.busVoyage.voyage.gareDepart.libelle + ' -> ' + diff.busVoyage.voyage.gareArrivee.libelle) : ''},
+                                             data-dynamic-price=${dynamicPrices[diff.id]},
+                                             data-societe=${diff.societe != null ? diff.societe.nom : ''}">
+                                    <td th:text="${diff.societe != null ? diff.societe.nom : '-'}">Societe</td>
+                                    <td th:text="${diff.busVoyage != null && diff.busVoyage.bus != null ? diff.busVoyage.bus.immatriculation : '-'}">Bus</td>
+                                    <td th:text="${(diff.busVoyage != null && diff.busVoyage.voyage != null) ? (diff.busVoyage.voyage.gareDepart.libelle + ' -> ' + diff.busVoyage.voyage.gareArrivee.libelle) : '-'}">Trajet</td>
+                                    <td th:text="${diff.description}">Description</td>
+                                    <td>
+                                        <span th:text="${diff.dateDiffusion != null ? #temporals.format(diff.dateDiffusion, 'dd/MM/yyyy') : '-'}"></span>
+                                        &nbsp;
+                                        <span th:text="${diff.heureDiffusion != null ? #temporals.format(diff.heureDiffusion, 'HH:mm') : '-'}"></span>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script th:src="@{/vendors/simple-datatables/simple-datatables.js}"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const table = document.querySelector('#diffusionsTable');
+                if (!table) {
+                    console.log('No table found');
+                    return;
+                }
+
+                //*-- Apply filters function
+                function applyFilters() {
+                    const societeFilter = document.getElementById('filterSociete').value.toLowerCase().trim();
+                    const busFilter = document.getElementById('filterBus').value.trim();
+                    const trajetFilter = document.getElementById('filterTrajet').value.trim();
+                    const dateMin = document.getElementById('filterDateMin').value;
+                    const dateMax = document.getElementById('filterDateMax').value;
+                    const heureMin = document.getElementById('filterHeureMin').value;
+
+                    let totalDynamic = 0;
+                    let totalVisible = 0;
+
+                    table.querySelectorAll('tbody tr').forEach(row => {
+                        const soc = row.getAttribute('data-societe').toLowerCase();
+                        const bus = row.getAttribute('data-bus');
+                        const trajet = row.getAttribute('data-trajet');
+                        const date = row.getAttribute('data-date-diffusion');
+                        const heure = row.getAttribute('data-heure-diffusion');
+                        const price = parseFloat(row.getAttribute('data-dynamic-price')) || 0;
+
+                        let visible = true;
+                        if (societeFilter && !soc.includes(societeFilter)) visible = false;
+                        if (busFilter && bus !== busFilter) visible = false;
+                        if (trajetFilter && trajet !== trajetFilter) visible = false;
+                        if (dateMin && date < dateMin) visible = false;
+                        if (dateMax && date > dateMax) visible = false;
+                        if (heureMin && heure < heureMin) visible = false;
+
+                        if (visible) {
+                            row.style.display = '';
+                            totalDynamic += price;
+                            totalVisible++;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+
+                    //*-- Update totals
+                    document.getElementById('totalDynamicRevenue').textContent = 
+                        new Intl.NumberFormat('fr-FR').format(Math.round(totalDynamic));
+                    document.getElementById('totalDiffusions').textContent = totalVisible;
+                }
+
+                //*-- Show all initially (don't filter on load)
+                table.querySelectorAll('tbody tr').forEach(row => {
+                    row.style.display = '';
+                });
+
+                //*-- Attach event listeners
+                document.getElementById('filterSociete').addEventListener('input', applyFilters);
+                document.getElementById('filterBus').addEventListener('change', applyFilters);
+                document.getElementById('filterTrajet').addEventListener('change', applyFilters);
+                document.getElementById('filterDateMin').addEventListener('change', applyFilters);
+                document.getElementById('filterDateMax').addEventListener('change', applyFilters);
+                document.getElementById('filterHeureMin').addEventListener('change', applyFilters);
+                
+                //*-- Clear filters
+                document.getElementById('clearFilters').addEventListener('click', function() {
+                    document.getElementById('filterSociete').value = '';
+                    document.getElementById('filterBus').value = '';
+                    document.getElementById('filterTrajet').value = '';
+                    document.getElementById('filterDateMin').value = '';
+                    document.getElementById('filterDateMax').value = '';
+                    document.getElementById('filterHeureMin').value = '';
+                    applyFilters();
+                });
+            });
+        </script>
+    </div>
 </body>
 </html>
