@@ -43,7 +43,7 @@
 
                         <!-- Global Revenue Summary -->
                         <div class="row mb-4">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="card shadow-sm bg-light-info">
                                     <div class="card-body py-3">
                                         <h6 class="mb-1 text-muted">
@@ -57,12 +57,12 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="card shadow-sm bg-light-warning">
                                     <div class="card-body py-3">
                                         <h6 class="mb-1 text-muted">
-                                            <i class="bi bi-broadcast me-2"></i>
-                                            CA Total Diffusions
+                                            <i class="bi bi-check-circle me-2"></i>
+                                            Montant Payé Diffusions
                                         </h6>
                                         <h3 class="mb-0 text-warning">
                                             <span th:text="${#numbers.formatDecimal(totalCADiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
@@ -71,7 +71,21 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <div class="card shadow-sm bg-light-danger">
+                                    <div class="card-body py-3">
+                                        <h6 class="mb-1 text-muted">
+                                            <i class="bi bi-exclamation-circle me-2"></i>
+                                            Reste à Payer Diffusions
+                                        </h6>
+                                        <h3 class="mb-0 text-danger">
+                                            <span th:text="${#numbers.formatDecimal(totalRemainingDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
                                 <div class="card shadow-sm bg-light-success">
                                     <div class="card-body py-3">
                                         <h6 class="mb-1 text-muted">
@@ -119,7 +133,8 @@
                                         <th>Date Départ</th>
                                         <th>Heure Départ</th>
                                         <th>CA Réservations</th>
-                                        <th>CA Diffusions</th>
+                                        <th>Montant Payé Diffusions</th>
+                                        <th>Reste à Payer Diffusions</th>
                                         <th>Montant Total</th>
                                         <th>Actions</th>
                                     </tr>
@@ -147,6 +162,11 @@
                                         <td>
                                             <span class="text-warning fw-bold">
                                                 <span th:text="${#numbers.formatDecimal(facture.caDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="text-danger fw-bold">
+                                                <span th:text="${#numbers.formatDecimal(diffusionRemainingMap[facture.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                             </span>
                                         </td>
                                         <td>

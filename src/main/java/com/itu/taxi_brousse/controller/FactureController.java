@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @Controller
 @RequestMapping("/facture")
@@ -36,11 +38,37 @@ public class FactureController {
         
         Double totalGeneral = totalCAReservations + totalCADiffusions;
         
+        //*-- Calculate diffusion payment totals
+        Map<Integer, Double> diffusionPaidMap = new HashMap<>();
+        Map<Integer, Double> diffusionRemainingMap = new HashMap<>();
+        Double totalRemainingDiffusions = 0.0;
+        
+        for (Facture facture : factures) {
+            Double totalDue = factureService.getTotalDueForDiffusions(facture);
+            Double totalPaid = factureService.getTotalPaidForDiffusions(facture);
+            Double remaining = factureService.getRemainingForDiffusions(facture);
+            
+            //*-- DEBUG LOGGING
+            System.out.println("=== FACTURE #" + facture.getId() + " - " + facture.getNumeroFacture() + " ===");
+            System.out.println("Total Due:  " + totalDue);
+            System.out.println("Total Paid: " + totalPaid);
+            System.out.println("Remaining:  " + remaining);
+            System.out.println("facture.caDiffusions: " + facture.getCaDiffusions());
+            System.out.println("BusVoyage ID: " + facture.getBusVoyage().getId());
+            
+            diffusionPaidMap.put(facture.getId(), totalPaid != null ? totalPaid : 0.0);
+            diffusionRemainingMap.put(facture.getId(), remaining != null ? remaining : 0.0);
+            totalRemainingDiffusions += (remaining != null ? remaining : 0.0);
+        }
+        
         model.addAttribute("pageTitle", "Liste des Factures");
         model.addAttribute("factures", factures);
         model.addAttribute("totalCAReservations", totalCAReservations);
         model.addAttribute("totalCADiffusions", totalCADiffusions);
         model.addAttribute("totalGeneral", totalGeneral);
+        model.addAttribute("diffusionPaidMap", diffusionPaidMap);
+        model.addAttribute("diffusionRemainingMap", diffusionRemainingMap);
+        model.addAttribute("totalRemainingDiffusions", totalRemainingDiffusions);
         
         return "facture/list";
     }

@@ -48,7 +48,6 @@ public class FactureService {
         
         //*-- Create facture lignes for reservations (use CA from pricing)
         List<Reservation> reservations = reservationRepository.findByBusVoyage(busVoyage);
-
         for (Reservation reservation : reservations) {
             Double caPrice = pricingService.calculatePrice(reservation, busVoyage.getDateDepart());
             
@@ -107,6 +106,27 @@ public class FactureService {
     //?=== Get all factures ordered by date
     public List<Facture> getAllFactures() {
         return factureRepository.findAllByOrderByDateEmissionDesc();
+    }
+    
+    //?=== Get total paid amount for diffusions in a facture
+    public Double getTotalPaidForDiffusions(Facture facture) {
+        List<Diffusion> diffusions = diffusionRepository.findByBusVoyageId(facture.getBusVoyage().getId());
+        return diffusions.stream()
+            .mapToDouble(diffusionService::getPaidAmountForDiffusion)
+            .sum();
+    }
+    
+    //?=== Get total due amount for diffusions in a facture
+    public Double getTotalDueForDiffusions(Facture facture) {
+        List<Diffusion> diffusions = diffusionRepository.findByBusVoyageId(facture.getBusVoyage().getId());
+        return diffusions.stream()
+            .mapToDouble(d -> diffusionService.getPrixDiffusion(d.getDateDiffusion()))
+            .sum();
+    }
+    
+    //?=== Get remaining amount for diffusions in a facture
+    public Double getRemainingForDiffusions(Facture facture) {
+        return getTotalDueForDiffusions(facture) - getTotalPaidForDiffusions(facture);
     }
     
     //?=== Get facture by ID
