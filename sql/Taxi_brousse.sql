@@ -182,6 +182,8 @@ CREATE TABLE DiffusionPaiement(
    montant_paye DOUBLE PRECISION,
    date_paiement DATE,
    id_diffusion INTEGER,
-   FOREIGN KEY(id_diffusion) REFERENCES Diffusion(id_diffusion)
+   id_societe INTEGER,
+   FOREIGN KEY(id_diffusion) REFERENCES Diffusion(id_diffusion),
+   FOREIGN KEY(id_societe) REFERENCES societe(id_societe)
 );
 
