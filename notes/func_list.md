@@ -20,4 +20,6 @@
 - Seniors price are based on the Adult's and they get a -20% reduction from those
 
 # Week of [22/01/26]
+1. Societe can diffuse ads on busvoyage...get CA from those ads
+2. Societe paid a certain amount in advance, show the remaining amount to pay
 
