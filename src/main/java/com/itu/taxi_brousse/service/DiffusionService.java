@@ -16,9 +16,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -137,56 +135,71 @@ public class DiffusionService {
 
     public double getPaidAmountForDiffusion(Diffusion d) {
         if (d == null || d.getId() == null) return 0.0;
-        List<DiffusionPaiement> pays = diffusionPaiementRepository.findByDiffusionId(d.getId());
-        return pays.stream().mapToDouble(p -> p.getMontantPaye() != null ? p.getMontantPaye() : 0.0).sum();
+        return diffusionPaiementRepository.sumPaidAmountByDiffusionId(d.getId());
     }
-
+    
     public double getRemainingForSociety(Integer societeId) {
         if (societeId == null) return 0.0;
-        List<Diffusion> diffs = diffusionRepository.findBySocieteId(societeId);
-        double totalDue = diffs.stream().mapToDouble(d -> getPrixDiffusion(d.getDateDiffusion())).sum();
-        // payments tied to diffusions
-        List<Integer> ids = diffs.stream().map(Diffusion::getId).filter(Objects::nonNull).collect(Collectors.toList());
-        double paidOnDiffusions = 0.0;
-        if (!ids.isEmpty()) {
-            List<DiffusionPaiement> pays = diffusionPaiementRepository.findByDiffusionIdIn(ids);
-            paidOnDiffusions = pays.stream().mapToDouble(p -> p.getMontantPaye() != null ? p.getMontantPaye() : 0.0).sum();
-        }
-        // society-level unallocated payments (diffusion is null)
-        double socCredits = diffusionPaiementRepository.findBySocieteIdAndDiffusionIsNull(societeId).stream().mapToDouble(p -> p.getMontantPaye() != null ? p.getMontantPaye() : 0.0).sum();
-        return totalDue - (paidOnDiffusions + socCredits);
+
+        //?=== Single query to get total due
+        double totalDue = diffusionRepository.findBySocieteId(societeId).stream()
+            .mapToDouble(d -> getPrixDiffusion(d.getDateDiffusion()))
+            .sum();
+
+        //?=== Single query to get all payments (both diffusion-specific AND society-level)
+        double totalPaid = diffusionPaiementRepository
+            .findBySocieteId(societeId)
+            .stream()
+            .mapToDouble(p -> p.getMontantPaye() != null ? p.getMontantPaye() : 0.0)
+            .sum();
+
+        return totalDue - totalPaid;
     }
 
     @Transactional
     public void applyPaymentToSociety(Integer societeId, Double amount) {
+        //*-- Validation
         if (societeId == null) throw new IllegalArgumentException("Societe required");
         if (amount == null || amount <= 0) throw new IllegalArgumentException("Amount must be > 0");
 
-        List<Diffusion> diffs = diffusionRepository.findBySocieteId(societeId).stream()
-                                    .sorted(Comparator.comparingInt(Diffusion::getId)) // ordered by id -> FIFO
-                                    .collect(Collectors.toList());
-
+        //*-- Check remaining balance
         double remainingTotal = getRemainingForSociety(societeId);
-        if(diffs.size() == 0 && remainingTotal == 0.0) {
+        if (remainingTotal <= 0) {
             throw new IllegalArgumentException("Cette societe n'a aucune diffusion à regulariser");
         }
-        if (amount > remainingTotal) throw new IllegalArgumentException("Payment cannot exceed remaining total: " + remainingTotal);
+        if (amount > remainingTotal) {
+            throw new IllegalArgumentException("Payment cannot exceed remaining total: " + remainingTotal);
+        }
 
+        //*-- Fetch society once
+        Societe societe = societeRepository.findById(societeId)
+            .orElseThrow(() -> new IllegalArgumentException("Societe not found"));
+
+        //*-- Get diffusions ordered by ID (FIFO)
+        List<Diffusion> diffs = diffusionRepository.findBySocieteIdOrderByIdAsc(societeId);
+
+        //*-- Allocate payment FIFO
         double remaining = amount;
         for (Diffusion d : diffs) {
             if (remaining <= 0) break;
+
             double price = getPrixDiffusion(d.getDateDiffusion());
             double paid = getPaidAmountForDiffusion(d);
             double need = price - paid;
-            if (need <= 0) continue;
+
+            if (need <= 0) continue; // Already fully paid
+
             double toPay = Math.min(need, remaining);
-            DiffusionPaiement p = com.itu.taxi_brousse.entity.DiffusionPaiement.builder()
-                    .montantPaye(toPay)
-                    .datePaiement(java.time.LocalDate.now())
-                    .diffusion(d)
-                    .societe(societeRepository.findById(societeId).orElse(null))
-                    .build();
+
+            //*-- Create payment record
+            DiffusionPaiement p = DiffusionPaiement.builder()
+                .montantPaye(toPay)
+                .datePaiement(LocalDate.now())
+                .diffusion(d)
+                .societe(societe)  // Use fetched entity
+                .build();
             diffusionPaiementRepository.save(p);
+
             remaining -= toPay;
         }
     }

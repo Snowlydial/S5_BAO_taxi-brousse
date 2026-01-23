@@ -3,7 +3,6 @@ package com.itu.taxi_brousse.controller;
 import com.itu.taxi_brousse.entity.Diffusion;
 import com.itu.taxi_brousse.entity.Bus;
 import com.itu.taxi_brousse.entity.Voyage;
-import com.itu.taxi_brousse.repository.DiffusionPaiementRepository;
 import com.itu.taxi_brousse.service.DiffusionService;
 
 import lombok.RequiredArgsConstructor;
@@ -15,7 +14,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Controller;
@@ -28,57 +29,53 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RequiredArgsConstructor
 public class DiffusionController {
 	private final DiffusionService diffusionService;
-	private final DiffusionPaiementRepository diffusionPaiementRepository;
 	private final SocieteRepository societeRepository;
 	private final BusVoyageRepository busVoyageRepository;
 
 	@GetMapping({"/list", ""})
-	public String list(Model model) {
-		List<Diffusion> diffs = diffusionService.getListDiffusion();
+    public String list(Model model) {
+        List<Diffusion> diffs = diffusionService.getListDiffusion();
 
-		Double totalDynamic = diffusionService.getChiffreAffaireDiffusion(diffs);
+        //*-- Get unique values for filters
+        Set<Bus> uniqueBuses = diffs.stream()
+            .filter(d -> d.getBusVoyage() != null && d.getBusVoyage().getBus() != null)
+            .map(d -> d.getBusVoyage().getBus())
+            .collect(Collectors.toSet());
 
-		// Montant réellement payé
-		Set<Integer> diffusionIds = diffs.stream().map(Diffusion::getId).collect(Collectors.toSet());
-		double totalPaid = diffusionPaiementRepository.findAll().stream()
-				.filter(p -> p.getDiffusion() != null && diffusionIds.contains(p.getDiffusion().getId()))
-				.mapToDouble(p -> p.getMontantPaye() != null ? p.getMontantPaye() : 0.0)
-				.sum();
+        Set<Voyage> uniqueVoyages = diffs.stream()
+            .filter(d -> d.getBusVoyage() != null && d.getBusVoyage().getVoyage() != null)
+            .map(d -> d.getBusVoyage().getVoyage())
+            .collect(Collectors.toSet());
 
-		// Unique buses and voyages for client-side filters
-		Set<Bus> uniqueBuses = diffs.stream()
-				.filter(d -> d.getBusVoyage() != null && d.getBusVoyage().getBus() != null)
-				.map(d -> d.getBusVoyage().getBus())
-				.collect(Collectors.toSet());
+        //*-- Get DYNAMIC prices (Chiffre d'Affaires - using current config)
+        Map<Integer, Double> dynamicPrices = new HashMap<>();
+        for (Diffusion d : diffs) {
+            dynamicPrices.put(d.getId(), diffusionService.getPrixDiffusion(d.getDateDiffusion()));
+        }
 
-		Set<Voyage> uniqueVoyages = diffs.stream()
-				.filter(d -> d.getBusVoyage() != null && d.getBusVoyage().getVoyage() != null)
-				.map(d -> d.getBusVoyage().getVoyage())
-				.collect(Collectors.toSet());
+        //*-- Get ACTUAL paid amounts (Montant Encaissé)
+        Map<Integer, Double> paidMap = new HashMap<>();
+        for (Diffusion d : diffs) {
+            paidMap.put(d.getId(), diffusionService.getPaidAmountForDiffusion(d));
+        }
 
+        //*-- Calculate totals
+        Double totalDynamic = dynamicPrices.values().stream().mapToDouble(Double::doubleValue).sum();
+        Double totalPaid = paidMap.values().stream().mapToDouble(Double::doubleValue).sum();
+        Double remainingForAll = totalDynamic - totalPaid;
 
-		model.addAttribute("pageTitle", "Liste des Diffusions");
-		model.addAttribute("diffusions", diffs);
-		var dynamicPrices = diffs.stream().collect(Collectors.toMap(Diffusion::getId, d -> diffusionService.getPrixDiffusion(d.getDateDiffusion())));
-		// per-diffusion paid amounts
-		java.util.Map<Integer, Double> paidMap = new java.util.HashMap<>();
-		for (Diffusion d : diffs) {
-			paidMap.put(d.getId(), diffusionService.getPaidAmountForDiffusion(d));
-		}
-		model.addAttribute("paidMap", paidMap);
-		model.addAttribute("dynamicPrices", dynamicPrices);
-		model.addAttribute("totalDynamic", totalDynamic);
-		model.addAttribute("totalPaid", totalPaid);
-		model.addAttribute("uniqueBuses", uniqueBuses);
-		model.addAttribute("uniqueVoyages", uniqueVoyages);
-		model.addAttribute("remainingForAll", diffs.stream().mapToDouble(d -> {
-			double price = dynamicPrices.get(d.getId());
-			double paid = paidMap.getOrDefault(d.getId(), 0.0);
-			return price - paid;
-		}).sum());
+        model.addAttribute("pageTitle", "Liste des Diffusions");
+        model.addAttribute("diffusions", diffs);
+        model.addAttribute("dynamicPrices", dynamicPrices);
+        model.addAttribute("paidMap", paidMap);
+        model.addAttribute("totalDynamic", totalDynamic);
+        model.addAttribute("totalPaid", totalPaid);
+        model.addAttribute("remainingForAll", remainingForAll);
+        model.addAttribute("uniqueBuses", uniqueBuses);
+        model.addAttribute("uniqueVoyages", uniqueVoyages);
 
-		return "diffusion/list";
-	}
+        return "diffusion/list";
+    }
 
 	@GetMapping("/create-bulk")
 	public String createBulkForm(Model model) {

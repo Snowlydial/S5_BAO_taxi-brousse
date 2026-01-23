@@ -17,4 +17,6 @@ public interface DiffusionRepository extends JpaRepository<Diffusion, Integer> {
 
     @Query("SELECT d FROM Diffusion d WHERE d.heureDiffusion BETWEEN :start AND :end")
     List<Diffusion> findByHeureDiffusionBetween(@Param("start") LocalTime start, @Param("end") LocalTime end);
+
+    List<Diffusion> findBySocieteIdOrderByIdAsc(Integer societeId);
 }
