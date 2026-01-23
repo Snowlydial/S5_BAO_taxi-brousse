@@ -119,15 +119,15 @@ INSERT INTO Bus_Voyage (heure_depart, date_depart, prix_specifique, id_bus, id_v
 ('10:00:00', '2025-12-21', NULL, 4, 2);
 
 -- Insert 20 diffusions for Vaniala: 2025-12-01 -> 2025-12-20
-INSERT INTO Diffusion (date_diffusion, heure_diffusion, id_societe, id_bus_voyage, description)
-SELECT d::date, '09:00:00', (SELECT id_societe FROM Societe WHERE nom = 'Vaniala' LIMIT 1),
-	   (SELECT id_bus_voyage FROM Bus_Voyage WHERE date_depart = '2025-12-01' LIMIT 1),
-	   'Publicite Vaniala'
-FROM generate_series('2025-12-01'::date, '2025-12-20'::date, '1 day') AS d;
+-- INSERT INTO Diffusion (date_diffusion, heure_diffusion, id_societe, id_bus_voyage, description)
+-- SELECT d::date, '09:00:00', (SELECT id_societe FROM Societe WHERE nom = 'Vaniala' LIMIT 1),
+-- 	   (SELECT id_bus_voyage FROM Bus_Voyage WHERE date_depart = '2025-12-01' LIMIT 1),
+-- 	   'Publicite Vaniala'
+-- FROM generate_series('2025-12-01'::date, '2025-12-20'::date, '1 day') AS d;
 
--- Insert 10 diffusions for Lewis: 2025-12-21 -> 2025-12-30
-INSERT INTO Diffusion (date_diffusion, heure_diffusion, id_societe, id_bus_voyage, description)
-SELECT d::date, '11:00:00', (SELECT id_societe FROM Societe WHERE nom = 'Lewis' LIMIT 1),
-	   (SELECT id_bus_voyage FROM Bus_Voyage WHERE date_depart = '2025-12-21' LIMIT 1),
-	   'Publicite Lewis'
-FROM generate_series('2025-12-21'::date, '2025-12-30'::date, '1 day') AS d;
+-- -- Insert 10 diffusions for Lewis: 2025-12-21 -> 2025-12-30
+-- INSERT INTO Diffusion (date_diffusion, heure_diffusion, id_societe, id_bus_voyage, description)
+-- SELECT d::date, '11:00:00', (SELECT id_societe FROM Societe WHERE nom = 'Lewis' LIMIT 1),
+-- 	   (SELECT id_bus_voyage FROM Bus_Voyage WHERE date_depart = '2025-12-21' LIMIT 1),
+-- 	   'Publicite Lewis'
+-- FROM generate_series('2025-12-21'::date, '2025-12-30'::date, '1 day') AS d;
