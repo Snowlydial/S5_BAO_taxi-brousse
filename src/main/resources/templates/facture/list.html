@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Liste des Factures</title>
+    <link rel="stylesheet" th:href="@{/vendors/simple-datatables/style.css}">
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-heading">
+            <div class="page-title">
+                <div class="row">
+                    <div class="col-12 col-md-6 order-md-1 order-last">
+                        <h3>Liste des Factures</h3>
+                        <p class="text-subtitle text-muted">Factures mères englobant les revenus de réservations et diffusions</p>
+                    </div>
+                    <div class="col-12 col-md-6 order-md-2 order-first">
+                        <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de Bord</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Factures</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section class="section">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">Factures</h4>
+                    <form th:action="@{/facture/generate-all}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-primary btn-sm" 
+                                onclick="return confirm('Générer toutes les factures manquantes?')">
+                            <i class="bi bi-plus-circle me-1"></i> Générer Toutes
+                        </button>
+                    </form>
+                </div>
+                <div class="card-content">
+                    <div class="card-body">
+
+                        <!-- Global Revenue Summary -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card shadow-sm bg-light-info">
+                                    <div class="card-body py-3">
+                                        <h6 class="mb-1 text-muted">
+                                            <i class="bi bi-person-check me-2"></i>
+                                            CA Total Réservations
+                                        </h6>
+                                        <h3 class="mb-0 text-info">
+                                            <span th:text="${#numbers.formatDecimal(totalCAReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card shadow-sm bg-light-warning">
+                                    <div class="card-body py-3">
+                                        <h6 class="mb-1 text-muted">
+                                            <i class="bi bi-broadcast me-2"></i>
+                                            CA Total Diffusions
+                                        </h6>
+                                        <h3 class="mb-0 text-warning">
+                                            <span th:text="${#numbers.formatDecimal(totalCADiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card shadow-sm bg-light-success">
+                                    <div class="card-body py-3">
+                                        <h6 class="mb-1 text-muted">
+                                            <i class="bi bi-calculator me-2"></i>
+                                            Montant Général Total
+                                        </h6>
+                                        <h3 class="mb-0 text-success">
+                                            <span th:text="${#numbers.formatDecimal(totalGeneral, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Flash Messages -->
+                        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <span th:text="${success}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        
+                        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <span th:text="${error}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+
+                        <!-- No factures message -->
+                        <div th:if="${#lists.isEmpty(factures)}" class="alert alert-light-info">
+                            <div class="alert-body">
+                                <i class="bi bi-info-circle me-2"></i>
+                                Aucune facture trouvée. Utilisez le bouton "Générer Toutes" pour créer les factures.
+                            </div>
+                        </div>
+
+                        <!-- DataTable -->
+                        <div th:if="${!#lists.isEmpty(factures)}">
+                            <table class="table table-striped" id="facturesTable">
+                                <thead>
+                                    <tr>
+                                        <th>N° Facture</th>
+                                        <th>Gare Départ</th>
+                                        <th>Gare Arrivée</th>
+                                        <th>Bus</th>
+                                        <th>Date Départ</th>
+                                        <th>Heure Départ</th>
+                                        <th>CA Réservations</th>
+                                        <th>CA Diffusions</th>
+                                        <th>Montant Total</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="facture : ${factures}">
+                                        <td>
+                                            <strong th:text="${facture.numeroFacture}"></strong><br>
+                                            <small class="text-muted" 
+                                                   th:text="'Émis le ' + ${#temporals.format(facture.dateEmission, 'dd/MM/yyyy')}"></small>
+                                        </td>
+                                        <td th:text="${facture.busVoyage.voyage.gareDepart.libelle}"></td>
+                                        <td th:text="${facture.busVoyage.voyage.gareArrivee.libelle}"></td>
+                                        <td>
+                                            <span class="badge bg-secondary" 
+                                                  th:text="${facture.busVoyage.bus.immatriculation}"></span>
+                                        </td>
+                                        <td th:text="${#temporals.format(facture.busVoyage.dateDepart, 'dd/MM/yyyy')}"></td>
+                                        <td th:text="${#temporals.format(facture.busVoyage.heureDepart, 'HH:mm')}"></td>
+                                        <td>
+                                            <span class="text-info fw-bold">
+                                                <span th:text="${#numbers.formatDecimal(facture.caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="text-warning fw-bold">
+                                                <span th:text="${#numbers.formatDecimal(facture.caDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="text-success fw-bold">
+                                                <span th:text="${#numbers.formatDecimal(facture.montantTotal, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a th:href="@{/facture/view/{id}(id=${facture.id})}" 
+                                                   class="btn btn-sm btn-info" 
+                                                   title="Voir détails">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <form th:action="@{/facture/refresh/{id}(id=${facture.id})}" 
+                                                      method="post" 
+                                                      style="display: inline;">
+                                                    <button type="submit" 
+                                                            class="btn btn-sm btn-warning" 
+                                                            title="Actualiser"
+                                                            onclick="return confirm('Recalculer cette facture?')">
+                                                        <i class="bi bi-arrow-clockwise"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script th:src="@{/vendors/simple-datatables/simple-datatables.js}"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const table = document.querySelector('#facturesTable');
+                if (!table) return;
+                
+                //*-- Initialize DataTable
+                new simpleDatatables.DataTable(table, {
+                    searchable: true,
+                    perPage: 20,
+                    labels: {
+                        placeholder: "Rechercher...",
+                        perPage: "{select} factures par page",
+                        noRows: "Aucune facture trouvée",
+                        info: "Affichage de {start} à {end} sur {rows} factures"
+                    }
+                });
+            });
+        </script>
+    </div>
+</body>
+</html>

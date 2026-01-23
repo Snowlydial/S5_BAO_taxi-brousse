@@ -18,6 +18,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -106,27 +108,38 @@ public class DiffusionService {
             created.add(d);
         }
 
-        // If payment provided, allocate using FIFO across created diffusions
+        // If payment provided, allocate using Prorata Proportionnel
         Double payment = req.getPaymentAmount();
         if (payment != null && payment > 0) {
-            // compute total due
-            double totalDue = 0.0;
-            for (Diffusion d : created) totalDue += getPrixDiffusion(d.getDateDiffusion());
-            if (payment > totalDue) throw new IllegalArgumentException("Payment cannot exceed total due");
-
-            double remaining = payment;
+            //*-- Calculate INITIAL total due for prorata base
+            double initialTotalDue = 0.0;
+            Map<Diffusion, Double> diffusionPrices = new LinkedHashMap<>();
+            
             for (Diffusion d : created) {
-                if (remaining <= 0) break;
                 double price = getPrixDiffusion(d.getDateDiffusion());
-                double toPay = Math.min(price, remaining);
+                diffusionPrices.put(d, price);
+                initialTotalDue += price;
+            }
+            
+            if (payment > initialTotalDue) {
+                throw new IllegalArgumentException("Payment cannot exceed total due");
+            }
+
+            //*-- Apply prorata proportionnel using INITIAL total
+            for (Map.Entry<Diffusion, Double> entry : diffusionPrices.entrySet()) {
+                Diffusion d = entry.getKey();
+                Double price = entry.getValue();
+                
+                //*-- Prorata: (individual_price / initial_total) * payment
+                Double proportionalPayment = (price / initialTotalDue) * payment;
+                
                 DiffusionPaiement p = DiffusionPaiement.builder()
-                        .montantPaye(toPay)
-                        .datePaiement(java.time.LocalDate.now())
+                        .montantPaye(proportionalPayment)
+                        .datePaiement(LocalDate.now())
                         .diffusion(d)
                         .societe(societe)
                         .build();
                 diffusionPaiementRepository.save(p);
-                remaining -= toPay;
             }
         }
 
@@ -156,51 +169,70 @@ public class DiffusionService {
         return totalDue - totalPaid;
     }
 
+    //?=== Alea Week 3 Suite - Prorata Proportionnel using INITIAL total
     @Transactional
     public void applyPaymentToSociety(Integer societeId, Double amount) {
         //*-- Validation
         if (societeId == null) throw new IllegalArgumentException("Societe required");
         if (amount == null || amount <= 0) throw new IllegalArgumentException("Amount must be > 0");
 
-        //*-- Check remaining balance
-        double remainingTotal = getRemainingForSociety(societeId);
-        if (remainingTotal <= 0) {
-            throw new IllegalArgumentException("Cette societe n'a aucune diffusion à regulariser");
+        //*-- Get all diffusions for this society
+        List<Diffusion> allDiffs = diffusionRepository.findBySocieteIdOrderByIdAsc(societeId);
+        
+        if (allDiffs.isEmpty()) {
+            throw new IllegalArgumentException("Aucune diffusion trouvée pour cette société");
         }
-        if (amount > remainingTotal) {
-            throw new IllegalArgumentException("Payment cannot exceed remaining total: " + remainingTotal);
+
+        //*-- Calculate INITIAL total due and individual prices for prorata
+        Map<Diffusion, Double> diffusionPrices = new LinkedHashMap<>();
+        double initialTotalDue = 0.0;
+        
+        for (Diffusion d : allDiffs) {
+            double price = getPrixDiffusion(d.getDateDiffusion());
+            diffusionPrices.put(d, price);
+            initialTotalDue += price;
+        }
+        
+        if (initialTotalDue <= 0) {
+            throw new IllegalArgumentException("Aucune diffusion à régulariser");
+        }
+
+        //*-- Check if payment exceeds remaining amount
+        double totalPaid = diffusionPaiementRepository.findBySocieteId(societeId)
+            .stream()
+            .mapToDouble(p -> p.getMontantPaye() != null ? p.getMontantPaye() : 0.0)
+            .sum();
+        
+        double remaining = initialTotalDue - totalPaid;
+        
+        if (remaining <= 0) {
+            throw new IllegalArgumentException("Cette société n'a aucune diffusion à régulariser");
+        }
+        
+        if (amount > remaining) {
+            throw new IllegalArgumentException("Payment cannot exceed remaining total: " + remaining);
         }
 
         //*-- Fetch society once
         Societe societe = societeRepository.findById(societeId)
             .orElseThrow(() -> new IllegalArgumentException("Societe not found"));
 
-        //*-- Get diffusions ordered by ID (FIFO)
-        List<Diffusion> diffs = diffusionRepository.findBySocieteIdOrderByIdAsc(societeId);
-
-        //*-- Allocate payment FIFO
-        double remaining = amount;
-        for (Diffusion d : diffs) {
-            if (remaining <= 0) break;
-
-            double price = getPrixDiffusion(d.getDateDiffusion());
-            double paid = getPaidAmountForDiffusion(d);
-            double need = price - paid;
-
-            if (need <= 0) continue; // Already fully paid
-
-            double toPay = Math.min(need, remaining);
-
+        //*-- Apply PRORATA PROPORTIONNEL using INITIAL total (not remaining)
+        for (Map.Entry<Diffusion, Double> entry : diffusionPrices.entrySet()) {
+            Diffusion d = entry.getKey();
+            Double price = entry.getValue();
+            
+            //*-- Calculate proportional payment: (individual_price / initial_total) * payment_amount
+            Double proportionalPayment = (price / initialTotalDue) * amount;
+            
             //*-- Create payment record
             DiffusionPaiement p = DiffusionPaiement.builder()
-                .montantPaye(toPay)
+                .montantPaye(proportionalPayment)
                 .datePaiement(LocalDate.now())
                 .diffusion(d)
-                .societe(societe)  // Use fetched entity
+                .societe(societe)
                 .build();
             diffusionPaiementRepository.save(p);
-
-            remaining -= toPay;
         }
     }
 }

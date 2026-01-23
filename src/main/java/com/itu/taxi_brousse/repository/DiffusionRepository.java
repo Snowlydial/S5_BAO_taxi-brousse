@@ -15,6 +15,8 @@ public interface DiffusionRepository extends JpaRepository<Diffusion, Integer> {
 
     List<Diffusion> findByDateDiffusionBetween(LocalDate start, LocalDate end);
 
+    List<Diffusion> findByBusVoyageId(Integer busVoyageId);
+
     @Query("SELECT d FROM Diffusion d WHERE d.heureDiffusion BETWEEN :start AND :end")
     List<Diffusion> findByHeureDiffusionBetween(@Param("start") LocalTime start, @Param("end") LocalTime end);
 

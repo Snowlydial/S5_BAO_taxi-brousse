@@ -187,3 +187,33 @@ CREATE TABLE DiffusionPaiement(
    FOREIGN KEY(id_societe) REFERENCES societe(id_societe)
 );
 
+-- Add to Taxi_brousse.sql after DiffusionPaiement table
+
+--? Alea Week 3 Suite - Facture System
+CREATE TABLE Facture(
+   id_facture SERIAL PRIMARY KEY,
+   numero_facture VARCHAR(50) UNIQUE NOT NULL,
+   date_emission DATE NOT NULL,
+   ca_reservations DOUBLE PRECISION DEFAULT 0,
+   ca_diffusions DOUBLE PRECISION DEFAULT 0,
+   montant_total DOUBLE PRECISION DEFAULT 0,
+   id_bus_voyage INTEGER NOT NULL,
+   FOREIGN KEY(id_bus_voyage) REFERENCES Bus_Voyage(id_bus_voyage)
+);
+
+CREATE TABLE FactureLigne(
+   id_factureLigne SERIAL PRIMARY KEY,
+   type_ligne VARCHAR(20) NOT NULL,
+   montant DOUBLE PRECISION NOT NULL,
+   description TEXT,
+   id_facture INTEGER NOT NULL,
+   id_reservation INTEGER,
+   id_diffusion INTEGER,
+   FOREIGN KEY(id_facture) REFERENCES Facture(id_facture),
+   FOREIGN KEY(id_reservation) REFERENCES Reservation(id_reservation),
+   FOREIGN KEY(id_diffusion) REFERENCES Diffusion(id_diffusion),
+   CHECK (
+       (type_ligne = 'RESERVATION' AND id_reservation IS NOT NULL AND id_diffusion IS NULL) OR
+       (type_ligne = 'DIFFUSION' AND id_diffusion IS NOT NULL AND id_reservation IS NULL)
+   )
+);
