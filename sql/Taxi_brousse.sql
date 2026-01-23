@@ -155,3 +155,37 @@ CREATE TABLE Bus_BusConf(
    FOREIGN KEY(id_busConf) REFERENCES BusConf(id_busConf)
 );
 
+--? Alea week 3
+CREATE TABLE Societe(
+   id_societe SERIAL PRIMARY KEY,
+   nom VARCHAR(100)
+);
+
+CREATE TABLE DiffusionConf(
+   id_diffusionConf SERIAL PRIMARY KEY,
+   prix DOUBLE PRECISION,
+   date_debut date,
+   date_fin date
+);
+
+CREATE TABLE Diffusion(
+   id_diffusion SERIAL PRIMARY KEY,
+   date_diffusion DATE,
+   heure_diffusion TIME,
+   id_societe INTEGER NOT NULL, 
+   id_bus_voyage INTEGER NOT NULL,
+   description TEXT,
+   FOREIGN KEY(id_societe) REFERENCES Societe(id_societe),
+   FOREIGN KEY(id_bus_voyage) REFERENCES Bus_Voyage(id_bus_voyage)
+);
+
+CREATE TABLE DiffusionPaiement(
+   id_diffusionPaiement SERIAL PRIMARY KEY,
+   montant_paye DOUBLE PRECISION,
+   date_paiement DATE,
+   id_diffusion INTEGER,
+   id_societe INTEGER,
+   FOREIGN KEY(id_diffusion) REFERENCES Diffusion(id_diffusion),
+   FOREIGN KEY(id_societe) REFERENCES societe(id_societe)
+);
+

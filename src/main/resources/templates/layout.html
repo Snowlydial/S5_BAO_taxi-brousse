@@ -62,6 +62,24 @@
 
                         <li class="sidebar-item has-sub">
                             <a href="#" class='sidebar-link'>
+                                <i class="bi bi-collection-play"></i>
+                                <span>Gestion Diffusion</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item">
+                                    <a th:href="@{/diffusion/list}">Liste des Diffusions</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a th:href="@{/diffusion/create-bulk}">Creer des diffusions</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a th:href="@{/diffusion/regulate}">Reguler des diffusions</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="sidebar-item has-sub">
+                            <a href="#" class='sidebar-link'>
                                 <i class="bi bi-bus-front"></i>
                                 <span>Gestion Bus</span>
                             </a>

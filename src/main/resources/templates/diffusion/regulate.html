@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Régler Diffusions</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="page-heading">
+        <h3>Régler Diffusions (paiement)</h3>
+    </div>
+    <section class="section">
+        <div class="card">
+            <div class="card-body">
+                <form th:action="@{/diffusion/regulate}" method="post" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Société</label>
+                        <select name="societeId" class="form-select" required>
+                            <option value="">-- Choisir --</option>
+                            <option th:each="s : ${societes}" th:value="${s.id}" th:text="${s.nom}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Montant à payer</label>
+                        <input type="number" step="0.01" min="0.01" name="amount" class="form-control" required />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button class="btn btn-primary">Appliquer paiement</button>
+                        <a th:href="@{/diffusion/list}" class="btn btn-secondary ms-2">Retour</a>
+                    </div>
+                </form>
+                <div class="mt-4" th:if="${remainingInfo != null}">
+                    <h5>Reste à payer pour la société: <span th:text="${#numbers.formatDecimal(remainingInfo, 0, 'COMMA', 0, 'POINT')}">0</span> Ar</h5>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>
