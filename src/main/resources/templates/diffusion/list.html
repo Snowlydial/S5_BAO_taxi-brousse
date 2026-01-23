@@ -79,6 +79,14 @@
                                                 <label class="form-label small mb-1">Heure Départ Min</label>
                                                 <input id="filterHeureMin" type="time" class="form-control form-control-sm" />
                                             </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small mb-1">Statut</label>
+                                                <select id="filterStatut" class="form-select form-select-sm">
+                                                    <option value="">Tous les statuts</option>
+                                                    <option value="Regulé">Regulé</option>
+                                                    <option value="Paiement incomplet">Paiement incomplet</option>
+                                                </select>
+                                            </div>
                                             <div class="col-md-1 d-flex align-items-end">
                                                 <button id="clearFilters" class="btn btn-light btn-sm w-100" title="Effacer tous les filtres">
                                                     <i class="bi bi-x-circle"></i>
@@ -197,6 +205,7 @@
                     const dateMin = document.getElementById('filterDateMin').value;
                     const dateMax = document.getElementById('filterDateMax').value;
                     const heureMin = document.getElementById('filterHeureMin').value;
+                    const statutFilter = document.getElementById('filterStatut').value.trim();
 
                     let totalDynamic = 0;
                     let totalVisible = 0;
@@ -213,6 +222,7 @@
                         const paidVal = parseFloat(row.getAttribute('data-paid')) || 0;
                         const remainValAttr = row.getAttribute('data-remaining');
                         const remainVal = (remainValAttr !== null && remainValAttr !== '') ? parseFloat(remainValAttr) : (price - paidVal);
+                        const statut = row.cells[3].textContent.trim();
 
                         let visible = true;
                         if (societeFilter && !soc.includes(societeFilter)) visible = false;
@@ -221,6 +231,7 @@
                         if (dateMin && date < dateMin) visible = false;
                         if (dateMax && date > dateMax) visible = false;
                         if (heureMin && heure < heureMin) visible = false;
+                        if (statutFilter && statut !== statutFilter) visible = false;
 
                         if (visible) {
                             row.style.display = '';
@@ -255,6 +266,7 @@
                 document.getElementById('filterDateMin').addEventListener('change', applyFilters);
                 document.getElementById('filterDateMax').addEventListener('change', applyFilters);
                 document.getElementById('filterHeureMin').addEventListener('change', applyFilters);
+                document.getElementById('filterStatut').addEventListener('change', applyFilters);
                 
                 //*-- Clear filters
                 document.getElementById('clearFilters').addEventListener('click', function() {
@@ -264,6 +276,7 @@
                     document.getElementById('filterDateMin').value = '';
                     document.getElementById('filterDateMax').value = '';
                     document.getElementById('filterHeureMin').value = '';
+                    document.getElementById('filterStatut').value = '';
                     applyFilters();
                 });
             });
