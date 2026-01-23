@@ -7,13 +7,19 @@ import com.itu.taxi_brousse.repository.DiffusionPaiementRepository;
 import com.itu.taxi_brousse.service.DiffusionService;
 
 import lombok.RequiredArgsConstructor;
+import com.itu.taxi_brousse.repository.SocieteRepository;
+import com.itu.taxi_brousse.repository.BusVoyageRepository;
+import com.itu.taxi_brousse.dto.BulkDiffusionRequest;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
@@ -22,6 +28,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class DiffusionController {
 	private final DiffusionService diffusionService;
 	private final DiffusionPaiementRepository diffusionPaiementRepository;
+	private final SocieteRepository societeRepository;
+	private final BusVoyageRepository busVoyageRepository;
 
 	@GetMapping({"/list", ""})
 	public String list(Model model) {
@@ -58,5 +66,25 @@ public class DiffusionController {
 		model.addAttribute("uniqueVoyages", uniqueVoyages);
 
 		return "diffusion/list";
+	}
+
+	@GetMapping("/create-bulk")
+	public String createBulkForm(Model model) {
+		model.addAttribute("pageTitle", "Créer Diffusion en Masse");
+		model.addAttribute("societes", societeRepository.findAll());
+		model.addAttribute("busVoyages", busVoyageRepository.findAll());
+		model.addAttribute("bulkRequest", new BulkDiffusionRequest());
+		return "diffusion/create-bulk";
+	}
+
+	@PostMapping("/create-bulk")
+	public String createBulkSubmit(@ModelAttribute BulkDiffusionRequest bulkRequest, RedirectAttributes redir) {
+		try {
+			diffusionService.createBulkDiffusions(bulkRequest);
+			redir.addFlashAttribute("success", "Bulk diffusions created successfully.");
+		} catch (Exception e) {
+			redir.addFlashAttribute("error", "Error: " + e.getMessage());
+		}
+		return "redirect:/diffusion/list";
 	}
 }

@@ -4,6 +4,13 @@ import com.itu.taxi_brousse.entity.Diffusion;
 import com.itu.taxi_brousse.entity.DiffusionConf;
 import com.itu.taxi_brousse.repository.DiffusionConfRepository;
 import com.itu.taxi_brousse.repository.DiffusionRepository;
+import com.itu.taxi_brousse.repository.DiffusionPaiementRepository;
+import com.itu.taxi_brousse.repository.SocieteRepository;
+import com.itu.taxi_brousse.repository.BusVoyageRepository;
+import com.itu.taxi_brousse.dto.BulkDiffusionRequest;
+import com.itu.taxi_brousse.entity.DiffusionPaiement;
+import com.itu.taxi_brousse.entity.Societe;
+import com.itu.taxi_brousse.entity.BusVoyage;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class DiffusionService {
     private final DiffusionRepository diffusionRepository;
     private final DiffusionConfRepository diffusionConfRepository;
+    private final DiffusionPaiementRepository diffusionPaiementRepository;
+    private final SocieteRepository societeRepository;
+    private final BusVoyageRepository busVoyageRepository;
 
     public List<Diffusion> getListDiffusion() {
         return diffusionRepository.findAll();
@@ -71,5 +81,54 @@ public class DiffusionService {
             sum += getPrixDiffusion(date);
         }
         return sum;
+    }
+
+    @Transactional
+    public List<Diffusion> createBulkDiffusions(BulkDiffusionRequest req) {
+        if (req.getQuantity() == null || req.getQuantity() <= 0) throw new IllegalArgumentException("Quantity must be > 0");
+        Societe societe = societeRepository.findById(req.getSocieteId())
+                .orElseThrow(() -> new IllegalArgumentException("Societe not found"));
+        BusVoyage busVoyage = busVoyageRepository.findById(req.getBusVoyageId())
+                .orElseThrow(() -> new IllegalArgumentException("BusVoyage not found"));
+
+        // create N diffusions (same date/time as requested)
+        List<Diffusion> created = new java.util.ArrayList<>();
+        for (int i = 0; i < req.getQuantity(); i++) {
+            Diffusion d = Diffusion.builder()
+                    .dateDiffusion(req.getDateDiffusion())
+                    .heureDiffusion(req.getHeureDiffusion())
+                    .description("Bulk: " + (req.getQuantity()) + " diffusions")
+                    .societe(societe)
+                    .busVoyage(busVoyage)
+                    .build();
+            diffusionRepository.save(d);
+            created.add(d);
+        }
+
+        // If payment provided, allocate using FIFO across created diffusions
+        Double payment = req.getPaymentAmount();
+        if (payment != null && payment > 0) {
+            // compute total due
+            double totalDue = 0.0;
+            for (Diffusion d : created) totalDue += getPrixDiffusion(d.getDateDiffusion());
+            if (payment > totalDue) throw new IllegalArgumentException("Payment cannot exceed total due");
+
+            double remaining = payment;
+            for (Diffusion d : created) {
+                if (remaining <= 0) break;
+                double price = getPrixDiffusion(d.getDateDiffusion());
+                double toPay = Math.min(price, remaining);
+                DiffusionPaiement p = DiffusionPaiement.builder()
+                        .montantPaye(toPay)
+                        .datePaiement(java.time.LocalDate.now())
+                        .diffusion(d)
+                        .societe(societe)
+                        .build();
+                diffusionPaiementRepository.save(p);
+                remaining -= toPay;
+            }
+        }
+
+        return created;
     }
 }

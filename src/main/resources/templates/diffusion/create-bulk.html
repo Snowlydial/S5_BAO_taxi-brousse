@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Créer Diffusions</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="page-heading">
+        <h3>Créer Diffusions</h3>
+    </div>
+
+    <section class="section">
+        <div class="card">
+            <div class="card-body">
+                <form th:action="@{/diffusion/create-bulk}" th:object="${bulkRequest}" method="post" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Société</label>
+                        <select class="form-select" th:field="*{societeId}" required>
+                            <option value="">-- Choisir --</option>
+                            <option th:each="s : ${societes}" th:value="${s.id}" th:text="${s.nom}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Bus Voyage</label>
+                        <select class="form-select" th:field="*{busVoyageId}" required>
+                            <option value="">-- Choisir --</option>
+                            <option th:each="bv : ${busVoyages}" th:value="${bv.id}" th:text="${bv.bus.immatriculation + ' - ' + bv.voyage.gareDepart.libelle + ' → ' + bv.voyage.gareArrivee.libelle}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" th:field="*{dateDiffusion}" required />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Heure</label>
+                        <input type="time" class="form-control" th:field="*{heureDiffusion}" required />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Quantité</label>
+                        <input type="number" min="1" class="form-control" th:field="*{quantity}" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Montant payé (optionnel)</label>
+                        <input type="number" min="0" class="form-control" th:field="*{paymentAmount}" />
+                    </div>
+
+                    <div class="col-12">
+                        <button class="btn btn-primary" type="submit">Créer</button>
+                        <a th:href="@{/diffusion/list}" class="btn btn-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

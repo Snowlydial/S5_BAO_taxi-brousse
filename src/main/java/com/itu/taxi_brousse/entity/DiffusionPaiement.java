@@ -25,4 +25,8 @@ public class DiffusionPaiement {
     @ManyToOne
     @JoinColumn(name = "id_diffusion")
     private Diffusion diffusion;
+
+    @ManyToOne
+    @JoinColumn(name = "id_societe")
+    private Societe societe;
 }
