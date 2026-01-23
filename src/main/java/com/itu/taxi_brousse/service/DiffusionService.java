@@ -162,13 +162,15 @@ public class DiffusionService {
         if (societeId == null) throw new IllegalArgumentException("Societe required");
         if (amount == null || amount <= 0) throw new IllegalArgumentException("Amount must be > 0");
 
-        double remainingTotal = getRemainingForSociety(societeId);
-        if (amount > remainingTotal) throw new IllegalArgumentException("Payment cannot exceed remaining total: " + remainingTotal);
-
-        // fetch outstanding diffs (ordered FIFO by id)
         List<Diffusion> diffs = diffusionRepository.findBySocieteId(societeId).stream()
-                .sorted((a, b) -> Comparator.comparingInt(Diffusion::getId).compare(a, b))
-                .collect(Collectors.toList());
+                                    .sorted(Comparator.comparingInt(Diffusion::getId)) // ordered by id -> FIFO
+                                    .collect(Collectors.toList());
+
+        double remainingTotal = getRemainingForSociety(societeId);
+        if(diffs.size() == 0 && remainingTotal == 0.0) {
+            throw new IllegalArgumentException("Cette societe n'a aucune diffusion à regulariser");
+        }
+        if (amount > remainingTotal) throw new IllegalArgumentException("Payment cannot exceed remaining total: " + remainingTotal);
 
         double remaining = amount;
         for (Diffusion d : diffs) {

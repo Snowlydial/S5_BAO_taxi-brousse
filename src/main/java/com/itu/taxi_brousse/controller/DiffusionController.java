@@ -121,6 +121,6 @@ public class DiffusionController {
 		} catch (Exception e) {
 			redir.addFlashAttribute("error", "Erreur: " + e.getMessage());
 		}
-		return "redirect:/diffusion/list";
+		return "redirect:/diffusion/regulate";
 	}
 }
