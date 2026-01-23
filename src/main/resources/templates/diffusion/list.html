@@ -120,6 +120,9 @@
                                         <h3 class="mb-0 text-success">
                                             <span id="totalPaidRevenue" th:text="${#numbers.formatDecimal(totalPaid, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                         </h3>
+                                        <div class="mt-2">
+                                            <small class="text-muted">Reste à payer: <strong id="totalRemainingServer" th:text="${#numbers.formatDecimal(remainingForAll, 0, 'COMMA', 0, 'POINT')}">0</strong> Ar</small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -137,6 +140,8 @@
                                 <tr>
                                     <th>Societe</th>
                                     <th>Bus</th>
+                                    <th>Montant payé</th>
+                                    <th>Status</th>
                                     <th>Trajet</th>
                                     <th>Description</th>
                                     <th>Date / Heure</th>
@@ -144,14 +149,19 @@
                                 </thead>
                                 <tbody>
                                 <tr th:each="diff : ${diffusions}"
+                                    th:with="price=${dynamicPrices[diff.id]}, paid=${paidMap[diff.id]}, remain=${(dynamicPrices[diff.id] != null ? dynamicPrices[diff.id] : 0) - (paidMap[diff.id] != null ? paidMap[diff.id] : 0)}"
                                     th:attr="data-date-diffusion=${diff.dateDiffusion != null ? #temporals.format(diff.dateDiffusion, 'yyyy-MM-dd') : ''},
                                              data-heure-diffusion=${diff.heureDiffusion != null ? #temporals.format(diff.heureDiffusion, 'HH:mm') : ''},
                                              data-bus=${diff.busVoyage != null && diff.busVoyage.bus != null ? diff.busVoyage.bus.immatriculation : ''},
                                              data-trajet=${(diff.busVoyage != null && diff.busVoyage.voyage != null) ? (diff.busVoyage.voyage.gareDepart.libelle + ' -> ' + diff.busVoyage.voyage.gareArrivee.libelle) : ''},
-                                             data-dynamic-price=${dynamicPrices[diff.id]},
+                                             data-dynamic-price=${price},
+                                             data-paid=${paid},
+                                             data-remaining=${remain},
                                              data-societe=${diff.societe != null ? diff.societe.nom : ''}">
                                     <td th:text="${diff.societe != null ? diff.societe.nom : '-'}">Societe</td>
                                     <td th:text="${diff.busVoyage != null && diff.busVoyage.bus != null ? diff.busVoyage.bus.immatriculation : '-'}">Bus</td>
+                                    <td th:text="${#numbers.formatDecimal(paid, 0, 'COMMA', 0, 'POINT')}">0</td>
+                                    <td th:text="${remain <= 0 ? 'Regulé' : 'Paiement incomplet'}"></td>
                                     <td th:text="${(diff.busVoyage != null && diff.busVoyage.voyage != null) ? (diff.busVoyage.voyage.gareDepart.libelle + ' -> ' + diff.busVoyage.voyage.gareArrivee.libelle) : '-'}">Trajet</td>
                                     <td th:text="${diff.description}">Description</td>
                                     <td>
@@ -190,6 +200,8 @@
 
                     let totalDynamic = 0;
                     let totalVisible = 0;
+                    let totalPaid = 0;
+                    let totalRemaining = 0;
 
                     table.querySelectorAll('tbody tr').forEach(row => {
                         const soc = row.getAttribute('data-societe').toLowerCase();
@@ -198,6 +210,9 @@
                         const date = row.getAttribute('data-date-diffusion');
                         const heure = row.getAttribute('data-heure-diffusion');
                         const price = parseFloat(row.getAttribute('data-dynamic-price')) || 0;
+                        const paidVal = parseFloat(row.getAttribute('data-paid')) || 0;
+                        const remainValAttr = row.getAttribute('data-remaining');
+                        const remainVal = (remainValAttr !== null && remainValAttr !== '') ? parseFloat(remainValAttr) : (price - paidVal);
 
                         let visible = true;
                         if (societeFilter && !soc.includes(societeFilter)) visible = false;
@@ -211,21 +226,27 @@
                             row.style.display = '';
                             totalDynamic += price;
                             totalVisible++;
+                            totalPaid += paidVal;
+                            totalRemaining += remainVal;
                         } else {
                             row.style.display = 'none';
                         }
                     });
 
                     //*-- Update totals
-                    document.getElementById('totalDynamicRevenue').textContent = 
-                        new Intl.NumberFormat('fr-FR').format(Math.round(totalDynamic));
+                    document.getElementById('totalDynamicRevenue').textContent = new Intl.NumberFormat('fr-FR').format(Math.round(totalDynamic));
                     document.getElementById('totalDiffusions').textContent = totalVisible;
+                    document.getElementById('totalPaidRevenue').textContent = new Intl.NumberFormat('fr-FR').format(Math.round(totalPaid));
+                    document.getElementById('totalRemainingServer').textContent = new Intl.NumberFormat('fr-FR').format(Math.round(totalRemaining));
                 }
 
                 //*-- Show all initially (don't filter on load)
                 table.querySelectorAll('tbody tr').forEach(row => {
                     row.style.display = '';
                 });
+
+                // Initialize totals to reflect visible rows
+                applyFilters();
 
                 //*-- Attach event listeners
                 document.getElementById('filterSociete').addEventListener('input', applyFilters);

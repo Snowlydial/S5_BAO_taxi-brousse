@@ -57,15 +57,26 @@
                             </a>
                         </li>
 
-                        <li class="sidebar-item" th:classappend="${#strings.contains(currentPath, '/diffusion')} ? 'active' : ''">
-                            <a th:href="@{/diffusion/list}" class='sidebar-link'>
-                                <i class="bi bi-list-check"></i>
-                                <span>Liste Diffusion</span>
-                            </a>
-                        </li>
-
                         <!-- Add more menu items here as needed -->
                         <li class="sidebar-title">Gestion</li>
+
+                        <li class="sidebar-item has-sub">
+                            <a href="#" class='sidebar-link'>
+                                <i class="bi bi-collection-play"></i>
+                                <span>Gestion Diffusion</span>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item">
+                                    <a th:href="@{/diffusion/list}">Liste des Diffusions</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a th:href="@{/diffusion/create-bulk}">Creer des diffusions</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a th:href="@{/diffusion/regulate}">Reguler des diffusions</a>
+                                </li>
+                            </ul>
+                        </li>
 
                         <li class="sidebar-item has-sub">
                             <a href="#" class='sidebar-link'>

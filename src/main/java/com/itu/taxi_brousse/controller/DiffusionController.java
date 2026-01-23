@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 @RequestMapping("/diffusion")
@@ -59,11 +60,22 @@ public class DiffusionController {
 		model.addAttribute("pageTitle", "Liste des Diffusions");
 		model.addAttribute("diffusions", diffs);
 		var dynamicPrices = diffs.stream().collect(Collectors.toMap(Diffusion::getId, d -> diffusionService.getPrixDiffusion(d.getDateDiffusion())));
+		// per-diffusion paid amounts
+		java.util.Map<Integer, Double> paidMap = new java.util.HashMap<>();
+		for (Diffusion d : diffs) {
+			paidMap.put(d.getId(), diffusionService.getPaidAmountForDiffusion(d));
+		}
+		model.addAttribute("paidMap", paidMap);
 		model.addAttribute("dynamicPrices", dynamicPrices);
 		model.addAttribute("totalDynamic", totalDynamic);
 		model.addAttribute("totalPaid", totalPaid);
 		model.addAttribute("uniqueBuses", uniqueBuses);
 		model.addAttribute("uniqueVoyages", uniqueVoyages);
+		model.addAttribute("remainingForAll", diffs.stream().mapToDouble(d -> {
+			double price = dynamicPrices.get(d.getId());
+			double paid = paidMap.getOrDefault(d.getId(), 0.0);
+			return price - paid;
+		}).sum());
 
 		return "diffusion/list";
 	}
@@ -84,6 +96,30 @@ public class DiffusionController {
 			redir.addFlashAttribute("success", "Bulk diffusions created successfully.");
 		} catch (Exception e) {
 			redir.addFlashAttribute("error", "Error: " + e.getMessage());
+		}
+		return "redirect:/diffusion/list";
+	}
+
+	@GetMapping("/regulate")
+	public String regulateForm(@RequestParam(value = "societeId", required = false) Integer societeId, Model model) {
+		model.addAttribute("pageTitle", "Régler Diffusions");
+		model.addAttribute("societes", societeRepository.findAll());
+		if (societeId != null) {
+			double remaining = diffusionService.getRemainingForSociety(societeId);
+			model.addAttribute("remainingInfo", remaining);
+		}
+		return "diffusion/regulate";
+	}
+
+	@PostMapping("/regulate")
+	public String regulateSubmit(@RequestParam("societeId") Integer societeId,
+								 @RequestParam("amount") Double amount,
+								 RedirectAttributes redir) {
+		try {
+			diffusionService.applyPaymentToSociety(societeId, amount);
+			redir.addFlashAttribute("success", "Paiement appliqué avec succès.");
+		} catch (Exception e) {
+			redir.addFlashAttribute("error", "Erreur: " + e.getMessage());
 		}
 		return "redirect:/diffusion/list";
 	}
