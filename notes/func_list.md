@@ -20,6 +20,9 @@
 - Seniors price are based on the Adult's and they get a -20% reduction from those
 
 # Week of [22/01/26]
-1. Societe can diffuse ads on busvoyage...get CA from those ads
-2. Societe paid a certain amount in advance, show the remaining amount to pay
-
+1a. Societe can diffuse ads on busvoyage...get CA from those ads
+1b. Societe paid a certain amount in advance, show the remaining amount to pay
+2a. Facture + Facture fille 
+2b. New column in list facture:
+- Montant Payé Total pour Diffusion
+- Reste à payer pour diffusion
