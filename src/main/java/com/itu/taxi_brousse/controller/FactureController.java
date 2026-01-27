@@ -1,6 +1,7 @@
 package com.itu.taxi_brousse.controller;
 
 import com.itu.taxi_brousse.entity.Facture;
+import com.itu.taxi_brousse.dto.views.FactureTotalsProjection;
 import com.itu.taxi_brousse.entity.BusVoyage;
 import com.itu.taxi_brousse.service.FactureService;
 import com.itu.taxi_brousse.repository.BusVoyageRepository;
@@ -26,36 +27,35 @@ public class FactureController {
     @GetMapping({"/list", ""})
     public String listFactures(Model model) {
         List<Facture> factures = factureService.getAllFactures();
-        
-        //*-- Calculate global totals
+        Map<Integer, FactureTotalsProjection> totalsMap = factureService.getFactureTotalsMap();
+
         Map<Integer, Double> reservationCAMap = new HashMap<>();
-        Double totalCAReservations = 0.0;
-        for (Facture f : factures) {
-            Double caRes = factureService.getTotalReservationsForFacture(f);
-            reservationCAMap.put(f.getId(), caRes != null ? caRes : 0.0);
-            totalCAReservations += (caRes != null ? caRes : 0.0);
-        }
-
-        Double totalCADiffusions = factures.stream()
-            .mapToDouble(f -> factureService.getTotalPaidForDiffusions(f) != null ? factureService.getTotalPaidForDiffusions(f) : 0.0)
-            .sum();
-
-        Double totalGeneral = totalCAReservations + totalCADiffusions;
-        
-        //*-- Calculate diffusion payment totals
         Map<Integer, Double> diffusionPaidMap = new HashMap<>();
         Map<Integer, Double> diffusionRemainingMap = new HashMap<>();
-        Double totalRemainingDiffusions = 0.0;
-        
-        for (Facture facture : factures) {
-            Double totalPaid = factureService.getTotalPaidForDiffusions(facture);
-            Double remaining = factureService.getRemainingForDiffusions(facture);
 
-            diffusionPaidMap.put(facture.getId(), totalPaid != null ? totalPaid : 0.0);
-            diffusionRemainingMap.put(facture.getId(), remaining != null ? remaining : 0.0);
+        Double totalCAReservations = 0.0;
+        Double totalCADiffusions = 0.0;
+        Double totalRemainingDiffusions = 0.0;
+        Double totalGeneral = 0.0;
+
+        for (Facture f : factures) {
+            FactureTotalsProjection p = totalsMap.get(f.getId());
+
+            Double caRes = p != null && p.getTotalReservations() != null ? p.getTotalReservations() : factureService.getTotalReservationsForFacture(f);
+            Double paid = p != null && p.getTotalPaidDiffusions() != null ? p.getTotalPaidDiffusions() : factureService.getTotalPaidForDiffusions(f);
+            Double remaining = p != null && p.getTotalRemainingDiffusions() != null ? p.getTotalRemainingDiffusions() : factureService.getRemainingForDiffusions(f);
+            Double montant = p != null && p.getMontantTotal() != null ? p.getMontantTotal() : (caRes + paid);
+
+            reservationCAMap.put(f.getId(), caRes != null ? caRes : 0.0);
+            diffusionPaidMap.put(f.getId(), paid != null ? paid : 0.0);
+            diffusionRemainingMap.put(f.getId(), remaining != null ? remaining : 0.0);
+
+            totalCAReservations += (caRes != null ? caRes : 0.0);
+            totalCADiffusions += (paid != null ? paid : 0.0);
             totalRemainingDiffusions += (remaining != null ? remaining : 0.0);
+            totalGeneral += (montant != null ? montant : 0.0);
         }
-        
+
         model.addAttribute("pageTitle", "Liste des Factures");
         model.addAttribute("factures", factures);
         model.addAttribute("totalCAReservations", totalCAReservations);
@@ -69,36 +69,39 @@ public class FactureController {
         return "facture/list";
     }
 
-    // API endpoint: return current summary for paid/remaining amounts (used by AJAX polling)
+    // API endpoint: return current summary for paid/remaining amounts (used by AJAX in list.html)
     @GetMapping("/api/summary")
     @ResponseBody
     public Map<String, Object> getFactureSummary() {
         List<Facture> factures = factureService.getAllFactures();
+
+        Map<Integer, FactureTotalsProjection> totalsMap = factureService.getFactureTotalsMap();
+
         Map<Integer, Double> reservationCAMap = new HashMap<>();
-        Double totalCAReservations = 0.0;
-        for (Facture f : factures) {
-            Double caRes = factureService.getTotalReservationsForFacture(f);
-            reservationCAMap.put(f.getId(), caRes != null ? caRes : 0.0);
-            totalCAReservations += (caRes != null ? caRes : 0.0);
-        }
-
-        Double totalCADiffusions = factures.stream()
-            .mapToDouble(f -> factureService.getTotalPaidForDiffusions(f) != null ? factureService.getTotalPaidForDiffusions(f) : 0.0)
-            .sum();
-
-        Double totalGeneral = totalCAReservations + totalCADiffusions;
-
         Map<Integer, Double> diffusionPaidMap = new HashMap<>();
         Map<Integer, Double> diffusionRemainingMap = new HashMap<>();
+
+        Double totalCAReservations = 0.0;
+        Double totalCADiffusions = 0.0;
         Double totalRemainingDiffusions = 0.0;
+        Double totalGeneral = 0.0;
 
-        for (Facture facture : factures) {
-            Double totalPaid = factureService.getTotalPaidForDiffusions(facture);
-            Double remaining = factureService.getRemainingForDiffusions(facture);
+        for (Facture f : factures) {
+            FactureTotalsProjection p = totalsMap.get(f.getId());
 
-            diffusionPaidMap.put(facture.getId(), totalPaid != null ? totalPaid : 0.0);
-            diffusionRemainingMap.put(facture.getId(), remaining != null ? remaining : 0.0);
+            Double caRes = p != null && p.getTotalReservations() != null ? p.getTotalReservations() : factureService.getTotalReservationsForFacture(f);
+            Double paid = p != null && p.getTotalPaidDiffusions() != null ? p.getTotalPaidDiffusions() : factureService.getTotalPaidForDiffusions(f);
+            Double remaining = p != null && p.getTotalRemainingDiffusions() != null ? p.getTotalRemainingDiffusions() : factureService.getRemainingForDiffusions(f);
+            Double montant = p != null && p.getMontantTotal() != null ? p.getMontantTotal() : (caRes + paid);
+
+            reservationCAMap.put(f.getId(), caRes != null ? caRes : 0.0);
+            diffusionPaidMap.put(f.getId(), paid != null ? paid : 0.0);
+            diffusionRemainingMap.put(f.getId(), remaining != null ? remaining : 0.0);
+
+            totalCAReservations += (caRes != null ? caRes : 0.0);
+            totalCADiffusions += (paid != null ? paid : 0.0);
             totalRemainingDiffusions += (remaining != null ? remaining : 0.0);
+            totalGeneral += (montant != null ? montant : 0.0);
         }
 
         Map<String, Object> result = new HashMap<>();

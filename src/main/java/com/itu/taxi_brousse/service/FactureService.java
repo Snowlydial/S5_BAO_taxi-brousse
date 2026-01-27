@@ -1,7 +1,9 @@
 package com.itu.taxi_brousse.service;
 
+import com.itu.taxi_brousse.dto.views.FactureTotalsProjection;
 import com.itu.taxi_brousse.entity.*;
 import com.itu.taxi_brousse.repository.*;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -137,6 +141,12 @@ public class FactureService {
     //?=== Get facture by ID
     public Optional<Facture> getFactureById(Integer id) {
         return factureRepository.findById(id);
+    }
+
+    //?=== Get a map of facture with their totals using a SQL view
+    public Map<Integer, FactureTotalsProjection> getFactureTotalsMap() {
+        List<FactureTotalsProjection> totals = factureRepository.findAllFactureTotals();
+        return totals.stream().collect(Collectors.toMap(FactureTotalsProjection::getFactureId, t -> t));
     }
     
     //?=== Refresh facture (recalculate all lignes)
