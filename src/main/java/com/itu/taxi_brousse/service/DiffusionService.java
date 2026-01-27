@@ -21,6 +21,8 @@ import java.util.Optional;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -169,7 +171,7 @@ public class DiffusionService {
         return totalDue - totalPaid;
     }
 
-    //?=== Alea Week 3 Suite - Prorata Proportionnel using INITIAL total
+    //?=== Alea Week 3 Suite - Prorata Proportionnel
     @Transactional
     public void applyPaymentToSociety(Integer societeId, Double amount) {
         //*-- Validation
@@ -183,56 +185,79 @@ public class DiffusionService {
             throw new IllegalArgumentException("Aucune diffusion trouvée pour cette société");
         }
 
-        //*-- Calculate INITIAL total due and individual prices for prorata
-        Map<Diffusion, Double> diffusionPrices = new LinkedHashMap<>();
-        double initialTotalDue = 0.0;
-        
-        for (Diffusion d : allDiffs) {
-            double price = getPrixDiffusion(d.getDateDiffusion());
-            diffusionPrices.put(d, price);
-            initialTotalDue += price;
-        }
-        
-        if (initialTotalDue <= 0) {
-            throw new IllegalArgumentException("Aucune diffusion à régulariser");
-        }
-
-        //*-- Check if payment exceeds remaining amount
-        double totalPaid = diffusionPaiementRepository.findBySocieteId(societeId)
-            .stream()
-            .mapToDouble(p -> p.getMontantPaye() != null ? p.getMontantPaye() : 0.0)
-            .sum();
-        
-        double remaining = initialTotalDue - totalPaid;
-        
-        if (remaining <= 0) {
-            throw new IllegalArgumentException("Cette société n'a aucune diffusion à régulariser");
-        }
-        
-        if (amount > remaining) {
-            throw new IllegalArgumentException("Payment cannot exceed remaining total: " + remaining);
-        }
-
         //*-- Fetch society once
         Societe societe = societeRepository.findById(societeId)
             .orElseThrow(() -> new IllegalArgumentException("Societe not found"));
 
-        //*-- Apply PRORATA PROPORTIONNEL using INITIAL total (not remaining)
-        for (Map.Entry<Diffusion, Double> entry : diffusionPrices.entrySet()) {
-            Diffusion d = entry.getKey();
-            Double price = entry.getValue();
-            
-            //*-- Calculate proportional payment: (individual_price / initial_total) * payment_amount
-            Double proportionalPayment = (price / initialTotalDue) * amount;
-            
-            //*-- Create payment record
-            DiffusionPaiement p = DiffusionPaiement.builder()
-                .montantPaye(proportionalPayment)
-                .datePaiement(LocalDate.now())
-                .diffusion(d)
-                .societe(societe)
-                .build();
-            diffusionPaiementRepository.save(p);
+        // Build remaining map per diffusion (price - alreadyPaid)
+        Map<Diffusion, BigDecimal> remainingMap = new LinkedHashMap<>();
+        BigDecimal sumRemaining = BigDecimal.ZERO;
+        for (Diffusion d : allDiffs) {
+            BigDecimal price = BigDecimal.valueOf(getPrixDiffusion(d.getDateDiffusion()));
+            BigDecimal paid = BigDecimal.valueOf(getPaidAmountForDiffusion(d));
+            BigDecimal remainingForThis = price.subtract(paid);
+            if (remainingForThis.compareTo(BigDecimal.ZERO) < 0) remainingForThis = BigDecimal.ZERO;
+            remainingMap.put(d, remainingForThis);
+            sumRemaining = sumRemaining.add(remainingForThis);
+        }
+
+        if (sumRemaining.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Cette société n'a aucune diffusion à régulariser");
+        }
+
+        BigDecimal amountBD = BigDecimal.valueOf(amount);
+        if (amountBD.compareTo(sumRemaining) > 0) {
+            throw new IllegalArgumentException("Payment cannot exceed remaining total: " + sumRemaining);
+        }
+
+        // Allocate proportionally to remaining amounts (safe against overpay)
+        BigDecimal allocatedSum = BigDecimal.ZERO;
+        Diffusion lastAllocatedDiffusion = null;
+
+        for (Map.Entry<Diffusion, BigDecimal> e : remainingMap.entrySet()) {
+            Diffusion d = e.getKey();
+            BigDecimal rem = e.getValue();
+            if (rem.compareTo(BigDecimal.ZERO) <= 0) continue; // skip already settled
+
+            // proportional share = (rem / sumRemaining) * amount
+            BigDecimal percentage = rem.divide(sumRemaining, 10, RoundingMode.HALF_UP);
+            BigDecimal share = percentage
+                    .multiply(amountBD)
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            // Do not exceed the diffusion's remaining due (cap if rounding pushed it slightly over)
+            if (share.compareTo(rem) > 0) {
+                share = rem.setScale(2, RoundingMode.HALF_UP);
+            }
+
+            if (share.compareTo(BigDecimal.ZERO) > 0) {
+                DiffusionPaiement p = DiffusionPaiement.builder()
+                        .montantPaye(share.doubleValue())
+                        .datePaiement(LocalDate.now())
+                        .diffusion(d)
+                        .societe(societe)
+                        .build();
+                diffusionPaiementRepository.save(p);
+                allocatedSum = allocatedSum.add(share);
+                lastAllocatedDiffusion = d;
+            }
+        }
+
+        // Handle small rounding residue by adding it to the last allocated diffusion
+        BigDecimal residue = amountBD.subtract(allocatedSum).setScale(2, RoundingMode.HALF_UP);
+        if (residue.compareTo(BigDecimal.ZERO) != 0) {
+            if (lastAllocatedDiffusion != null) {
+                DiffusionPaiement p = DiffusionPaiement.builder()
+                        .montantPaye(residue.doubleValue())
+                        .datePaiement(LocalDate.now())
+                        .diffusion(lastAllocatedDiffusion)
+                        .societe(societe)
+                        .build();
+                diffusionPaiementRepository.save(p);
+                residue = BigDecimal.ZERO;
+            } else {
+                throw new IllegalStateException("Unable to allocate payment residue");
+            }
         }
     }
 }
