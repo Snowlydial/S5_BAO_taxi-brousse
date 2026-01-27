@@ -1,7 +1,7 @@
 package com.itu.taxi_brousse.controller;
 
 import com.itu.taxi_brousse.entity.Facture;
-import com.itu.taxi_brousse.dto.views.FactureTotalsProjection;
+import com.itu.taxi_brousse.dto.views.FactureTotalsView;
 import com.itu.taxi_brousse.entity.BusVoyage;
 import com.itu.taxi_brousse.service.FactureService;
 import com.itu.taxi_brousse.repository.BusVoyageRepository;
@@ -27,7 +27,7 @@ public class FactureController {
     @GetMapping({"/list", ""})
     public String listFactures(Model model) {
         List<Facture> factures = factureService.getAllFactures();
-        Map<Integer, FactureTotalsProjection> totalsMap = factureService.getFactureTotalsMap();
+        Map<Integer, FactureTotalsView> totalsMap = factureService.getFactureTotalsMap();
 
         Map<Integer, Double> reservationCAMap = new HashMap<>();
         Map<Integer, Double> diffusionPaidMap = new HashMap<>();
@@ -39,7 +39,7 @@ public class FactureController {
         Double totalGeneral = 0.0;
 
         for (Facture f : factures) {
-            FactureTotalsProjection p = totalsMap.get(f.getId());
+            FactureTotalsView p = totalsMap.get(f.getId());
 
             Double caRes = p != null && p.getTotalReservations() != null ? p.getTotalReservations() : factureService.getTotalReservationsForFacture(f);
             Double paid = p != null && p.getTotalPaidDiffusions() != null ? p.getTotalPaidDiffusions() : factureService.getTotalPaidForDiffusions(f);
@@ -75,7 +75,7 @@ public class FactureController {
     public Map<String, Object> getFactureSummary() {
         List<Facture> factures = factureService.getAllFactures();
 
-        Map<Integer, FactureTotalsProjection> totalsMap = factureService.getFactureTotalsMap();
+        Map<Integer, FactureTotalsView> totalsMap = factureService.getFactureTotalsMap();
 
         Map<Integer, Double> reservationCAMap = new HashMap<>();
         Map<Integer, Double> diffusionPaidMap = new HashMap<>();
@@ -87,7 +87,7 @@ public class FactureController {
         Double totalGeneral = 0.0;
 
         for (Facture f : factures) {
-            FactureTotalsProjection p = totalsMap.get(f.getId());
+            FactureTotalsView p = totalsMap.get(f.getId());
 
             Double caRes = p != null && p.getTotalReservations() != null ? p.getTotalReservations() : factureService.getTotalReservationsForFacture(f);
             Double paid = p != null && p.getTotalPaidDiffusions() != null ? p.getTotalPaidDiffusions() : factureService.getTotalPaidForDiffusions(f);

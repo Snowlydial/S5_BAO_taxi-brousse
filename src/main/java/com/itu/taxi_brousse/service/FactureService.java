@@ -1,6 +1,6 @@
 package com.itu.taxi_brousse.service;
 
-import com.itu.taxi_brousse.dto.views.FactureTotalsProjection;
+import com.itu.taxi_brousse.dto.views.FactureTotalsView;
 import com.itu.taxi_brousse.entity.*;
 import com.itu.taxi_brousse.repository.*;
 
@@ -144,9 +144,9 @@ public class FactureService {
     }
 
     //?=== Get a map of facture with their totals using a SQL view
-    public Map<Integer, FactureTotalsProjection> getFactureTotalsMap() {
-        List<FactureTotalsProjection> totals = factureRepository.findAllFactureTotals();
-        return totals.stream().collect(Collectors.toMap(FactureTotalsProjection::getFactureId, t -> t));
+    public Map<Integer, FactureTotalsView> getFactureTotalsMap() {
+        List<FactureTotalsView> totals = factureRepository.findAllFactureTotals();
+        return totals.stream().collect(Collectors.toMap(FactureTotalsView::getFactureId, t -> t));
     }
     
     //?=== Refresh facture (recalculate all lignes)

@@ -1,7 +1,7 @@
 package com.itu.taxi_brousse.repository;
 
 import com.itu.taxi_brousse.entity.Facture;
-import com.itu.taxi_brousse.dto.views.FactureTotalsProjection;
+import com.itu.taxi_brousse.dto.views.FactureTotalsView;
 import com.itu.taxi_brousse.entity.BusVoyage;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -31,5 +31,5 @@ public interface FactureRepository extends JpaRepository<Facture, Integer> {
         "FROM view_facture_totals",
         nativeQuery = true
     )
-    List<FactureTotalsProjection> findAllFactureTotals();
+    List<FactureTotalsView> findAllFactureTotals();
 }

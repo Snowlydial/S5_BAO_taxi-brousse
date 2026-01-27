@@ -1,6 +1,6 @@
 package com.itu.taxi_brousse.dto.views;
 
-public interface FactureTotalsProjection {
+public interface FactureTotalsView {
     Integer getFactureId();
     Double getTotalReservations();
     Double getTotalDueDiffusions();
