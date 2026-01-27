@@ -194,9 +194,6 @@ CREATE TABLE Facture(
    id_facture SERIAL PRIMARY KEY,
    numero_facture VARCHAR(50) UNIQUE NOT NULL,
    date_emission DATE NOT NULL,
-   ca_reservations DOUBLE PRECISION DEFAULT 0,
-   ca_diffusions DOUBLE PRECISION DEFAULT 0,
-   montant_total DOUBLE PRECISION DEFAULT 0,
    id_bus_voyage INTEGER NOT NULL,
    FOREIGN KEY(id_bus_voyage) REFERENCES Bus_Voyage(id_bus_voyage)
 );

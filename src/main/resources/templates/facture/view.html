@@ -79,7 +79,7 @@
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-2">CA Réservations</h6>
                                     <h3 class="text-info mb-0">
-                                        <span th:text="${#numbers.formatDecimal(facture.caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        <span th:text="${#numbers.formatDecimal(caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                     </h3>
                                 </div>
                             </div>
@@ -89,7 +89,7 @@
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-2">CA Diffusions</h6>
                                     <h3 class="text-warning mb-0">
-                                        <span th:text="${#numbers.formatDecimal(facture.caDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        <span th:text="${#numbers.formatDecimal(caDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                     </h3>
                                 </div>
                             </div>
@@ -99,7 +99,7 @@
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-2">Montant Total</h6>
                                     <h3 class="text-success mb-0">
-                                        <span th:text="${#numbers.formatDecimal(facture.montantTotal, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        <span th:text="${#numbers.formatDecimal(montantTotal, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                     </h3>
                                 </div>
                             </div>
@@ -144,8 +144,8 @@
                                 </tr>
                                 <tr class="table-info fw-bold">
                                     <td>Sous-total Réservations</td>
-                                    <td class="text-end">
-                                        <span th:text="${#numbers.formatDecimal(facture.caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        <td class="text-end">
+                                        <span th:text="${#numbers.formatDecimal(caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                     </td>
                                 </tr>
                             </tbody>
@@ -181,8 +181,8 @@
                                 </tr>
                                 <tr class="table-warning fw-bold">
                                     <td>Sous-total Diffusions</td>
-                                    <td class="text-end">
-                                        <span th:text="${#numbers.formatDecimal(facture.caDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        <td class="text-end">
+                                        <span th:text="${#numbers.formatDecimal(caDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                     </td>
                                 </tr>
                             </tbody>
@@ -196,9 +196,9 @@
                                 <div class="col-md-8">
                                     <h4 class="mb-0">TOTAL GÉNÉRAL</h4>
                                 </div>
-                                <div class="col-md-4 text-end">
+                                    <div class="col-md-4 text-end">
                                     <h3 class="text-success mb-0">
-                                        <span th:text="${#numbers.formatDecimal(facture.montantTotal, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        <span th:text="${#numbers.formatDecimal(montantTotal, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                     </h3>
                                 </div>
                             </div>

@@ -28,14 +28,18 @@ public class FactureController {
         List<Facture> factures = factureService.getAllFactures();
         
         //*-- Calculate global totals
-        Double totalCAReservations = factures.stream()
-            .mapToDouble(f -> f.getCaReservations() != null ? f.getCaReservations() : 0.0)
-            .sum();
-        
+        Map<Integer, Double> reservationCAMap = new HashMap<>();
+        Double totalCAReservations = 0.0;
+        for (Facture f : factures) {
+            Double caRes = factureService.getTotalReservationsForFacture(f);
+            reservationCAMap.put(f.getId(), caRes != null ? caRes : 0.0);
+            totalCAReservations += (caRes != null ? caRes : 0.0);
+        }
+
         Double totalCADiffusions = factures.stream()
-            .mapToDouble(f -> f.getCaDiffusions() != null ? f.getCaDiffusions() : 0.0)
+            .mapToDouble(f -> factureService.getTotalPaidForDiffusions(f) != null ? factureService.getTotalPaidForDiffusions(f) : 0.0)
             .sum();
-        
+
         Double totalGeneral = totalCAReservations + totalCADiffusions;
         
         //*-- Calculate diffusion payment totals
@@ -44,18 +48,9 @@ public class FactureController {
         Double totalRemainingDiffusions = 0.0;
         
         for (Facture facture : factures) {
-            Double totalDue = factureService.getTotalDueForDiffusions(facture);
             Double totalPaid = factureService.getTotalPaidForDiffusions(facture);
             Double remaining = factureService.getRemainingForDiffusions(facture);
-            
-            //*-- DEBUG LOGGING
-            System.out.println("=== FACTURE #" + facture.getId() + " - " + facture.getNumeroFacture() + " ===");
-            System.out.println("Total Due:  " + totalDue);
-            System.out.println("Total Paid: " + totalPaid);
-            System.out.println("Remaining:  " + remaining);
-            System.out.println("facture.caDiffusions: " + facture.getCaDiffusions());
-            System.out.println("BusVoyage ID: " + facture.getBusVoyage().getId());
-            
+
             diffusionPaidMap.put(facture.getId(), totalPaid != null ? totalPaid : 0.0);
             diffusionRemainingMap.put(facture.getId(), remaining != null ? remaining : 0.0);
             totalRemainingDiffusions += (remaining != null ? remaining : 0.0);
@@ -66,6 +61,7 @@ public class FactureController {
         model.addAttribute("totalCAReservations", totalCAReservations);
         model.addAttribute("totalCADiffusions", totalCADiffusions);
         model.addAttribute("totalGeneral", totalGeneral);
+        model.addAttribute("reservationCAMap", reservationCAMap);
         model.addAttribute("diffusionPaidMap", diffusionPaidMap);
         model.addAttribute("diffusionRemainingMap", diffusionRemainingMap);
         model.addAttribute("totalRemainingDiffusions", totalRemainingDiffusions);
@@ -78,13 +74,16 @@ public class FactureController {
     @ResponseBody
     public Map<String, Object> getFactureSummary() {
         List<Facture> factures = factureService.getAllFactures();
-
-        Double totalCAReservations = factures.stream()
-            .mapToDouble(f -> f.getCaReservations() != null ? f.getCaReservations() : 0.0)
-            .sum();
+        Map<Integer, Double> reservationCAMap = new HashMap<>();
+        Double totalCAReservations = 0.0;
+        for (Facture f : factures) {
+            Double caRes = factureService.getTotalReservationsForFacture(f);
+            reservationCAMap.put(f.getId(), caRes != null ? caRes : 0.0);
+            totalCAReservations += (caRes != null ? caRes : 0.0);
+        }
 
         Double totalCADiffusions = factures.stream()
-            .mapToDouble(f -> f.getCaDiffusions() != null ? f.getCaDiffusions() : 0.0)
+            .mapToDouble(f -> factureService.getTotalPaidForDiffusions(f) != null ? factureService.getTotalPaidForDiffusions(f) : 0.0)
             .sum();
 
         Double totalGeneral = totalCAReservations + totalCADiffusions;
@@ -109,6 +108,7 @@ public class FactureController {
         result.put("totalRemainingDiffusions", totalRemainingDiffusions);
         result.put("diffusionPaidMap", diffusionPaidMap);
         result.put("diffusionRemainingMap", diffusionRemainingMap);
+        result.put("reservationCAMap", reservationCAMap);
 
         return result;
     }
@@ -165,6 +165,10 @@ public class FactureController {
         
         model.addAttribute("pageTitle", "Détails Facture - " + facture.getNumeroFacture());
         model.addAttribute("facture", facture);
+        // add computed totals
+        model.addAttribute("caReservations", factureService.getTotalReservationsForFacture(facture));
+        model.addAttribute("caDiffusions", factureService.getTotalPaidForDiffusions(facture));
+        model.addAttribute("montantTotal", (factureService.getTotalReservationsForFacture(facture) + factureService.getTotalPaidForDiffusions(facture)));
         
         return "facture/view";
     }

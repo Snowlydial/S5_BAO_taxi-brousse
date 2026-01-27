@@ -160,12 +160,12 @@
                                         <td th:text="${#temporals.format(facture.busVoyage.heureDepart, 'HH:mm')}"></td>
                                         <td>
                                             <span class="text-info fw-bold">
-                                                <span th:text="${#numbers.formatDecimal(facture.caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                                <span class="reservation-ca" th:attr="data-facture-id=${facture.id}" th:text="${#numbers.formatDecimal(reservationCAMap[facture.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                             </span>
                                         </td>
                                         <td>
                                             <span class="text-warning fw-bold">
-                                                <span class="paid-diffusions" th:attr="data-facture-id=${facture.id}" th:text="${#numbers.formatDecimal(facture.caDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                                <span class="paid-diffusions" th:attr="data-facture-id=${facture.id}" th:text="${#numbers.formatDecimal(diffusionPaidMap[facture.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                             </span>
                                         </td>
                                         <td>
@@ -175,7 +175,7 @@
                                         </td>
                                         <td>
                                             <span class="text-success fw-bold">
-                                                <span th:text="${#numbers.formatDecimal(facture.montantTotal, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                                <span class="montant-total" th:attr="data-facture-id=${facture.id}" th:text="${#numbers.formatDecimal(reservationCAMap[facture.id] + diffusionPaidMap[facture.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                             </span>
                                         </td>
                                         <td>
@@ -248,6 +248,7 @@
                     // Update per-row values
                     const paidMap = data.diffusionPaidMap || {};
                     const remainingMap = data.diffusionRemainingMap || {};
+                    const reservationMap = data.reservationCAMap || {};
 
                     document.querySelectorAll('.paid-diffusions').forEach(el => {
                         const id = el.dataset.factureId;
@@ -261,6 +262,22 @@
                         if (id && remainingMap[id] != null) {
                             el.textContent = new Intl.NumberFormat('fr-FR').format(Math.round(remainingMap[id]));
                         }
+                    });
+
+                    // Update reservation CA and total per row
+                    document.querySelectorAll('.reservation-ca').forEach(el => {
+                        const id = el.dataset.factureId;
+                        if (id && reservationMap[id] != null) {
+                            el.textContent = new Intl.NumberFormat('fr-FR').format(Math.round(reservationMap[id]));
+                        }
+                    });
+
+                    document.querySelectorAll('.montant-total').forEach(el => {
+                        const id = el.dataset.factureId;
+                        const res = id && reservationMap[id] != null ? reservationMap[id] : 0;
+                        const paid = id && paidMap[id] != null ? paidMap[id] : 0;
+                        const total = Math.round(res + paid);
+                        el.textContent = new Intl.NumberFormat('fr-FR').format(total);
                     });
 
                 } catch (err) {
