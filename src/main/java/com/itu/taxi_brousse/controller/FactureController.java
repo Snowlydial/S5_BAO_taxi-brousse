@@ -11,9 +11,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 @Controller
 @RequestMapping("/facture")
@@ -29,9 +29,9 @@ public class FactureController {
         List<Facture> factures = factureService.getAllFactures();
         Map<Integer, FactureTotalsView> totalsMap = factureService.getFactureTotalsMap();
 
-        Map<Integer, Double> reservationCAMap = new HashMap<>();
-        Map<Integer, Double> diffusionPaidMap = new HashMap<>();
-        Map<Integer, Double> diffusionRemainingMap = new HashMap<>();
+        Map<Integer, Double> reservationCAMap = new LinkedHashMap<>();
+        Map<Integer, Double> diffusionPaidMap = new LinkedHashMap<>();
+        Map<Integer, Double> diffusionRemainingMap = new LinkedHashMap<>();
 
         Double totalCAReservations = 0.0;
         Double totalCADiffusions = 0.0;
@@ -77,9 +77,9 @@ public class FactureController {
 
         Map<Integer, FactureTotalsView> totalsMap = factureService.getFactureTotalsMap();
 
-        Map<Integer, Double> reservationCAMap = new HashMap<>();
-        Map<Integer, Double> diffusionPaidMap = new HashMap<>();
-        Map<Integer, Double> diffusionRemainingMap = new HashMap<>();
+        Map<Integer, Double> reservationCAMap = new LinkedHashMap<>();
+        Map<Integer, Double> diffusionPaidMap = new LinkedHashMap<>();
+        Map<Integer, Double> diffusionRemainingMap = new LinkedHashMap<>();
 
         Double totalCAReservations = 0.0;
         Double totalCADiffusions = 0.0;
@@ -104,14 +104,14 @@ public class FactureController {
             totalGeneral += (montant != null ? montant : 0.0);
         }
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("totalCAReservations", totalCAReservations);
-        result.put("totalCADiffusions", totalCADiffusions);
-        result.put("totalGeneral", totalGeneral);
-        result.put("totalRemainingDiffusions", totalRemainingDiffusions);
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("reservationCAMap", reservationCAMap);
         result.put("diffusionPaidMap", diffusionPaidMap);
         result.put("diffusionRemainingMap", diffusionRemainingMap);
-        result.put("reservationCAMap", reservationCAMap);
+        result.put("totalCAReservations", totalCAReservations);
+        result.put("totalCADiffusions", totalCADiffusions);
+        result.put("totalRemainingDiffusions", totalRemainingDiffusions);
+        result.put("totalGeneral", totalGeneral);
 
         return result;
     }
