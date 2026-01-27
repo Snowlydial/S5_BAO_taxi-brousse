@@ -65,7 +65,7 @@
                                             Montant Payé Diffusions
                                         </h6>
                                         <h3 class="mb-0 text-warning">
-                                            <span th:text="${#numbers.formatDecimal(totalCADiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            <span id="totalCADiffusions" th:text="${#numbers.formatDecimal(totalCADiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                         </h3>
                                     </div>
                                 </div>
@@ -79,7 +79,7 @@
                                             Reste à Payer Diffusions
                                         </h6>
                                         <h3 class="mb-0 text-danger">
-                                            <span th:text="${#numbers.formatDecimal(totalRemainingDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            <span id="totalRemainingDiffusions" th:text="${#numbers.formatDecimal(totalRemainingDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                         </h3>
                                     </div>
                                 </div>
@@ -126,6 +126,7 @@
                             <table class="table table-striped" id="facturesTable">
                                 <thead>
                                     <tr>
+                                        <th>ID</th>
                                         <th>N° Facture</th>
                                         <th>Gare Départ</th>
                                         <th>Gare Arrivée</th>
@@ -140,7 +141,10 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr th:each="facture : ${factures}">
+                                    <tr th:each="facture : ${factures}" th:attr="data-facture-id=${facture.id}">
+                                        <td>
+                                            <strong th:text="${facture.id}"></strong>
+                                        </td>
                                         <td>
                                             <strong th:text="${facture.numeroFacture}"></strong><br>
                                             <small class="text-muted" 
@@ -161,12 +165,12 @@
                                         </td>
                                         <td>
                                             <span class="text-warning fw-bold">
-                                                <span th:text="${#numbers.formatDecimal(facture.caDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                                <span class="paid-diffusions" th:attr="data-facture-id=${facture.id}" th:text="${#numbers.formatDecimal(facture.caDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                             </span>
                                         </td>
                                         <td>
                                             <span class="text-danger fw-bold">
-                                                <span th:text="${#numbers.formatDecimal(diffusionRemainingMap[facture.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                                <span class="remaining-diffusions" th:attr="data-facture-id=${facture.id}" th:text="${#numbers.formatDecimal(diffusionRemainingMap[facture.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                             </span>
                                         </td>
                                         <td>
@@ -213,15 +217,61 @@
                 //*-- Initialize DataTable
                 new simpleDatatables.DataTable(table, {
                     searchable: true,
-                    perPage: 20,
+                    perPage: 100,
+                    perPageSelect: false,
                     labels: {
                         placeholder: "Rechercher...",
-                        perPage: "{select} factures par page",
                         noRows: "Aucune facture trouvée",
-                        info: "Affichage de {start} à {end} sur {rows} factures"
+                        info: "Affichage de {rows} factures"
                     }
                 });
             });
+        </script>
+        <script>
+            // Poll server for updated facture summary and update DOM in-place
+            async function fetchFactureSummary() {
+                try {
+                    const res = await fetch('/facture/api/summary');
+                    if (!res.ok) return;
+                    const data = await res.json();
+
+                    // Update top summary
+                    const totalCADiffusions = document.getElementById('totalCADiffusions');
+                    const totalRemaining = document.getElementById('totalRemainingDiffusions');
+                    if (totalCADiffusions && data.totalCADiffusions != null) {
+                        totalCADiffusions.textContent = new Intl.NumberFormat('fr-FR').format(Math.round(data.totalCADiffusions));
+                    }
+                    if (totalRemaining && data.totalRemainingDiffusions != null) {
+                        totalRemaining.textContent = new Intl.NumberFormat('fr-FR').format(Math.round(data.totalRemainingDiffusions));
+                    }
+
+                    // Update per-row values
+                    const paidMap = data.diffusionPaidMap || {};
+                    const remainingMap = data.diffusionRemainingMap || {};
+
+                    document.querySelectorAll('.paid-diffusions').forEach(el => {
+                        const id = el.dataset.factureId;
+                        if (id && paidMap[id] != null) {
+                            el.textContent = new Intl.NumberFormat('fr-FR').format(Math.round(paidMap[id]));
+                        }
+                    });
+
+                    document.querySelectorAll('.remaining-diffusions').forEach(el => {
+                        const id = el.dataset.factureId;
+                        if (id && remainingMap[id] != null) {
+                            el.textContent = new Intl.NumberFormat('fr-FR').format(Math.round(remainingMap[id]));
+                        }
+                    });
+
+                } catch (err) {
+                    console.error('Error fetching facture summary', err);
+                }
+            }
+
+            // Poll every 5 seconds
+            setInterval(fetchFactureSummary, 5000);
+            // Also fetch once on load
+            fetchFactureSummary();
         </script>
     </div>
 </body>

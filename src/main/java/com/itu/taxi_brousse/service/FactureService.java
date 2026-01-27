@@ -105,7 +105,7 @@ public class FactureService {
     
     //?=== Get all factures ordered by date
     public List<Facture> getAllFactures() {
-        return factureRepository.findAllByOrderByDateEmissionDesc();
+        return factureRepository.findAllByOrderByIdDesc();
     }
     
     //?=== Get total paid amount for diffusions in a facture

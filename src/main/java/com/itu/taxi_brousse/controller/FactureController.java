@@ -72,6 +72,46 @@ public class FactureController {
         
         return "facture/list";
     }
+
+    // API endpoint: return current summary for paid/remaining amounts (used by AJAX polling)
+    @GetMapping("/api/summary")
+    @ResponseBody
+    public Map<String, Object> getFactureSummary() {
+        List<Facture> factures = factureService.getAllFactures();
+
+        Double totalCAReservations = factures.stream()
+            .mapToDouble(f -> f.getCaReservations() != null ? f.getCaReservations() : 0.0)
+            .sum();
+
+        Double totalCADiffusions = factures.stream()
+            .mapToDouble(f -> f.getCaDiffusions() != null ? f.getCaDiffusions() : 0.0)
+            .sum();
+
+        Double totalGeneral = totalCAReservations + totalCADiffusions;
+
+        Map<Integer, Double> diffusionPaidMap = new HashMap<>();
+        Map<Integer, Double> diffusionRemainingMap = new HashMap<>();
+        Double totalRemainingDiffusions = 0.0;
+
+        for (Facture facture : factures) {
+            Double totalPaid = factureService.getTotalPaidForDiffusions(facture);
+            Double remaining = factureService.getRemainingForDiffusions(facture);
+
+            diffusionPaidMap.put(facture.getId(), totalPaid != null ? totalPaid : 0.0);
+            diffusionRemainingMap.put(facture.getId(), remaining != null ? remaining : 0.0);
+            totalRemainingDiffusions += (remaining != null ? remaining : 0.0);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalCAReservations", totalCAReservations);
+        result.put("totalCADiffusions", totalCADiffusions);
+        result.put("totalGeneral", totalGeneral);
+        result.put("totalRemainingDiffusions", totalRemainingDiffusions);
+        result.put("diffusionPaidMap", diffusionPaidMap);
+        result.put("diffusionRemainingMap", diffusionRemainingMap);
+
+        return result;
+    }
     
     //?=== Generate facture for a specific bus voyage
     @PostMapping("/generate/{busVoyageId}")

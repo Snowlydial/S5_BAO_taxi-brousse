@@ -15,5 +15,7 @@ public interface FactureRepository extends JpaRepository<Facture, Integer> {
     
     List<Facture> findAllByOrderByDateEmissionDesc();
     
+    List<Facture> findAllByOrderByIdDesc();
+    
     Optional<Facture> findByNumeroFacture(String numeroFacture);
 }
