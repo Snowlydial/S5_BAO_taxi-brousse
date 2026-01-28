@@ -31,12 +31,9 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4 class="card-title mb-0">Factures</h4>
-                    <form th:action="@{/facture/generate-all}" method="post" style="display: inline;">
-                        <button type="submit" class="btn btn-primary btn-sm" 
-                                onclick="return confirm('Générer toutes les factures manquantes?')">
-                            <i class="bi bi-plus-circle me-1"></i> Générer Toutes
-                        </button>
-                    </form>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#generateFactureModal">
+                        <i class="bi bi-plus-circle me-1"></i> Générer une Facture
+                    </button>
                 </div>
                 <div class="card-content">
                     <div class="card-body">
@@ -205,6 +202,66 @@
                 </div>
             </div>
         </section>
+
+        <!-- Generate Facture Modal -->
+        <div class="modal fade" id="generateFactureModal" tabindex="-1" aria-labelledby="generateFactureModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="generateFactureModalLabel">
+                            <i class="bi bi-plus-circle me-2"></i>Générer une Facture
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="generateFactureForm" th:action="@{/facture/generate}" method="post">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="busVoyageSelect" class="form-label">
+                                    <i class="bi bi-bus-front me-1"></i>Bus Voyage <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="busVoyageSelect" name="busVoyageId" required>
+                                    <option value="">-- Sélectionner un bus voyage --</option>
+                                    <option th:each="bv : ${availableBusVoyages}" 
+                                            th:value="${bv.id}"
+                                            th:text="|${bv.voyage.gareDepart.libelle} → ${bv.voyage.gareArrivee.libelle} (${bv.bus.immatriculation}) - ${#temporals.format(bv.dateDepart, 'dd/MM/yyyy')} ${#temporals.format(bv.heureDepart, 'HH:mm')}|">
+                                    </option>
+                                </select>
+                                <div th:if="${#lists.isEmpty(availableBusVoyages)}" class="form-text text-warning">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Aucun bus voyage sans facture disponible
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="dateEmission" class="form-label">
+                                    <i class="bi bi-calendar-event me-1"></i>Date d'émission
+                                </label>
+                                <input type="date" class="form-control" id="dateEmission" name="dateEmission" 
+                                       th:value="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">
+                                <div class="form-text">Par défaut: aujourd'hui</div>
+                            </div>
+
+                            <div class="alert alert-info mb-0">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Note:</strong> Une fois la facture générée (avec les réservations + diffusions associées), le bus-voyage sera locked
+                            </div>
+                        </div>
+                        <div class="modal-footer d-flex justify-content-between">
+                            <div>
+                                <button type="button" class="btn btn-secondary btn-sm" id="generateAllBtn">
+                                    <i class="bi bi-lightning-charge me-1"></i>Générer Toutes
+                                </button>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-circle me-1"></i>Confirmer
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div layout:fragment="scripts">
@@ -289,6 +346,49 @@
             setInterval(fetchFactureSummary, 5000);
             // Also fetch once on load
             fetchFactureSummary();
+        </script>
+        
+        <script>
+            //?=== Handle Generate Facture Form
+            document.addEventListener('DOMContentLoaded', function() {
+                const generateForm = document.getElementById('generateFactureForm');
+                const generateAllBtn = document.getElementById('generateAllBtn');
+                const busVoyageSelect = document.getElementById('busVoyageSelect');
+                
+                //*-- Handle single facture generation
+                if (generateForm) {
+                    generateForm.addEventListener('submit', function(e) {
+                        const busVoyageId = busVoyageSelect.value;
+                        
+                        if (!busVoyageId) {
+                            e.preventDefault();
+                            alert('Veuillez sélectionner un bus voyage');
+                            return false;
+                        }
+                        
+                        //*-- Update form action with busVoyageId
+                        const dateEmission = document.getElementById('dateEmission').value;
+                        let action = '/facture/generate/' + busVoyageId;
+                        if (dateEmission) {
+                            action += '?dateEmission=' + dateEmission;
+                        }
+                        generateForm.action = action;
+                    });
+                }
+                
+                //*-- Handle "Generate All" button
+                if (generateAllBtn) {
+                    generateAllBtn.addEventListener('click', function() {
+                        if (confirm('Générer toutes les factures manquantes?')) {
+                            const form = document.createElement('form');
+                            form.method = 'post';
+                            form.action = '/facture/generate-all';
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    });
+                }
+            });
         </script>
     </div>
 </body>

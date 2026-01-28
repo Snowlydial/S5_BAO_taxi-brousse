@@ -29,29 +29,36 @@ public class FactureService {
     //?=== Generate facture for a specific Bus_Voyage
     @Transactional
     public Facture generateFacture(BusVoyage busVoyage) {
+        return generateFacture(busVoyage, null);
+    }
+
+    @Transactional
+    public Facture generateFacture(BusVoyage busVoyage, LocalDate dateEmission) {
         //*-- Check if facture already exists
         Optional<Facture> existing = factureRepository.findByBusVoyage(busVoyage);
         if (existing.isPresent()) {
             return existing.get();
         }
-        
+
         //*-- Generate unique numero facture
         String numeroFacture = generateNumeroFacture(busVoyage);
-        
+
+        LocalDate emission = dateEmission != null ? dateEmission : LocalDate.now();
+
         //*-- Create facture mere
         Facture facture = Facture.builder()
             .numeroFacture(numeroFacture)
-            .dateEmission(LocalDate.now())
+            .dateEmission(emission)
             .busVoyage(busVoyage)
             .build();
 
         facture = factureRepository.save(facture);
-        
+
         //*-- Create facture lignes for reservations (use CA from pricing)
         List<Reservation> reservations = reservationRepository.findByBusVoyage(busVoyage);
         for (Reservation reservation : reservations) {
             Double caPrice = pricingService.calculatePrice(reservation, busVoyage.getDateDepart());
-            
+
             FactureLigne ligne = FactureLigne.builder()
                 .typeLigne("RESERVATION")
                 .montant(caPrice)
@@ -60,17 +67,17 @@ public class FactureService {
                 .facture(facture)
                 .reservation(reservation)
                 .build();
-            
+
             factureLigneRepository.save(ligne);
             facture.getLignes().add(ligne);
         }
-        
+
         //*-- Create facture lignes for diffusions (use DiffusionPaiement)
         List<Diffusion> diffusions = diffusionRepository.findByBusVoyageId(busVoyage.getId());
         for (Diffusion diffusion : diffusions) {
             //*-- Get total paid for this diffusion from DiffusionPaiement
             Double paidAmount = diffusionService.getPaidAmountForDiffusion(diffusion);
-            
+
             if (paidAmount > 0) {
                 FactureLigne ligne = FactureLigne.builder()
                     .typeLigne("DIFFUSION")
@@ -80,12 +87,12 @@ public class FactureService {
                     .facture(facture)
                     .diffusion(diffusion)
                     .build();
-                
+
                 factureLigneRepository.save(ligne);
                 facture.getLignes().add(ligne);
             }
         }
-        
+
         // Totals are computed on demand; lines are saved and facture returned
         return factureRepository.save(facture);
     }

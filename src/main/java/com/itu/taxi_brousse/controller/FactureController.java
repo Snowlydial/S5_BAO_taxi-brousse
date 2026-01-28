@@ -14,6 +14,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,6 +73,10 @@ public class FactureController {
         model.addAttribute("diffusionPaidMap", diffusionPaidMap);
         model.addAttribute("diffusionRemainingMap", diffusionRemainingMap);
         model.addAttribute("totalRemainingDiffusions", totalRemainingDiffusions);
+        List<BusVoyage> availableBusVoyages = busVoyageRepository.findAll().stream()
+            .filter(bv -> !factureService.hasFactureForBusVoyage(bv))
+            .toList();
+        model.addAttribute("availableBusVoyages", availableBusVoyages);
         
         return "facture/list";
     }
@@ -180,13 +186,14 @@ public class FactureController {
     
     //?=== Generate facture for a specific bus voyage
     @PostMapping("/generate/{busVoyageId}")
-    public String generateFacture(@PathVariable Integer busVoyageId, 
+    public String generateFacture(@PathVariable Integer busVoyageId,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateEmission,
                                  RedirectAttributes redirectAttributes) {
         try {
             BusVoyage busVoyage = busVoyageRepository.findById(busVoyageId)
                 .orElseThrow(() -> new RuntimeException("Bus voyage not found"));
             
-            Facture facture = factureService.generateFacture(busVoyage);
+            Facture facture = factureService.generateFacture(busVoyage, dateEmission);
             
             redirectAttributes.addFlashAttribute("success", 
                 "Facture " + facture.getNumeroFacture() + " générée avec succès!");
