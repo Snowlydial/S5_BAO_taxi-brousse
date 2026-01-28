@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Dashboard - Statistiques</title>
+    <link rel="stylesheet" href="/vendors/chartjs/Chart.min.css">
+</head>
+<body>
+    <div layout:fragment="content">
+        <!-- Period Selection Card -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Sélection de la période</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-end">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Type de période</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="periodType" 
+                                               id="monthlyRadio" value="monthly" checked>
+                                        <label class="form-check-label" for="monthlyRadio">
+                                            Mensuel
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="periodType" 
+                                               id="yearlyRadio" value="yearly">
+                                        <label class="form-check-label" for="yearlyRadio">
+                                            Annuel
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Monthly filters -->
+                            <div class="col-md-3" id="monthlyFilters">
+                                <div class="form-group">
+                                    <label for="yearInput">Année</label>
+                                    <input type="number" class="form-control" id="yearInput" 
+                                           th:value="${currentYear}" min="2000" max="2100">
+                                </div>
+                            </div>
+                            
+                            <!-- Yearly filters -->
+                            <div class="col-md-6" id="yearlyFilters" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="yearMinInput">Année Min</label>
+                                            <input type="number" class="form-control" id="yearMinInput" 
+                                                   th:value="${currentYear - 5}" min="2000" max="2100">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="yearMaxInput">Année Max</label>
+                                            <input type="number" class="form-control" id="yearMaxInput" 
+                                                   th:value="${currentYear}" min="2000" max="2100">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Revenue Type Toggle -->
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Type de montant</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="revenueTypeToggle">
+                                        <label class="form-check-label" for="revenueTypeToggle">
+                                            <span id="revenueTypeLabel">Chiffre d'Affaires</span>
+                                        </label>
+                                    </div>
+                                    <small class="text-muted" id="revenueTypeDescription">
+                                        Calculé selon config actuelle
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <button class="btn btn-primary w-100" id="loadStatsBtn">
+                                    <i class="bi bi-search"></i> Charger
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Faire une Réservation</h5>
+                        <p class="card-text">Rechercher des voyages disponibles</p>
+                        <a th:href="@{/busvoyage/search}" class="btn btn-primary">Rechercher Voyage</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Liste Réservations</h5>
+                        <p class="card-text">Consulter et gérer les réservations</p>
+                        <a th:href="@{/reservation/list}" class="btn btn-success">Voir Réservations</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Gestion Bus</h5>
+                        <p class="card-text">Gérer les bus et configurations</p>
+                        <a th:href="@{/bus/list}" class="btn btn-info">Voir Bus</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 1: Revenue -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0" id="globalRevenueTitle">Évolution du Chiffre d'Affaires Global</h4>
+                        <span class="badge" id="globalRevenueBadge"></span>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="globalRevenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0" id="caisseRevenueTitle">Chiffre d'Affaires par Caisse</h4>
+                        <span class="badge" id="caisseRevenueBadge"></span>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="revenueByCaisseChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2: Top Stats -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Top 5 Voyages les Plus Réservés</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="topVoyagesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0" id="topClientsTitle">Top 10 Clients les Plus Lucratifs</h4>
+                        <span class="badge" id="topClientsBadge"></span>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="topClientsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 3: Demographics -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Répartition par Genre</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="genderChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Répartition par Groupe d'Âge</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="ageGroupChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script src="/vendors/chartjs/Chart.min.js"></script>
+        <script th:inline="javascript">
+            let charts = {
+                globalRevenue: null,
+                revenueByCaisse: null,
+                topVoyages: null,
+                topClients: null,
+                gender: null,
+                ageGroup: null
+            };
+
+            const revenueTypeToggle = document.getElementById('revenueTypeToggle');
+            const revenueTypeLabel = document.getElementById('revenueTypeLabel');
+            const revenueTypeDescription = document.getElementById('revenueTypeDescription');
+
+            // Revenue type toggle handler
+            revenueTypeToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    revenueTypeLabel.textContent = 'Montant Encaissé';
+                    revenueTypeDescription.textContent = 'Montants réellement payés';
+                    updateBadges('bg-success', 'Montant Encaissé');
+                } else {
+                    revenueTypeLabel.textContent = 'Chiffre d\'Affaires';
+                    revenueTypeDescription.textContent = 'Calculé selon config actuelle';
+                    updateBadges('bg-info', 'CA Dynamique');
+                }
+                loadStats();
+            });
+
+            function updateBadges(badgeClass, badgeText) {
+                ['globalRevenueBadge', 'caisseRevenueBadge', 'topClientsBadge'].forEach(id => {
+                    const badge = document.getElementById(id);
+                    badge.className = 'badge ' + badgeClass;
+                    badge.textContent = badgeText;
+                });
+
+                // Update titles
+                const prefix = revenueTypeToggle.checked ? 'Montant Encaissé' : 'Chiffre d\'Affaires';
+                document.getElementById('globalRevenueTitle').textContent = `Évolution du ${prefix} Global`;
+                document.getElementById('caisseRevenueTitle').textContent = `${prefix} par Caisse`;
+                document.getElementById('topClientsTitle').textContent = revenueTypeToggle.checked 
+                    ? 'Top 10 Clients (Paiements)'
+                    : 'Top 10 Clients les Plus Lucratifs';
+            }
+
+            // Period type toggle
+            document.querySelectorAll('input[name="periodType"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.value === 'monthly') {
+                        document.getElementById('monthlyFilters').style.display = 'block';
+                        document.getElementById('yearlyFilters').style.display = 'none';
+                    } else {
+                        document.getElementById('monthlyFilters').style.display = 'none';
+                        document.getElementById('yearlyFilters').style.display = 'block';
+                    }
+                });
+            });
+
+            document.getElementById('loadStatsBtn').addEventListener('click', loadStats);
+            window.addEventListener('DOMContentLoaded', () => {
+                updateBadges('bg-info', 'CA Dynamique');
+                loadStats();
+            });
+
+            function loadStats() {
+                const periodType = document.querySelector('input[name="periodType"]:checked').value;
+                const usePaidAmounts = revenueTypeToggle.checked;
+                
+                let url = '/api/stats?periodType=' + periodType + '&usePaidAmounts=' + usePaidAmounts;
+
+                if (periodType === 'monthly') {
+                    const year = document.getElementById('yearInput').value;
+                    url += '&year=' + year;
+                } else {
+                    const yearMin = document.getElementById('yearMinInput').value;
+                    const yearMax = document.getElementById('yearMaxInput').value;
+                    url += '&yearMin=' + yearMin + '&yearMax=' + yearMax;
+                }
+
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        updateCharts(data);
+                    })
+                    .catch(error => console.error('Error loading stats:', error));
+            }
+
+            function updateCharts(data) {
+                updateGlobalRevenueChart(data);
+                updateRevenueByCaisseChart(data);
+                updateTopVoyagesChart(data);
+                updateTopClientsChart(data);
+                updateGenderChart(data);
+                updateAgeGroupChart(data);
+            }
+
+            function updateGlobalRevenueChart(data) {
+                const ctx = document.getElementById('globalRevenueChart').getContext('2d');
+                
+                if (charts.globalRevenue) {
+                    charts.globalRevenue.destroy();
+                }
+
+                const labels = Object.keys(data.globalRevenue);
+                const values = Object.values(data.globalRevenue);
+
+                charts.globalRevenue = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: revenueTypeToggle.checked ? 'Montant Encaissé (Ar)' : 'Chiffre d\'Affaires (Ar)',
+                            data: values,
+                            borderColor: revenueTypeToggle.checked ? 'rgb(40, 167, 69)' : 'rgb(75, 192, 192)',
+                            backgroundColor: revenueTypeToggle.checked ? 'rgba(40, 167, 69, 0.2)' : 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: true }
+                        }
+                    }
+                });
+            }
+
+            function updateRevenueByCaisseChart(data) {
+                const ctx = document.getElementById('revenueByCaisseChart').getContext('2d');
+                
+                if (charts.revenueByCaisse) {
+                    charts.revenueByCaisse.destroy();
+                }
+
+                const labels = Object.keys(data.globalRevenue);
+                const datasets = data.revenueByCaisse.map((caisse, index) => {
+                    const colors = [
+                        'rgb(255, 99, 132)',
+                        'rgb(54, 162, 235)',
+                        'rgb(255, 206, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(153, 102, 255)'
+                    ];
+                    return {
+                        label: caisse.caisseName,
+                        data: Object.values(caisse.revenueByPeriod),
+                        borderColor: colors[index % colors.length],
+                        backgroundColor: colors[index % colors.length].replace('rgb', 'rgba').replace(')', ', 0.2)'),
+                        tension: 0.1
+                    };
+                });
+
+                charts.revenueByCaisse = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: true }
+                        }
+                    }
+                });
+            }
+
+            function updateTopVoyagesChart(data) {
+                const ctx = document.getElementById('topVoyagesChart').getContext('2d');
+                
+                if (charts.topVoyages) {
+                    charts.topVoyages.destroy();
+                }
+
+                const labels = data.topVoyages.map(v => v.voyageRoute);
+                const values = data.topVoyages.map(v => v.totalReservations);
+
+                charts.topVoyages = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Nombre de Réservations',
+                            data: values,
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgb(54, 162, 235)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateTopClientsChart(data) {
+                const ctx = document.getElementById('topClientsChart').getContext('2d');
+                
+                if (charts.topClients) {
+                    charts.topClients.destroy();
+                }
+
+                const labels = data.topClients.map(c => c.clientName);
+                const values = data.topClients.map(c => c.totalRevenue);
+
+                charts.topClients = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: revenueTypeToggle.checked ? 'Montant Encaissé (Ar)' : 'Chiffre d\'Affaires (Ar)',
+                            data: values,
+                            backgroundColor: revenueTypeToggle.checked ? 'rgba(40, 167, 69, 0.5)' : 'rgba(255, 206, 86, 0.5)',
+                            borderColor: revenueTypeToggle.checked ? 'rgb(40, 167, 69)' : 'rgb(255, 206, 86)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateGenderChart(data) {
+                const ctx = document.getElementById('genderChart').getContext('2d');
+                
+                if (charts.gender) {
+                    charts.gender.destroy();
+                }
+
+                const labels = Object.keys(data.genderUsage);
+                const values = Object.values(data.genderUsage);
+
+                charts.gender = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.5)',
+                                'rgba(54, 162, 235, 0.5)',
+                                'rgba(255, 206, 86, 0.5)'
+                            ],
+                            borderColor: [
+                                'rgb(255, 99, 132)',
+                                'rgb(54, 162, 235)',
+                                'rgb(255, 206, 86)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+
+            function updateAgeGroupChart(data) {
+                const ctx = document.getElementById('ageGroupChart').getContext('2d');
+                
+                if (charts.ageGroup) {
+                    charts.ageGroup.destroy();
+                }
+
+                const labels = Object.keys(data.ageGroupUsage);
+                const values = Object.values(data.ageGroupUsage);
+
+                charts.ageGroup = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: [
+                                'rgba(75, 192, 192, 0.5)',
+                                'rgba(153, 102, 255, 0.5)',
+                                'rgba(255, 159, 64, 0.5)',
+                                'rgba(201, 203, 207, 0.5)'
+                            ],
+                            borderColor: [
+                                'rgb(75, 192, 192)',
+                                'rgb(153, 102, 255)',
+                                'rgb(255, 159, 64)',
+                                'rgb(201, 203, 207)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+        </script>
+    </div>
+</body>
+</html>
