@@ -13,6 +13,7 @@ import com.itu.taxi_brousse.entity.Societe;
 import com.itu.taxi_brousse.entity.BusVoyage;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationContext;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -20,7 +21,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
+import com.itu.taxi_brousse.entity.Facture;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import org.springframework.stereotype.Service;
@@ -36,6 +41,7 @@ public class DiffusionService {
     private final DiffusionPaiementRepository diffusionPaiementRepository;
     private final SocieteRepository societeRepository;
     private final BusVoyageRepository busVoyageRepository;
+    private final ApplicationContext applicationContext;
 
     public List<Diffusion> getListDiffusion() {
         return diffusionRepository.findAll();
@@ -97,7 +103,7 @@ public class DiffusionService {
                 .orElseThrow(() -> new IllegalArgumentException("BusVoyage not found"));
 
         // create N diffusions (same date/time as requested)
-        List<Diffusion> created = new java.util.ArrayList<>();
+        List<Diffusion> created = new ArrayList<>();
         for (int i = 0; i < req.getQuantity(); i++) {
             Diffusion d = Diffusion.builder()
                     .dateDiffusion(req.getDateDiffusion())
@@ -214,6 +220,7 @@ public class DiffusionService {
         BigDecimal allocatedSum = BigDecimal.ZERO;
         Diffusion lastAllocatedDiffusion = null;
 
+        Set<Integer> affectedBusVoyageIds = new HashSet<>();
         for (Map.Entry<Diffusion, BigDecimal> e : remainingMap.entrySet()) {
             Diffusion d = e.getKey();
             BigDecimal rem = e.getValue();
@@ -240,6 +247,9 @@ public class DiffusionService {
                 diffusionPaiementRepository.save(p);
                 allocatedSum = allocatedSum.add(share);
                 lastAllocatedDiffusion = d;
+                if (d.getBusVoyage() != null && d.getBusVoyage().getId() != null) {
+                    affectedBusVoyageIds.add(d.getBusVoyage().getId());
+                }
             }
         }
 
@@ -255,8 +265,33 @@ public class DiffusionService {
                         .build();
                 diffusionPaiementRepository.save(p);
                 residue = BigDecimal.ZERO;
+                if (lastAllocatedDiffusion.getBusVoyage() != null && lastAllocatedDiffusion.getBusVoyage().getId() != null) {
+                    affectedBusVoyageIds.add(lastAllocatedDiffusion.getBusVoyage().getId());
+                }
             } else {
                 throw new IllegalStateException("Unable to allocate payment residue");
+            }
+        }
+
+        if (!affectedBusVoyageIds.isEmpty()) {
+            refreshFacturesForBusVoyageIds(affectedBusVoyageIds);
+        }
+    }
+
+    //?=== Helper: refresh (generate if needed) factures for a set of BusVoyage ids
+    private void refreshFacturesForBusVoyageIds(Set<Integer> busVoyageIds) {
+        FactureService factureService = applicationContext.getBean(FactureService.class);
+        for (Integer busVoyageId : busVoyageIds) {
+            BusVoyage bv = busVoyageRepository.findById(busVoyageId).orElse(null);
+            if (bv == null) continue;
+
+            Facture facture = factureService.generateFacture(bv);
+            if (facture != null && facture.getId() != null) {
+                try {
+                    factureService.refreshFacture(facture.getId());
+                } catch (Exception ex) {
+                    System.err.println("Failed to refresh facture for busVoyageId=" + busVoyageId + ": " + ex.getMessage());
+                }
             }
         }
     }
