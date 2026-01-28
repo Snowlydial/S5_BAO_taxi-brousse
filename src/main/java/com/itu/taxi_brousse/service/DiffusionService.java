@@ -30,6 +30,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Async;
 
 @Service
 @RequiredArgsConstructor
@@ -279,6 +280,7 @@ public class DiffusionService {
     }
 
     //?=== Helper: refresh (generate if needed) factures for a set of BusVoyage ids
+    @Async
     private void refreshFacturesForBusVoyageIds(Set<Integer> busVoyageIds) {
         FactureService factureService = applicationContext.getBean(FactureService.class);
         for (Integer busVoyageId : busVoyageIds) {
