@@ -108,73 +108,48 @@
                 </div>
             </div>
 
-            <!-- Factures Filles (Line Items) -->
+            <!-- Factures Filles (Line Items) - Unified Invoice Table -->
             <div class="card">
                 <div class="card-header bg-secondary text-white">
                     <h4 class="mb-0">Factures Filles (Détails des lignes)</h4>
                 </div>
                 <div class="card-body">
-                    
-                    <!-- Reservations Section -->
-                    <h5 class="text-info mb-3">
-                        <i class="bi bi-person-check me-2"></i>
-                        Réservations
-                    </h5>
-                    
-                    <div th:if="${#lists.isEmpty(facture.lignes.?[typeLigne == 'RESERVATION'])}" 
-                         class="alert alert-light-info mb-4">
-                        Aucune réservation pour ce voyage
-                    </div>
-                    
-                    <div th:if="${!#lists.isEmpty(facture.lignes.?[typeLigne == 'RESERVATION'])}" 
-                         class="table-responsive mb-4">
-                        <table class="table table-sm table-striped">
-                            <thead class="table-info">
-                                <tr>
-                                    <th>Description</th>
-                                    <th class="text-end">Montant (CA)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="ligne : ${facture.lignes.?[typeLigne == 'RESERVATION']}">
-                                    <td th:text="${ligne.description}"></td>
-                                    <td class="text-end">
-                                        <span th:text="${#numbers.formatDecimal(ligne.montant, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
-                                    </td>
-                                </tr>
-                                <tr class="table-info fw-bold">
-                                    <td>Sous-total Réservations</td>
-                                        <td class="text-end">
-                                        <span th:text="${#numbers.formatDecimal(caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
 
-                    <!-- Diffusions Section -->
-                    <h5 class="text-warning mb-3">
-                        <i class="bi bi-broadcast me-2"></i>
-                        Diffusions Publicitaires
-                    </h5>
-                    
-                    <div th:if="${#lists.isEmpty(facture.lignes.?[typeLigne == 'DIFFUSION'])}" 
-                         class="alert alert-light-warning mb-4">
-                        Aucune diffusion pour ce voyage
-                    </div>
-                    
                     <div class="table-responsive mb-4">
                         <table class="table table-sm table-striped">
-                            <thead class="table-warning">
+                            <thead class="table-secondary">
                                 <tr>
+                                    <th style="width:40px">#</th>
+                                    <th>Type</th>
                                     <th>Description</th>
-                                    <th class="text-end">Prix (Due)</th>
+                                    <th class="text-end">Prix</th>
                                     <th class="text-end">Montant Payé</th>
                                     <th class="text-end">Reste à Payer</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="d : ${diffusions}">
+                                <!-- Reservation lines -->
+                                <tr th:each="ligne, iterStat : ${facture.lignes.?[typeLigne == 'RESERVATION']}">
+                                    <td th:text="${iterStat.index + 1}"></td>
+                                    <td>
+                                        <span class="badge bg-info">Réservation</span>
+                                    </td>
+                                    <td th:text="${ligne.description}"></td>
+                                    <td class="text-end">
+                                        <span th:text="${#numbers.formatDecimal(ligne.montant, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                    </td>
+                                    <td class="text-end">
+                                        <span th:text="${#numbers.formatDecimal(ligne.montant, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                    </td>
+                                    <td class="text-end">0 Ar</td>
+                                </tr>
+
+                                <!-- Diffusion lines -->
+                                <tr th:each="d, iterD : ${diffusions}">
+                                    <td th:text="${(facture.lignes.?[typeLigne == 'RESERVATION'] != null ? facture.lignes.?[typeLigne == 'RESERVATION'].size() : 0) + iterD.index + 1}"></td>
+                                    <td>
+                                        <span class="badge bg-warning">Diffusion</span>
+                                    </td>
                                     <td>
                                         <div th:text="${d.description}"></div>
                                         <small class="text-muted" th:text="${d.societe != null ? d.societe.nom : ''}"></small>
@@ -189,7 +164,23 @@
                                         <span th:text="${#numbers.formatDecimal(diffusionRemainingMap[d.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                     </td>
                                 </tr>
-                                <tr class="table-warning fw-bold">
+
+                                <!-- Subtotals -->
+                                <tr class="table-light fw-bold">
+                                    <td></td>
+                                    <td></td>
+                                    <td>Sous-total Réservations</td>
+                                    <td class="text-end">
+                                        <span th:text="${#numbers.formatDecimal(caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                    </td>
+                                    <td class="text-end">
+                                        <span th:text="${#numbers.formatDecimal(caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                    </td>
+                                    <td class="text-end">0 Ar</td>
+                                </tr>
+                                <tr class="table-light fw-bold">
+                                    <td></td>
+                                    <td></td>
                                     <td>Sous-total Diffusions</td>
                                     <td class="text-end">
                                         <span th:text="${#numbers.formatDecimal(diffusionTotalPrice, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
@@ -201,24 +192,20 @@
                                         <span th:text="${#numbers.formatDecimal(diffusionTotalRemaining, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                     </td>
                                 </tr>
+                                
+                                <!-- Grand Total -->
+                                <tr class="table-success fw-bold">
+                                    <td></td>
+                                    <td></td>
+                                    <td>TOTAL GÉNÉRAL</td>
+                                    <td class="text-end">
+                                        <span th:text="${#numbers.formatDecimal(montantTotal, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                    </td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
                             </tbody>
                         </table>
-                    </div>
-
-                    <!-- Grand Total -->
-                    <div class="card bg-light-success">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <h4 class="mb-0">TOTAL GÉNÉRAL</h4>
-                                </div>
-                                    <div class="col-md-4 text-end">
-                                    <h3 class="text-success mb-0">
-                                        <span th:text="${#numbers.formatDecimal(montantTotal, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
-                                    </h3>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Actions -->
