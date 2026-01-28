@@ -8,6 +8,7 @@ import com.itu.taxi_brousse.repository.BusVoyageRepository;
 import com.itu.taxi_brousse.repository.GareRepository;
 import com.itu.taxi_brousse.repository.VoyageRepository;
 import com.itu.taxi_brousse.service.BusVoyageService;
+import com.itu.taxi_brousse.service.FactureService;
 import com.itu.taxi_brousse.service.PricingService;
 
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class BusVoyageController {
     private final GareRepository gareRepository;
     private final BusVoyageService busVoyageService;
     private final PricingService pricingService;
+    private final FactureService factureService;
     
     @GetMapping("/search")
     public String searchPage(Model model) {
@@ -43,6 +45,9 @@ public class BusVoyageController {
         List<BusVoyageWithAvailability> defaultResults = busVoyageService.searchByYear(
             null, null, today, null, 0.00, 200000.00
         );
+        defaultResults = defaultResults.stream()
+            .filter(bv -> bv.getBusVoyage() == null || !factureService.hasFactureForBusVoyage(bv.getBusVoyage()))
+            .toList();
         
         model.addAttribute("pageTitle", "Rechercher un Voyage");
         model.addAttribute("gares", gareRepository.findAll());
@@ -87,6 +92,9 @@ public class BusVoyageController {
             );
             model.addAttribute("selectedDate", searchDate);
         }
+        results = results.stream()
+            .filter(bv -> bv.getBusVoyage() == null || !factureService.hasFactureForBusVoyage(bv.getBusVoyage()))
+            .toList();
         
         model.addAttribute("pageTitle", "Résultats de Recherche");
         model.addAttribute("gares", gareRepository.findAll());

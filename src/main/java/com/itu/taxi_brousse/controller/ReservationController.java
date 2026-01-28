@@ -35,6 +35,7 @@ public class ReservationController {
     private final CategorieGenreRepository categorieGenreRepository;
     private final CategorieGroupeAgeRepository categorieGroupeAgeRepository;
     private final ClassePlaceRepository classePlaceRepository;
+    private final FactureService factureService;
     
     @GetMapping("/list")
     public String listReservations(Model model) {
@@ -131,6 +132,10 @@ public class ReservationController {
                 .orElseThrow(() -> new RuntimeException("Client not found"));
             BusVoyage busVoyage = busVoyageRepository.findById(busVoyageId)
                 .orElseThrow(() -> new RuntimeException("Bus voyage not found"));
+
+            if (factureService.hasFactureForBusVoyage(busVoyage)) {
+                throw new RuntimeException("Impossible de créer une réservation: la facture pour ce voyage est déjà générée (verrouillé).");
+            }
             
             //*-- Validate reservation date
             if (dateReservation.isAfter(busVoyage.getDateDepart())) {

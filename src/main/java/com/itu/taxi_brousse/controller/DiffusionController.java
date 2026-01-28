@@ -4,6 +4,7 @@ import com.itu.taxi_brousse.entity.Diffusion;
 import com.itu.taxi_brousse.entity.Bus;
 import com.itu.taxi_brousse.entity.Voyage;
 import com.itu.taxi_brousse.service.DiffusionService;
+import com.itu.taxi_brousse.service.FactureService;
 
 import lombok.RequiredArgsConstructor;
 import com.itu.taxi_brousse.repository.SocieteRepository;
@@ -31,6 +32,7 @@ public class DiffusionController {
 	private final DiffusionService diffusionService;
 	private final SocieteRepository societeRepository;
 	private final BusVoyageRepository busVoyageRepository;
+	private final FactureService factureService;
 
 	@GetMapping({"/list", ""})
     public String list(Model model) {
@@ -81,7 +83,9 @@ public class DiffusionController {
 	public String createBulkForm(Model model) {
 		model.addAttribute("pageTitle", "Créer Diffusion en Masse");
 		model.addAttribute("societes", societeRepository.findAll());
-		model.addAttribute("busVoyages", busVoyageRepository.findAll());
+		model.addAttribute("busVoyages", busVoyageRepository.findAll().stream()
+			.filter(bv -> !factureService.hasFactureForBusVoyage(bv))
+			.toList());
 		model.addAttribute("bulkRequest", new BulkDiffusionRequest());
 		return "diffusion/create-bulk";
 	}
@@ -89,6 +93,13 @@ public class DiffusionController {
 	@PostMapping("/create-bulk")
 	public String createBulkSubmit(@ModelAttribute BulkDiffusionRequest bulkRequest, RedirectAttributes redir) {
 		try {
+			if (bulkRequest.getBusVoyageId() != null) {
+				busVoyageRepository.findById(bulkRequest.getBusVoyageId()).ifPresent(bv -> {
+					if (factureService.hasFactureForBusVoyage(bv)) {
+						throw new RuntimeException("Impossible d'ajouter une diffusion: la facture pour ce voyage est déjà générée (verrouillé).");
+					}
+				});
+			}
 			diffusionService.createBulkDiffusions(bulkRequest);
 			redir.addFlashAttribute("success", "Bulk diffusions created successfully.");
 		} catch (Exception e) {

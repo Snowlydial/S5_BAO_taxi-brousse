@@ -148,6 +148,12 @@ public class FactureService {
         List<FactureTotalsView> totals = factureRepository.findAllFactureTotals();
         return totals.stream().collect(Collectors.toMap(FactureTotalsView::getFactureId, t -> t));
     }
+
+    //?=== Check if a facture already exists for a BusVoyage
+    public boolean hasFactureForBusVoyage(BusVoyage busVoyage) {
+        if (busVoyage == null) return false;
+        return factureRepository.findByBusVoyage(busVoyage).isPresent();
+    }
     
     //?=== Refresh facture (recalculate all lignes)
     @Transactional
