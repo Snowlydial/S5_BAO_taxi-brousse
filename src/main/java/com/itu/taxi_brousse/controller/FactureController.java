@@ -3,6 +3,9 @@ package com.itu.taxi_brousse.controller;
 import com.itu.taxi_brousse.entity.Facture;
 import com.itu.taxi_brousse.dto.views.FactureTotalsView;
 import com.itu.taxi_brousse.entity.BusVoyage;
+import com.itu.taxi_brousse.entity.Diffusion;
+import com.itu.taxi_brousse.service.DiffusionService;
+import com.itu.taxi_brousse.repository.DiffusionRepository;
 import com.itu.taxi_brousse.service.FactureService;
 import com.itu.taxi_brousse.repository.BusVoyageRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +14,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +26,8 @@ public class FactureController {
     
     private final FactureService factureService;
     private final BusVoyageRepository busVoyageRepository;
+    private final DiffusionRepository diffusionRepository;
+    private final DiffusionService diffusionService;
     
     //?=== List all factures
     @GetMapping({"/list", ""})
@@ -172,6 +178,43 @@ public class FactureController {
         model.addAttribute("caReservations", factureService.getTotalReservationsForFacture(facture));
         model.addAttribute("caDiffusions", factureService.getTotalPaidForDiffusions(facture));
         model.addAttribute("montantTotal", (factureService.getTotalReservationsForFacture(facture) + factureService.getTotalPaidForDiffusions(facture)));
+
+        // Provide full diffusion list for the facture's bus voyage and per-diffusion paid/price/remaining data
+        List<Diffusion> diffusions = new ArrayList<>();
+        if (facture.getBusVoyage() != null && facture.getBusVoyage().getId() != null) {
+            diffusions = diffusionRepository.findByBusVoyageId(facture.getBusVoyage().getId());
+        }
+
+        Map<Integer, Double> diffusionPaidMap = new LinkedHashMap<>();
+        Map<Integer, Double> diffusionPriceMap = new LinkedHashMap<>();
+        Map<Integer, Double> diffusionRemainingMap = new LinkedHashMap<>();
+
+        double diffusionTotalPrice = 0.0;
+        double diffusionTotalPaid = 0.0;
+        double diffusionTotalRemaining = 0.0;
+
+        for (Diffusion d : diffusions) {
+            double paid = diffusionService.getPaidAmountForDiffusion(d);
+            double price = diffusionService.getPrixDiffusion(d.getDateDiffusion());
+            double remaining = price - paid;
+            if (remaining < 0) remaining = 0.0;
+
+            diffusionPaidMap.put(d.getId(), paid);
+            diffusionPriceMap.put(d.getId(), price);
+            diffusionRemainingMap.put(d.getId(), remaining);
+
+            diffusionTotalPrice += price;
+            diffusionTotalPaid += paid;
+            diffusionTotalRemaining += remaining;
+        }
+
+        model.addAttribute("diffusions", diffusions);
+        model.addAttribute("diffusionPaidMap", diffusionPaidMap);
+        model.addAttribute("diffusionPriceMap", diffusionPriceMap);
+        model.addAttribute("diffusionRemainingMap", diffusionRemainingMap);
+        model.addAttribute("diffusionTotalPrice", diffusionTotalPrice);
+        model.addAttribute("diffusionTotalPaid", diffusionTotalPaid);
+        model.addAttribute("diffusionTotalRemaining", diffusionTotalRemaining);
         
         return "facture/view";
     }

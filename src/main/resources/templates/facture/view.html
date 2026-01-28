@@ -163,26 +163,42 @@
                         Aucune diffusion pour ce voyage
                     </div>
                     
-                    <div th:if="${!#lists.isEmpty(facture.lignes.?[typeLigne == 'DIFFUSION'])}" 
-                         class="table-responsive mb-4">
+                    <div class="table-responsive mb-4">
                         <table class="table table-sm table-striped">
                             <thead class="table-warning">
                                 <tr>
                                     <th>Description</th>
+                                    <th class="text-end">Prix (Due)</th>
                                     <th class="text-end">Montant Payé</th>
+                                    <th class="text-end">Reste à Payer</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="ligne : ${facture.lignes.?[typeLigne == 'DIFFUSION']}">
-                                    <td th:text="${ligne.description}"></td>
+                                <tr th:each="d : ${diffusions}">
+                                    <td>
+                                        <div th:text="${d.description}"></div>
+                                        <small class="text-muted" th:text="${d.societe != null ? d.societe.nom : ''}"></small>
+                                    </td>
                                     <td class="text-end">
-                                        <span th:text="${#numbers.formatDecimal(ligne.montant, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        <span th:text="${#numbers.formatDecimal(diffusionPriceMap[d.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                    </td>
+                                    <td class="text-end">
+                                        <span th:text="${#numbers.formatDecimal(diffusionPaidMap[d.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                    </td>
+                                    <td class="text-end">
+                                        <span th:text="${#numbers.formatDecimal(diffusionRemainingMap[d.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                     </td>
                                 </tr>
                                 <tr class="table-warning fw-bold">
                                     <td>Sous-total Diffusions</td>
-                                        <td class="text-end">
-                                        <span th:text="${#numbers.formatDecimal(caDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                    <td class="text-end">
+                                        <span th:text="${#numbers.formatDecimal(diffusionTotalPrice, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                    </td>
+                                    <td class="text-end">
+                                        <span th:text="${#numbers.formatDecimal(diffusionTotalPaid, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                    </td>
+                                    <td class="text-end">
+                                        <span th:text="${#numbers.formatDecimal(diffusionTotalRemaining, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                     </td>
                                 </tr>
                             </tbody>
