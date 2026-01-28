@@ -174,10 +174,6 @@ public class FactureController {
         
         model.addAttribute("pageTitle", "Détails Facture - " + facture.getNumeroFacture());
         model.addAttribute("facture", facture);
-        // add computed totals
-        model.addAttribute("caReservations", factureService.getTotalReservationsForFacture(facture));
-        model.addAttribute("caDiffusions", factureService.getTotalPaidForDiffusions(facture));
-        model.addAttribute("montantTotal", (factureService.getTotalReservationsForFacture(facture) + factureService.getTotalPaidForDiffusions(facture)));
 
         // Provide full diffusion list for the facture's bus voyage and per-diffusion paid/price/remaining data
         List<Diffusion> diffusions = new ArrayList<>();
@@ -208,6 +204,7 @@ public class FactureController {
             diffusionTotalRemaining += remaining;
         }
 
+        // Provide computed diffusion aggregates and maps to the view
         model.addAttribute("diffusions", diffusions);
         model.addAttribute("diffusionPaidMap", diffusionPaidMap);
         model.addAttribute("diffusionPriceMap", diffusionPriceMap);
@@ -215,6 +212,12 @@ public class FactureController {
         model.addAttribute("diffusionTotalPrice", diffusionTotalPrice);
         model.addAttribute("diffusionTotalPaid", diffusionTotalPaid);
         model.addAttribute("diffusionTotalRemaining", diffusionTotalRemaining);
+
+        // Reservation CA (assumed paid) and facture expected total (reservations + total diffusion price)
+        double caReservations = factureService.getTotalReservationsForFacture(facture);
+        model.addAttribute("caReservations", caReservations);
+        model.addAttribute("caDiffusions", diffusionTotalPrice);
+        model.addAttribute("montantTotal", (caReservations + diffusionTotalPrice));
         
         return "facture/view";
     }
