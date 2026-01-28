@@ -75,7 +75,63 @@ public class FactureController {
         return "facture/list";
     }
 
-    // API endpoint: return current summary for paid/remaining amounts (used by AJAX in list.html)
+    //?=== View facture details
+    @GetMapping("/view/{id}")
+    public String viewFacture(@PathVariable Integer id, Model model) {
+        Facture facture = factureService.getFactureById(id)
+            .orElseThrow(() -> new RuntimeException("Facture not found"));
+        
+        model.addAttribute("pageTitle", "Détails Facture - " + facture.getNumeroFacture());
+        model.addAttribute("facture", facture);
+
+        // Provide full diffusion list for the facture's bus voyage and per-diffusion paid/price/remaining data
+        List<Diffusion> diffusions = new ArrayList<>();
+        if (facture.getBusVoyage() != null && facture.getBusVoyage().getId() != null) {
+            diffusions = diffusionRepository.findByBusVoyageId(facture.getBusVoyage().getId());
+        }
+
+        Map<Integer, Double> diffusionPaidMap = new LinkedHashMap<>();
+        Map<Integer, Double> diffusionPriceMap = new LinkedHashMap<>();
+        Map<Integer, Double> diffusionRemainingMap = new LinkedHashMap<>();
+
+        double diffusionTotalPrice = 0.0;
+        double diffusionTotalPaid = 0.0;
+        double diffusionTotalRemaining = 0.0;
+
+        for (Diffusion d : diffusions) {
+            double paid = diffusionService.getPaidAmountForDiffusion(d);
+            double price = diffusionService.getPrixDiffusion(d.getDateDiffusion());
+            double remaining = price - paid;
+            if (remaining < 0) remaining = 0.0;
+
+            diffusionPaidMap.put(d.getId(), paid);
+            diffusionPriceMap.put(d.getId(), price);
+            diffusionRemainingMap.put(d.getId(), remaining);
+
+            diffusionTotalPrice += price;
+            diffusionTotalPaid += paid;
+            diffusionTotalRemaining += remaining;
+        }
+
+        // Provide computed diffusion aggregates and maps to the view
+        model.addAttribute("diffusions", diffusions);
+        model.addAttribute("diffusionPaidMap", diffusionPaidMap);
+        model.addAttribute("diffusionPriceMap", diffusionPriceMap);
+        model.addAttribute("diffusionRemainingMap", diffusionRemainingMap);
+        model.addAttribute("diffusionTotalPrice", diffusionTotalPrice);
+        model.addAttribute("diffusionTotalPaid", diffusionTotalPaid);
+        model.addAttribute("diffusionTotalRemaining", diffusionTotalRemaining);
+
+        // Reservation CA (assumed paid) and facture expected total (reservations + total diffusion price)
+        double caReservations = factureService.getTotalReservationsForFacture(facture);
+        model.addAttribute("caReservations", caReservations);
+        model.addAttribute("caDiffusions", diffusionTotalPrice);
+        model.addAttribute("montantTotal", (caReservations + diffusionTotalPrice));
+        
+        return "facture/view";
+    }
+    
+    //?=== For List: Return current summary for paid/remaining amounts
     @GetMapping("/api/summary")
     @ResponseBody
     public Map<String, Object> getFactureSummary() {
@@ -166,66 +222,9 @@ public class FactureController {
         return "redirect:/facture/list";
     }
     
-    //?=== View facture details
-    @GetMapping("/view/{id}")
-    public String viewFacture(@PathVariable Integer id, Model model) {
-        Facture facture = factureService.getFactureById(id)
-            .orElseThrow(() -> new RuntimeException("Facture not found"));
-        
-        model.addAttribute("pageTitle", "Détails Facture - " + facture.getNumeroFacture());
-        model.addAttribute("facture", facture);
-
-        // Provide full diffusion list for the facture's bus voyage and per-diffusion paid/price/remaining data
-        List<Diffusion> diffusions = new ArrayList<>();
-        if (facture.getBusVoyage() != null && facture.getBusVoyage().getId() != null) {
-            diffusions = diffusionRepository.findByBusVoyageId(facture.getBusVoyage().getId());
-        }
-
-        Map<Integer, Double> diffusionPaidMap = new LinkedHashMap<>();
-        Map<Integer, Double> diffusionPriceMap = new LinkedHashMap<>();
-        Map<Integer, Double> diffusionRemainingMap = new LinkedHashMap<>();
-
-        double diffusionTotalPrice = 0.0;
-        double diffusionTotalPaid = 0.0;
-        double diffusionTotalRemaining = 0.0;
-
-        for (Diffusion d : diffusions) {
-            double paid = diffusionService.getPaidAmountForDiffusion(d);
-            double price = diffusionService.getPrixDiffusion(d.getDateDiffusion());
-            double remaining = price - paid;
-            if (remaining < 0) remaining = 0.0;
-
-            diffusionPaidMap.put(d.getId(), paid);
-            diffusionPriceMap.put(d.getId(), price);
-            diffusionRemainingMap.put(d.getId(), remaining);
-
-            diffusionTotalPrice += price;
-            diffusionTotalPaid += paid;
-            diffusionTotalRemaining += remaining;
-        }
-
-        // Provide computed diffusion aggregates and maps to the view
-        model.addAttribute("diffusions", diffusions);
-        model.addAttribute("diffusionPaidMap", diffusionPaidMap);
-        model.addAttribute("diffusionPriceMap", diffusionPriceMap);
-        model.addAttribute("diffusionRemainingMap", diffusionRemainingMap);
-        model.addAttribute("diffusionTotalPrice", diffusionTotalPrice);
-        model.addAttribute("diffusionTotalPaid", diffusionTotalPaid);
-        model.addAttribute("diffusionTotalRemaining", diffusionTotalRemaining);
-
-        // Reservation CA (assumed paid) and facture expected total (reservations + total diffusion price)
-        double caReservations = factureService.getTotalReservationsForFacture(facture);
-        model.addAttribute("caReservations", caReservations);
-        model.addAttribute("caDiffusions", diffusionTotalPrice);
-        model.addAttribute("montantTotal", (caReservations + diffusionTotalPrice));
-        
-        return "facture/view";
-    }
-    
     //?=== Refresh facture (recalculate)
     @PostMapping("/refresh/{id}")
-    public String refreshFacture(@PathVariable Integer id, 
-                                RedirectAttributes redirectAttributes) {
+    public String refreshFacture(@PathVariable Integer id, RedirectAttributes redirectAttributes) {
         try {
             Facture facture = factureService.refreshFacture(id);
             
