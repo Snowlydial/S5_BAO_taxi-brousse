@@ -42,7 +42,7 @@ Short and actionable guidance for working in this repo.
 - Favor small, focused changes: add a new service + unit tests, update a controller route, or add a template.
 - Follow existing patterns (use `@Service`, `@Repository`, `@Controller` annotations; use `RedirectAttributes` for user messages; use `orElseThrow` for missing entities).
 - When adding DB columns/entities, update the `entity` class, repository (if needed), service logic, and templates that read/write the field. Mention DB migration in the PR.
-- No extra, no overdoing: avoid using inline imports, complex design patterns, or unnecessary abstractions. Keep it simple and consistent with existing code. Don't add more than asked.
+- No extra, no overdoing: avoid using inline imports, complex design patterns, or unnecessary abstractions. Keep it simple and consistent with existing code. Don't add more than asked, do as I say.
 - For API changes, maintain the current JSON shapes; if changing shapes, add a migration note in PR and update callers (templates or JS) accordingly.
 
 8) Example endpoints and locations (useful references)
