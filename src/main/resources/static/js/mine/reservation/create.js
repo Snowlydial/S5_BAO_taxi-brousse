@@ -45,8 +45,36 @@ dateReservationInput.max = busVoyageDate;
 //?-- Fetch dynamic pricing when client or date changes
 async function fetchPricing(ageGroupId, date) {
     if (!ageGroupId || !date) return;
-    
+    // Prefer voyage-aware pricing when possible
+    const voyageId = window.RESERVATION_CONFIG?.busVoyageId;
     try {
+        if (voyageId) {
+            const response = await fetch(`/api/pricing/voyage/${voyageId}?date=${date}`);
+            if (!response.ok) throw new Error('Failed to fetch voyage pricing');
+            const data = await response.json();
+            // data shape: {classePlaceId: { ageGroupId: {price, hasDiscount, percentage, ...}, ...}, ...}
+            const mapForAge = {};
+            for (const [classePlaceId, ageGroupMap] of Object.entries(data)) {
+                const ageInfo = ageGroupMap[ageGroupId];
+                if (ageInfo) {
+                    mapForAge[classePlaceId] = {
+                        price: ageInfo.price,
+                        hasDiscount: !!ageInfo.hasDiscount,
+                        percentage: ageInfo.percentage || 0
+                    };
+                }
+            }
+            // Ensure we have entries for all classePlaces (fallback to base price)
+            window.RESERVATION_CONFIG.classePlaces.forEach(cp => {
+                if (!mapForAge[cp.id]) {
+                    mapForAge[cp.id] = {price: cp.prixPlace || 0, hasDiscount: false, percentage: 0};
+                }
+            });
+            pricingMap[ageGroupId] = mapForAge;
+            return;
+        }
+
+        // Legacy fallback: request non-voyage pricing
         const response = await fetch(`/api/pricing?ageGroupId=${ageGroupId}&date=${date}`);
         const data = await response.json();
         pricingMap[ageGroupId] = data; // {classePlaceId: {price, hasDiscount, percentage}}
