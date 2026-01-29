@@ -4,6 +4,29 @@
       layout:decorate="~{layout}">
 <head>
     <title>Détails Facture</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.css}" />
+    <style>
+        .collapse-row {
+            cursor: pointer;
+            user-select: none;
+        }
+        .collapse-row:hover {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+        .collapse-icon {
+            transition: transform 0.3s ease;
+            display: inline-block;
+        }
+        .collapse-icon.rotated {
+            transform: rotate(90deg);
+        }
+        .detail-row {
+            background-color: #f8f9fa;
+        }
+        .detail-row td {
+            padding-left: 2rem !important;
+        }
+    </style>
 </head>
 <body>
     <div layout:fragment="content">
@@ -28,79 +51,37 @@
         </div>
 
         <section class="section">
-            <!-- Facture Mère Summary -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Facture Mère - <span th:text="${facture.numeroFacture}"></span></h4>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <th width="40%">Date Émission:</th>
-                                    <td th:text="${#temporals.format(facture.dateEmission, 'dd/MM/yyyy')}"></td>
-                                </tr>
-                                <tr>
-                                    <th>Bus:</th>
-                                    <td>
+            <!-- Facture Info Card -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header py-2">
+                            <h6 class="mb-0"><i class="bi bi-info-circle me-1"></i> Informations Facture</h6>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <label class="form-label small mb-1">Date Émission</label>
+                                    <div class="fw-bold" th:text="${#temporals.format(facture.dateEmission, 'dd/MM/yyyy')}"></div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Bus</label>
+                                    <div>
                                         <span class="badge bg-secondary" 
                                               th:text="${facture.busVoyage.bus.immatriculation}"></span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Trajet:</th>
-                                    <td th:text="${facture.busVoyage.voyage.gareDepart.libelle + ' → ' + facture.busVoyage.voyage.gareArrivee.libelle}"></td>
-                                </tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <th width="40%">Date Départ:</th>
-                                    <td th:text="${#temporals.format(facture.busVoyage.dateDepart, 'dd/MM/yyyy')}"></td>
-                                </tr>
-                                <tr>
-                                    <th>Heure Départ:</th>
-                                    <td th:text="${#temporals.format(facture.busVoyage.heureDepart, 'HH:mm')}"></td>
-                                </tr>
-                                <tr>
-                                    <th>Durée:</th>
-                                    <td th:text="${facture.busVoyage.voyage.duree + 'h'}"></td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    <!-- Revenue Summary -->
-                    <div class="row mt-3">
-                        <div class="col-md-4">
-                            <div class="card bg-light-info">
-                                <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">CA Réservations</h6>
-                                    <h3 class="text-info mb-0">
-                                        <span th:text="${#numbers.formatDecimal(facture.caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
-                                    </h3>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-light-warning">
-                                <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">CA Diffusions</h6>
-                                    <h3 class="text-warning mb-0">
-                                        <span th:text="${#numbers.formatDecimal(facture.caDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
-                                    </h3>
+                                <div class="col-md-3">
+                                    <label class="form-label small mb-1">Trajet</label>
+                                    <div class="fw-bold" th:text="${facture.busVoyage.voyage.gareDepart.libelle + ' → ' + facture.busVoyage.voyage.gareArrivee.libelle}"></div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-light-success">
-                                <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">Montant Total</h6>
-                                    <h3 class="text-success mb-0">
-                                        <span th:text="${#numbers.formatDecimal(facture.montantTotal, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
-                                    </h3>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Date Départ</label>
+                                    <div class="fw-bold" th:text="${#temporals.format(facture.busVoyage.dateDepart, 'dd/MM/yyyy')}"></div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Heure Départ</label>
+                                    <div class="fw-bold" th:text="${#temporals.format(facture.busVoyage.heureDepart, 'HH:mm')}"></div>
                                 </div>
                             </div>
                         </div>
@@ -108,121 +89,263 @@
                 </div>
             </div>
 
-            <!-- Factures Filles (Line Items) -->
-            <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    <h4 class="mb-0">Factures Filles (Détails des lignes)</h4>
-                </div>
-                <div class="card-body">
-                    
-                    <!-- Reservations Section -->
-                    <h5 class="text-info mb-3">
-                        <i class="bi bi-person-check me-2"></i>
-                        Réservations
-                    </h5>
-                    
-                    <div th:if="${#lists.isEmpty(facture.lignes.?[typeLigne == 'RESERVATION'])}" 
-                         class="alert alert-light-info mb-4">
-                        Aucune réservation pour ce voyage
-                    </div>
-                    
-                    <div th:if="${!#lists.isEmpty(facture.lignes.?[typeLigne == 'RESERVATION'])}" 
-                         class="table-responsive mb-4">
-                        <table class="table table-sm table-striped">
-                            <thead class="table-info">
-                                <tr>
-                                    <th>Description</th>
-                                    <th class="text-end">Montant (CA)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="ligne : ${facture.lignes.?[typeLigne == 'RESERVATION']}">
-                                    <td th:text="${ligne.description}"></td>
-                                    <td class="text-end">
-                                        <span th:text="${#numbers.formatDecimal(ligne.montant, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
-                                    </td>
-                                </tr>
-                                <tr class="table-info fw-bold">
-                                    <td>Sous-total Réservations</td>
-                                    <td class="text-end">
-                                        <span th:text="${#numbers.formatDecimal(facture.caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Diffusions Section -->
-                    <h5 class="text-warning mb-3">
-                        <i class="bi bi-broadcast me-2"></i>
-                        Diffusions Publicitaires
-                    </h5>
-                    
-                    <div th:if="${#lists.isEmpty(facture.lignes.?[typeLigne == 'DIFFUSION'])}" 
-                         class="alert alert-light-warning mb-4">
-                        Aucune diffusion pour ce voyage
-                    </div>
-                    
-                    <div th:if="${!#lists.isEmpty(facture.lignes.?[typeLigne == 'DIFFUSION'])}" 
-                         class="table-responsive mb-4">
-                        <table class="table table-sm table-striped">
-                            <thead class="table-warning">
-                                <tr>
-                                    <th>Description</th>
-                                    <th class="text-end">Montant Payé</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="ligne : ${facture.lignes.?[typeLigne == 'DIFFUSION']}">
-                                    <td th:text="${ligne.description}"></td>
-                                    <td class="text-end">
-                                        <span th:text="${#numbers.formatDecimal(ligne.montant, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
-                                    </td>
-                                </tr>
-                                <tr class="table-warning fw-bold">
-                                    <td>Sous-total Diffusions</td>
-                                    <td class="text-end">
-                                        <span th:text="${#numbers.formatDecimal(facture.caDiffusions, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Grand Total -->
-                    <div class="card bg-light-success">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <h4 class="mb-0">TOTAL GÉNÉRAL</h4>
-                                </div>
-                                <div class="col-md-4 text-end">
-                                    <h3 class="text-success mb-0">
-                                        <span th:text="${#numbers.formatDecimal(facture.montantTotal, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
-                                    </h3>
-                                </div>
+            <!-- Revenue Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card shadow-sm bg-light-info">
+                        <div class="card-body py-3">
+                            <h6 class="mb-1 text-muted">
+                                <i class="bi bi-bookmark-check me-2"></i>
+                                CA Réservations
+                            </h6>
+                            <small class="text-muted d-block mb-2">Montant payé intégralement</small>
+                            <h3 class="mb-0 text-info">
+                                <span th:text="${#numbers.formatDecimal(caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                            </h3>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    Nombre: <strong th:text="${facture.lignes.?[typeLigne == 'RESERVATION'].size()}">0</strong>
+                                </small>
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card shadow-sm bg-light-warning">
+                        <div class="card-body py-3">
+                            <h6 class="mb-1 text-muted">
+                                <i class="bi bi-broadcast me-2"></i>
+                                CA Diffusions (calculé)
+                            </h6>
+                            <small class="text-muted d-block mb-2">Calculé à partir de la configuration actuelle</small>
+                            <h3 class="mb-0 text-warning">
+                                <span th:text="${#numbers.formatDecimal(diffusionTotalPrice, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                            </h3>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    Nombre: <strong th:text="${diffusions != null ? #lists.size(diffusions) : 0}">0</strong>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card shadow-sm bg-light-success">
+                        <div class="card-body py-3">
+                            <h6 class="mb-1 text-muted">
+                                <i class="bi bi-cash-stack me-2"></i>
+                                Montant Payé Total
+                            </h6>
+                            <small class="text-muted d-block mb-2">Réservations + Diffusions payées</small>
+                            <h3 class="mb-0 text-success">
+                                <span th:text="${#numbers.formatDecimal(caReservations + diffusionTotalPaid, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                            </h3>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    Reste: <strong class="text-danger" th:text="${#numbers.formatDecimal(diffusionTotalRemaining, 0, 'COMMA', 0, 'POINT')}">0</strong> Ar
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    <!-- Actions -->
-                    <div class="mt-4">
-                        <a th:href="@{/facture/list}" class="btn btn-secondary">
+            <!-- Main Table Card - Using exact structure from list.html -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">Factures Filles (Détails des lignes)</h4>
+                    <div>
+                        <a th:href="@{/facture/list}" class="btn btn-sm btn-secondary me-2">
                             <i class="bi bi-arrow-left me-1"></i> Retour
                         </a>
                         <form th:action="@{/facture/refresh/{id}(id=${facture.id})}" 
                               method="post" 
                               style="display: inline;">
                             <button type="submit" 
-                                    class="btn btn-warning"
+                                    class="btn btn-sm btn-warning"
                                     onclick="return confirm('Recalculer cette facture?')">
                                 <i class="bi bi-arrow-clockwise me-1"></i> Actualiser
                             </button>
                         </form>
                     </div>
                 </div>
+                <div class="card-content">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="factureTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width:40px">#</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                        <th class="text-end">Prix</th>
+                                        <th class="text-end">Montant Payé</th>
+                                        <th class="text-end">Reste à Payer</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Reservations Group Header (Collapsible) -->
+                                    <tr class="table-light collapse-row" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#reservationsGroup"
+                                        th:if="${facture.lignes.?[typeLigne == 'RESERVATION'].size() > 0}">
+                                        <td colspan="6" class="fw-bold">
+                                            <i class="bi bi-chevron-right collapse-icon" id="reservationsIcon"></i>
+                                            <span class="badge bg-info me-2">Réservations</span>
+                                            <span th:text="${facture.lignes.?[typeLigne == 'RESERVATION'].size() + ' ligne(s)'}"></span>
+                                            <span class="float-end me-3">
+                                                Total: <span th:text="${#numbers.formatDecimal(caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Reservation Detail Rows (Collapsible) -->
+                                    <th:block th:if="${facture.lignes.?[typeLigne == 'RESERVATION'].size() > 0}">
+                                        <tr th:each="ligne, iterStat : ${facture.lignes.?[typeLigne == 'RESERVATION']}" 
+                                            th:id="'reservationsGroup'"
+                                            th:class="'detail-row collapse show'">
+                                            <td th:text="${iterStat.index + 1}"></td>
+                                            <td>
+                                                <span class="badge bg-info">Réservation</span>
+                                            </td>
+                                            <td th:text="${ligne.description}"></td>
+                                            <td class="text-end">
+                                                <span th:text="${#numbers.formatDecimal(ligne.montant, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </td>
+                                            <td class="text-end">
+                                                <span th:text="${#numbers.formatDecimal(ligne.montant, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </td>
+                                            <td class="text-end text-success fw-bold">0 Ar</td>
+                                        </tr>
+                                    </th:block>
+
+                                    <!-- Diffusions Group Header (Collapsible) -->
+                                    <tr class="table-light collapse-row" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target=".diffusionsGroup"
+                                        th:if="${diffusions != null && #lists.size(diffusions) > 0}">
+                                        <td colspan="6" class="fw-bold">
+                                            <i class="bi bi-chevron-right collapse-icon" id="diffusionsIcon"></i>
+                                            <span class="badge bg-warning me-2">Diffusions</span>
+                                            <span th:text="${#lists.size(diffusions) + ' ligne(s)'}"></span>
+                                            <span class="float-end me-3">
+                                                Total: <span th:text="${#numbers.formatDecimal(diffusionTotalPrice, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </span>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Diffusion Detail Rows (Collapsible) -->
+                                    <th:block th:if="${diffusions != null && #lists.size(diffusions) > 0}">
+                                        <tr th:each="d, iterD : ${diffusions}" 
+                                            th:class="'detail-row collapse show diffusionsGroup'">
+                                            <td th:text="${iterD.index + 1}"></td>
+                                            <td>
+                                                <span class="badge bg-warning">Diffusion</span>
+                                            </td>
+                                            <td>
+                                                <div th:text="${d.description}"></div>
+                                                <small class="text-muted" th:text="${d.societe != null ? d.societe.nom : ''}"></small>
+                                            </td>
+                                            <td class="text-end">
+                                                <span th:text="${#numbers.formatDecimal(diffusionPriceMap[d.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </td>
+                                            <td class="text-end">
+                                                <span th:text="${#numbers.formatDecimal(diffusionPaidMap[d.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </td>
+                                            <td class="text-end" 
+                                                th:classappend="${diffusionRemainingMap[d.id] > 0 ? 'text-danger fw-bold' : 'text-success fw-bold'}">
+                                                <span th:text="${#numbers.formatDecimal(diffusionRemainingMap[d.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </td>
+                                        </tr>
+                                    </th:block>
+
+                                    <!-- Subtotals Section -->
+                                    <tr class="table-light">
+                                        <td colspan="6"></td>
+                                    </tr>
+                                    <tr class="table-secondary fw-bold">
+                                        <td colspan="2"></td>
+                                        <td>Sous-total Réservations</td>
+                                        <td class="text-end">
+                                            <span th:text="${#numbers.formatDecimal(caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </td>
+                                        <td class="text-end">
+                                            <span th:text="${#numbers.formatDecimal(caReservations, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </td>
+                                        <td class="text-end text-success">0 Ar</td>
+                                    </tr>
+                                    <tr class="table-secondary fw-bold">
+                                        <td colspan="2"></td>
+                                        <td>Sous-total Diffusions</td>
+                                        <td class="text-end">
+                                            <span th:text="${#numbers.formatDecimal(diffusionTotalPrice, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </td>
+                                        <td class="text-end">
+                                            <span th:text="${#numbers.formatDecimal(diffusionTotalPaid, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </td>
+                                        <td class="text-end" 
+                                            th:classappend="${diffusionTotalRemaining > 0 ? 'text-danger' : 'text-success'}">
+                                            <span th:text="${#numbers.formatDecimal(diffusionTotalRemaining, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Grand Total -->
+                                    <tr class="table-success fw-bold">
+                                        <td colspan="2"></td>
+                                        <td class="fs-5">
+                                            <i class="bi bi-cash-stack me-2"></i>
+                                            TOTAL GÉNÉRAL
+                                        </td>
+                                        <td class="text-end fs-5">
+                                            <span th:text="${#numbers.formatDecimal(montantTotal, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </td>
+                                        <td class="text-end fs-5">
+                                            <span th:text="${#numbers.formatDecimal(caReservations + diffusionTotalPaid, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </td>
+                                        <td class="text-end fs-5" 
+                                            th:classappend="${diffusionTotalRemaining > 0 ? 'text-danger' : 'text-success'}">
+                                            <span th:text="${#numbers.formatDecimal(diffusionTotalRemaining, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            //?=== Collapsible groups icon rotation
+            document.addEventListener('DOMContentLoaded', function() {
+                //*-- Handle reservations collapse
+                const reservationsRows = document.querySelectorAll('#reservationsGroup');
+                const reservationsIcon = document.getElementById('reservationsIcon');
+                
+                if (reservationsIcon) {
+                    document.querySelector('[data-bs-target="#reservationsGroup"]').addEventListener('click', function() {
+                        reservationsIcon.classList.toggle('rotated');
+                    });
+                    
+                    //*-- Initial state (start expanded)
+                    reservationsIcon.classList.add('rotated');
+                }
+                
+                //*-- Handle diffusions collapse
+                const diffusionsIcon = document.getElementById('diffusionsIcon');
+                
+                if (diffusionsIcon) {
+                    document.querySelector('[data-bs-target=".diffusionsGroup"]').addEventListener('click', function() {
+                        diffusionsIcon.classList.toggle('rotated');
+                    });
+                    
+                    //*-- Initial state (start expanded)
+                    diffusionsIcon.classList.add('rotated');
+                }
+            });
+        </script>
     </div>
 </body>
 </html>

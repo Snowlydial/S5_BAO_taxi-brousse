@@ -21,77 +21,98 @@ public class PricingService {
     private final ClasseAgeConfRepository classeAgeConfRepository;
     private final String DEFAULT_BASELINE_AGE_GROUP_LIBELLE = "Adulte";
     
-    //?== Calculate price for a reservation: ClasseAgeConf -> ClassePlace -> BusVoyage
+    //?== Calculate price for a reservation using new hierarchy
     public Double calculatePrice(Reservation reservation) {
         return calculatePrice(reservation, LocalDate.now());
     }
     
-    //?== Calculate price for a reservation on a specific date: ClasseAgeConf -> ClassePlace -> BusVoyage
+    //?== Calculate price for a reservation on a specific date using new hierarchy
     public Double calculatePrice(Reservation reservation, LocalDate pricingDate) {
         if (reservation.getClient() == null || 
             reservation.getClient().getCategorieGroupeAge() == null ||
-            reservation.getClassePlace() == null) {
-            // Fallback to BusVoyage price if no proper config
-            return calculatePrice(reservation.getBusVoyage());
+            reservation.getClassePlace() == null ||
+            reservation.getBusVoyage() == null) {
+            return 0.0;
         }
         
-        Optional<ClasseAgeConf> config = classeAgeConfRepository.findActiveConfig(
-            reservation.getClient().getCategorieGroupeAge(),
-            reservation.getClassePlace(),
-            pricingDate
+        CategorieGroupeAge ageGroup = reservation.getClient().getCategorieGroupeAge();
+        ClassePlace classePlace = reservation.getClassePlace();
+        Voyage voyage = reservation.getBusVoyage().getVoyage();
+        BusVoyage busVoyage = reservation.getBusVoyage();
+        
+        //*-- Priority 1: Check ClasseAgeConf for this specific voyage
+        Optional<ClasseAgeConf> voyageConfig = classeAgeConfRepository.findActiveConfigByVoyage(
+            voyage, ageGroup, classePlace, pricingDate
         );
         
-        if (!config.isPresent()) {
-            throw new RuntimeException(
-                String.format("Aucune configuration de prix trouvée pour %s sur siège %s", 
-                    reservation.getClient().getCategorieGroupeAge().getLibelle(),
-                    reservation.getClassePlace().getLibelle())
-            );
+        if (voyageConfig.isPresent()) {
+            ClasseAgeConf config = voyageConfig.get();
+            
+            if (config.getEstPourcentage()) {
+                //*-- Percentage-based: need base price
+                Double basePrice = getBasePriceForVoyage(voyage, classePlace, pricingDate);
+                return config.calculatePrice(basePrice);
+            } else {
+                //*-- Absolute price
+                return config.getValeurOverride();
+            }
         }
         
-        ClasseAgeConf ageConfig = config.get();
-        
-        // If percentage-based, we need a baseline price as reference
-        if (ageConfig.getEstPourcentage()) {
-            Double basePrice = getCategorieGroupeAgeUsedForBaselinePrice(reservation.getClassePlace(), pricingDate, DEFAULT_BASELINE_AGE_GROUP_LIBELLE);
-            return ageConfig.calculatePrice(basePrice);
-        } else {
-            return ageConfig.getValeurOverride(); // Absolute price
-        }
-    }
-
-    private Double getCategorieGroupeAgeUsedForBaselinePrice(ClassePlace classePlace, LocalDate date, String libelleAgeGroup) {
-        List<ClasseAgeConf> allConfigs = classeAgeConfRepository.findByClassePlace(classePlace);
-
-        // Look for absolute price configs (aka non-percentage)
-        Optional<ClasseAgeConf> baseConfig = allConfigs.stream()
-            .filter(c -> !c.getEstPourcentage())
-            .filter(c -> c.isActiveOn(date == null ? date : LocalDate.now()))
-            .filter(c -> c.getCategorieGroupeAge().getLibelle().contains(libelleAgeGroup))
-            .findFirst();
-
-        if (baseConfig.isPresent()) {
-            return baseConfig.get().getValeurOverride();
-        }
-        
-        // Fallback: use ClassePlace.prix_place if not NULL
-        if (classePlace.getPrixPlace() != null) {
-            return classePlace.getPrixPlace();
-        }
-        
-        throw new RuntimeException(
-            "Impossible de déterminer le prix de base pour " + classePlace.getLibelle()
-        );
-    }
-    
-    //?== Calculate price using hierarchy: Bus_Voyage → Voyage
-    public Double calculatePrice(BusVoyage busVoyage) {
-        // Check Bus_Voyage specific price
+        //*-- Priority 2: BusVoyage specific price
         if (busVoyage.getPrixSpecifique() != null) {
             return busVoyage.getPrixSpecifique();
         }
         
-        // Check Voyage price
+        //*-- Priority 3: Voyage price
+        if (voyage.getPrixVoyage() != null) {
+            return voyage.getPrixVoyage();
+        }
+        
+        //*-- Priority 4: ClassePlace fallback price
+        if (classePlace.getPrixPlace() != null) {
+            return classePlace.getPrixPlace();
+        }
+        
+        //*-- Final fallback
+        return 0.0;
+    }
+    
+    //?== Get base price for percentage calculations (for a specific voyage)
+    private Double getBasePriceForVoyage(Voyage voyage, ClassePlace classePlace, LocalDate date) {
+        //*-- Look for adult (baseline) absolute price config for this voyage
+        List<ClasseAgeConf> allConfigs = classeAgeConfRepository.findAllActiveConfigsByVoyage(voyage, date);
+        
+        Optional<ClasseAgeConf> baseConfig = allConfigs.stream()
+            .filter(c -> !c.getEstPourcentage())
+            .filter(c -> c.getClassePlace().equals(classePlace))
+            .filter(c -> c.getCategorieGroupeAge().getLibelle().contains(DEFAULT_BASELINE_AGE_GROUP_LIBELLE))
+            .findFirst();
+        
+        if (baseConfig.isPresent()) {
+            return baseConfig.get().getValeurOverride();
+        }
+        
+        //*-- Fallback to voyage price
+        if (voyage.getPrixVoyage() != null) {
+            return voyage.getPrixVoyage();
+        }
+        
+        //*-- Fallback to ClassePlace price
+        if (classePlace.getPrixPlace() != null) {
+            return classePlace.getPrixPlace();
+        }
+        
+        return 0.0;
+    }
+    
+    //?== Calculate price using hierarchy: Bus_Voyage → Voyage → 0.0
+    public Double calculatePrice(BusVoyage busVoyage) {
+        //*-- Check Bus_Voyage specific price
+        if (busVoyage.getPrixSpecifique() != null) {
+            return busVoyage.getPrixSpecifique();
+        }
+        
+        //*-- Check Voyage price
         if (busVoyage.getVoyage().getPrixVoyage() != null) {
             return busVoyage.getVoyage().getPrixVoyage();
         }
@@ -99,42 +120,92 @@ public class PricingService {
         return 0.0;
     }
 
-    //?== Get the effective price for a client on a specific seat class
+    //?== Get the effective price for a client on a specific seat class for a specific voyage
     // Used for UI price display before reservation is created
+    public Double getEffectivePrice(Voyage voyage, CategorieGroupeAge ageGroup, ClassePlace classePlace, LocalDate date) {
+        if (voyage == null || ageGroup == null || classePlace == null) {
+            return null;
+        }
+        
+        //*-- Priority 1: Check voyage-specific config
+        Optional<ClasseAgeConf> voyageConfig = classeAgeConfRepository.findActiveConfigByVoyage(
+            voyage, ageGroup, classePlace, date != null ? date : LocalDate.now()
+        );
+        
+        if (voyageConfig.isPresent()) {
+            ClasseAgeConf config = voyageConfig.get();
+            
+            if (config.getEstPourcentage()) {
+                Double basePrice = getBasePriceForVoyage(voyage, classePlace, date);
+                return config.calculatePrice(basePrice);
+            } else {
+                return config.getValeurOverride();
+            }
+        }
+        
+        //*-- Priority 2-4: Fallback chain
+        if (voyage.getPrixVoyage() != null) {
+            return voyage.getPrixVoyage();
+        }
+        
+        if (classePlace.getPrixPlace() != null) {
+            return classePlace.getPrixPlace();
+        }
+        
+        return 0.0;
+    }
+    
+    //?== LEGACY: Get effective price without voyage (backward compatibility)
     public Double getEffectivePrice(CategorieGroupeAge ageGroup, ClassePlace classePlace, LocalDate date) {
         if (ageGroup == null || classePlace == null) {
             return null;
         }
         
-        Optional<ClasseAgeConf> config = classeAgeConfRepository.findActiveConfig(
+        //*-- Try to find config without voyage
+        Optional<ClasseAgeConf> config = classeAgeConfRepository.findActiveConfigWithoutVoyage(
             ageGroup, classePlace, date != null ? date : LocalDate.now()
         );
         
-        if (!config.isPresent()) { // use the default classeplace price if no valid config
-            return classePlace.getPrixPlace();
-        }
-        
-        ClasseAgeConf ageConfig = config.get();
-        
-        if (ageConfig.getEstPourcentage()) {
-            try {
-                Double basePrice = getCategorieGroupeAgeUsedForBaselinePrice(classePlace, date, DEFAULT_BASELINE_AGE_GROUP_LIBELLE);
-                return ageConfig.calculatePrice(basePrice);
-            } catch (RuntimeException e) {
-                return null;
+        if (config.isPresent()) {
+            ClasseAgeConf ageConfig = config.get();
+            
+            if (ageConfig.getEstPourcentage()) {
+                if (classePlace.getPrixPlace() != null) {
+                    return ageConfig.calculatePrice(classePlace.getPrixPlace());
+                }
+                return 0.0;
+            } else {
+                return ageConfig.getValeurOverride();
             }
-        } else {
-            return ageConfig.getValeurOverride();
         }
+        
+        //*-- Fallback to ClassePlace price
+        return classePlace.getPrixPlace() != null ? classePlace.getPrixPlace() : 0.0;
     }
     
-    //?== Check if a discount applies for a given client and seat class
+    //?== Check if a discount applies for a given client and seat class on a voyage
+    public boolean hasDiscount(Voyage voyage, CategorieGroupeAge ageGroup, ClassePlace classePlace, LocalDate date) {
+        if (voyage == null || ageGroup == null || classePlace == null) {
+            return false;
+        }
+
+        Double effectivePrice = getEffectivePrice(voyage, ageGroup, classePlace, date);
+        Double basePrice = getBasePriceForVoyage(voyage, classePlace, date);
+        
+        if (effectivePrice == null || basePrice == null) {
+            return false;
+        }
+        
+        return effectivePrice < basePrice;
+    }
+    
+    //?== LEGACY: Check if discount applies without voyage
     public boolean hasDiscount(CategorieGroupeAge ageGroup, ClassePlace classePlace, LocalDate date) {
         if (ageGroup == null || classePlace == null) {
             return false;
         }
 
-        Optional<ClasseAgeConf> config = classeAgeConfRepository.findActiveConfig(
+        Optional<ClasseAgeConf> config = classeAgeConfRepository.findActiveConfigWithoutVoyage(
             ageGroup, classePlace, date != null ? date : LocalDate.now()
         );
         
@@ -146,38 +217,50 @@ public class PricingService {
         if (ageConfig.getEstPourcentage()) {
             return ageConfig.getValeurOverride() < 0;
         } else {
-            try {
-                Double basePrice = getCategorieGroupeAgeUsedForBaselinePrice(classePlace, date, DEFAULT_BASELINE_AGE_GROUP_LIBELLE);
-                return ageConfig.getValeurOverride() < basePrice;
-            } catch (RuntimeException e) {
-                return false;
+            if (classePlace.getPrixPlace() != null) {
+                return ageConfig.getValeurOverride() < classePlace.getPrixPlace();
             }
+            return false;
         }
     }
     
     //?== Get discount percentage based on baseline price (for display)
+    public Double getDiscountPercentage(Voyage voyage, CategorieGroupeAge ageGroup, ClassePlace classePlace, LocalDate date) {
+        Double effectivePrice = getEffectivePrice(voyage, ageGroup, classePlace, date);
+        if (effectivePrice == null) {
+            return 0.0;
+        }
+        
+        Double basePrice = getBasePriceForVoyage(voyage, classePlace, date);
+        
+        if (effectivePrice.equals(basePrice)) {
+            return 0.0;
+        }
+        
+        return ((basePrice - effectivePrice) / basePrice) * 100;
+    }
+    
+    //?== LEGACY: Get discount percentage without voyage
     public Double getDiscountPercentage(CategorieGroupeAge ageGroup, ClassePlace classePlace, LocalDate date) {
         Double effectivePrice = getEffectivePrice(ageGroup, classePlace, date);
         if (effectivePrice == null) {
             return 0.0;
         }
         
-        try {
-            Double basePrice = getCategorieGroupeAgeUsedForBaselinePrice(classePlace, date, DEFAULT_BASELINE_AGE_GROUP_LIBELLE);
-            
-            if (effectivePrice.equals(basePrice)) {
-                return 0.0;
-            }
-            
-            return ((basePrice - effectivePrice) / basePrice) * 100;
-        } catch (RuntimeException e) {
+        if (classePlace.getPrixPlace() == null) {
             return 0.0;
         }
+        
+        if (effectivePrice.equals(classePlace.getPrixPlace())) {
+            return 0.0;
+        }
+        
+        return ((classePlace.getPrixPlace() - effectivePrice) / classePlace.getPrixPlace()) * 100;
     }
 
-    //?=== Check if a booking is allowed (config exists)
-    public boolean isBookingAllowed(CategorieGroupeAge ageGroup, ClassePlace classePlace, LocalDate date) {
-        return getEffectivePrice(ageGroup, classePlace, date) != null;
+    //?=== Check if a booking is allowed (config exists for voyage)
+    public boolean isBookingAllowed(Voyage voyage, CategorieGroupeAge ageGroup, ClassePlace classePlace, LocalDate date) {
+        return getEffectivePrice(voyage, ageGroup, classePlace, date) != null;
     }
     
     //?=== Record initial price when BusVoyage is created
@@ -238,8 +321,13 @@ public class PricingService {
         return historiquePrixSpecifiqueRepository.findByBusVoyageOrderByDateEcritureDesc(busVoyage);
     }
 
-    //?=== Get the baseline age group label
+    //?=== Get the baseline price for a voyage
+    public Double getBaselinePrice(Voyage voyage, ClassePlace classePlace, LocalDate date) {
+        return getBasePriceForVoyage(voyage, classePlace, date);
+    }
+    
+    //?=== LEGACY: Get baseline price without voyage
     public Double getBaselinePrice(ClassePlace classePlace, LocalDate date) {
-        return getCategorieGroupeAgeUsedForBaselinePrice(classePlace, date, DEFAULT_BASELINE_AGE_GROUP_LIBELLE);
+        return classePlace.getPrixPlace() != null ? classePlace.getPrixPlace() : 0.0;
     }
 }

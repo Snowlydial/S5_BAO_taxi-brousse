@@ -41,19 +41,6 @@ CREATE TABLE ClassePlace(
    PRIMARY KEY(id_classePlace)
 );
 
-CREATE TABLE ClasseAge_Conf(
-   id_classeAge_conf SERIAL,
-   valeur_override DOUBLE PRECISION NOT NULL,
-   est_pourcentage BOOLEAN NOT NULL DEFAULT FALSE,
-   date_debut DATE,
-   date_fin DATE,
-   id_categorieGroupeAge INTEGER NOT NULL,
-   id_classePlace INTEGER NOT NULL,
-   PRIMARY KEY(id_classeAge_conf),
-   FOREIGN KEY(id_categorieGroupeAge) REFERENCES CategorieGroupeAge(id_categorieGroupeAge),
-   FOREIGN KEY(id_classePlace) REFERENCES ClassePlace(id_classePlace)
-);
-
 CREATE TABLE Bus(
    id_bus SERIAL,
    immatriculation VARCHAR(50) ,
@@ -70,6 +57,21 @@ CREATE TABLE Voyage(
    PRIMARY KEY(id_voyage),
    FOREIGN KEY(id_gare_1) REFERENCES Gare(id_gare),
    FOREIGN KEY(id_gare_2) REFERENCES Gare(id_gare)
+);
+
+CREATE TABLE ClasseAge_Conf(
+   id_classeAge_conf SERIAL,
+   valeur_override DOUBLE PRECISION NOT NULL,
+   est_pourcentage BOOLEAN NOT NULL DEFAULT FALSE,
+   date_debut DATE,
+   date_fin DATE,
+   id_categorieGroupeAge INTEGER NOT NULL,
+   id_classePlace INTEGER NOT NULL,
+   id_voyage INTEGER,
+   PRIMARY KEY(id_classeAge_conf),
+   FOREIGN KEY(id_categorieGroupeAge) REFERENCES CategorieGroupeAge(id_categorieGroupeAge),
+   FOREIGN KEY(id_classePlace) REFERENCES ClassePlace(id_classePlace),
+   FOREIGN KEY(id_voyage) REFERENCES Voyage(id_voyage)
 );
 
 CREATE TABLE Client(
@@ -194,9 +196,6 @@ CREATE TABLE Facture(
    id_facture SERIAL PRIMARY KEY,
    numero_facture VARCHAR(50) UNIQUE NOT NULL,
    date_emission DATE NOT NULL,
-   ca_reservations DOUBLE PRECISION DEFAULT 0,
-   ca_diffusions DOUBLE PRECISION DEFAULT 0,
-   montant_total DOUBLE PRECISION DEFAULT 0,
    id_bus_voyage INTEGER NOT NULL,
    FOREIGN KEY(id_bus_voyage) REFERENCES Bus_Voyage(id_bus_voyage)
 );

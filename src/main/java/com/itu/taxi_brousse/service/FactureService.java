@@ -1,7 +1,9 @@
 package com.itu.taxi_brousse.service;
 
+import com.itu.taxi_brousse.dto.views.FactureTotalsView;
 import com.itu.taxi_brousse.entity.*;
 import com.itu.taxi_brousse.repository.*;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,32 +29,36 @@ public class FactureService {
     //?=== Generate facture for a specific Bus_Voyage
     @Transactional
     public Facture generateFacture(BusVoyage busVoyage) {
+        return generateFacture(busVoyage, null);
+    }
+
+    @Transactional
+    public Facture generateFacture(BusVoyage busVoyage, LocalDate dateEmission) {
         //*-- Check if facture already exists
         Optional<Facture> existing = factureRepository.findByBusVoyage(busVoyage);
         if (existing.isPresent()) {
             return existing.get();
         }
-        
+
         //*-- Generate unique numero facture
         String numeroFacture = generateNumeroFacture(busVoyage);
-        
+
+        LocalDate emission = dateEmission != null ? dateEmission : LocalDate.now();
+
         //*-- Create facture mere
         Facture facture = Facture.builder()
             .numeroFacture(numeroFacture)
-            .dateEmission(LocalDate.now())
+            .dateEmission(emission)
             .busVoyage(busVoyage)
-            .caReservations(0.0)
-            .caDiffusions(0.0)
-            .montantTotal(0.0)
             .build();
-        
+
         facture = factureRepository.save(facture);
-        
+
         //*-- Create facture lignes for reservations (use CA from pricing)
         List<Reservation> reservations = reservationRepository.findByBusVoyage(busVoyage);
         for (Reservation reservation : reservations) {
             Double caPrice = pricingService.calculatePrice(reservation, busVoyage.getDateDepart());
-            
+
             FactureLigne ligne = FactureLigne.builder()
                 .typeLigne("RESERVATION")
                 .montant(caPrice)
@@ -59,17 +67,17 @@ public class FactureService {
                 .facture(facture)
                 .reservation(reservation)
                 .build();
-            
+
             factureLigneRepository.save(ligne);
             facture.getLignes().add(ligne);
         }
-        
+
         //*-- Create facture lignes for diffusions (use DiffusionPaiement)
         List<Diffusion> diffusions = diffusionRepository.findByBusVoyageId(busVoyage.getId());
         for (Diffusion diffusion : diffusions) {
             //*-- Get total paid for this diffusion from DiffusionPaiement
             Double paidAmount = diffusionService.getPaidAmountForDiffusion(diffusion);
-            
+
             if (paidAmount > 0) {
                 FactureLigne ligne = FactureLigne.builder()
                     .typeLigne("DIFFUSION")
@@ -79,15 +87,13 @@ public class FactureService {
                     .facture(facture)
                     .diffusion(diffusion)
                     .build();
-                
+
                 factureLigneRepository.save(ligne);
                 facture.getLignes().add(ligne);
             }
         }
-        
-        //*-- Calculate totals
-        facture.calculateTotals();
-        
+
+        // Totals are computed on demand; lines are saved and facture returned
         return factureRepository.save(facture);
     }
     
@@ -105,7 +111,7 @@ public class FactureService {
     
     //?=== Get all factures ordered by date
     public List<Facture> getAllFactures() {
-        return factureRepository.findAllByOrderByDateEmissionDesc();
+        return factureRepository.findAllByOrderByIdDesc();
     }
     
     //?=== Get total paid amount for diffusions in a facture
@@ -113,6 +119,16 @@ public class FactureService {
         List<Diffusion> diffusions = diffusionRepository.findByBusVoyageId(facture.getBusVoyage().getId());
         return diffusions.stream()
             .mapToDouble(diffusionService::getPaidAmountForDiffusion)
+            .sum();
+    }
+
+    //?=== Get total amount for reservations in a facture (calculated via PricingService)
+    public Double getTotalReservationsForFacture(Facture facture) {
+        BusVoyage busVoyage = facture.getBusVoyage();
+        if (busVoyage == null) return 0.0;
+        List<Reservation> reservations = reservationRepository.findByBusVoyage(busVoyage);
+        return reservations.stream()
+            .mapToDouble(r -> pricingService.calculatePrice(r, busVoyage.getDateDepart()))
             .sum();
     }
     
@@ -132,6 +148,18 @@ public class FactureService {
     //?=== Get facture by ID
     public Optional<Facture> getFactureById(Integer id) {
         return factureRepository.findById(id);
+    }
+
+    //?=== Get a map of facture with their totals using a SQL view
+    public Map<Integer, FactureTotalsView> getFactureTotalsMap() {
+        List<FactureTotalsView> totals = factureRepository.findAllFactureTotals();
+        return totals.stream().collect(Collectors.toMap(FactureTotalsView::getFactureId, t -> t));
+    }
+
+    //?=== Check if a facture already exists for a BusVoyage
+    public boolean hasFactureForBusVoyage(BusVoyage busVoyage) {
+        if (busVoyage == null) return false;
+        return factureRepository.findByBusVoyage(busVoyage).isPresent();
     }
     
     //?=== Refresh facture (recalculate all lignes)
@@ -185,7 +213,7 @@ public class FactureService {
             }
         }
         
-        facture.calculateTotals();
+        // Totals are computed on demand; facture lignes recreated and facture saved
         return factureRepository.save(facture);
     }
     

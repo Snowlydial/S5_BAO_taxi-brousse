@@ -27,14 +27,7 @@ public class Facture {
     @Column(name = "date_emission", nullable = false)
     private LocalDate dateEmission;
     
-    @Column(name = "ca_reservations")
-    private Double caReservations;
-    
-    @Column(name = "ca_diffusions")
-    private Double caDiffusions;
-    
-    @Column(name = "montant_total")
-    private Double montantTotal;
+    // Denormalized totals removed: compute on demand via service methods
     
     @ManyToOne
     @JoinColumn(name = "id_bus_voyage", nullable = false)
@@ -44,18 +37,5 @@ public class Facture {
     @Builder.Default
     private List<FactureLigne> lignes = new ArrayList<>();
     
-    //?=== Helper methods
-    public void calculateTotals() {
-        this.caReservations = lignes.stream()
-            .filter(l -> "RESERVATION".equals(l.getTypeLigne()))
-            .mapToDouble(FactureLigne::getMontant)
-            .sum();
-        
-        this.caDiffusions = lignes.stream()
-            .filter(l -> "DIFFUSION".equals(l.getTypeLigne()))
-            .mapToDouble(FactureLigne::getMontant)
-            .sum();
-        
-        this.montantTotal = caReservations + caDiffusions;
-    }
+    // Totals are computed on demand (service layer) to avoid denormalization/stale data
 }

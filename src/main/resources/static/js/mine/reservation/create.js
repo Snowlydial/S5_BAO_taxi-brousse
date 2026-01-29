@@ -19,6 +19,8 @@ const discountMessage = document.getElementById('discountMessage');
 const submitBtn = document.getElementById('submitBtn');
 const clientSelect = document.getElementById('clientSelect');
 const dateReservationInput = document.getElementById('dateReservation');
+const inputNumberPlace = document.getElementById('inputNumberPlace');
+const bulkClasseSelect = document.getElementById('bulkClasseSelect');
 const multiplePaymentToggle = document.getElementById('multiplePaymentToggle');
 const singlePayment = document.getElementById('singlePayment');
 const multiplePayment = document.getElementById('multiplePayment');
@@ -43,8 +45,36 @@ dateReservationInput.max = busVoyageDate;
 //?-- Fetch dynamic pricing when client or date changes
 async function fetchPricing(ageGroupId, date) {
     if (!ageGroupId || !date) return;
-    
+    // Prefer voyage-aware pricing when possible
+    const voyageId = window.RESERVATION_CONFIG?.busVoyageId;
     try {
+        if (voyageId) {
+            const response = await fetch(`/api/pricing/voyage/${voyageId}?date=${date}`);
+            if (!response.ok) throw new Error('Failed to fetch voyage pricing');
+            const data = await response.json();
+            // data shape: {classePlaceId: { ageGroupId: {price, hasDiscount, percentage, ...}, ...}, ...}
+            const mapForAge = {};
+            for (const [classePlaceId, ageGroupMap] of Object.entries(data)) {
+                const ageInfo = ageGroupMap[ageGroupId];
+                if (ageInfo) {
+                    mapForAge[classePlaceId] = {
+                        price: ageInfo.price,
+                        hasDiscount: !!ageInfo.hasDiscount,
+                        percentage: ageInfo.percentage || 0
+                    };
+                }
+            }
+            // Ensure we have entries for all classePlaces (fallback to base price)
+            window.RESERVATION_CONFIG.classePlaces.forEach(cp => {
+                if (!mapForAge[cp.id]) {
+                    mapForAge[cp.id] = {price: cp.prixPlace || 0, hasDiscount: false, percentage: 0};
+                }
+            });
+            pricingMap[ageGroupId] = mapForAge;
+            return;
+        }
+
+        // Legacy fallback: request non-voyage pricing
         const response = await fetch(`/api/pricing?ageGroupId=${ageGroupId}&date=${date}`);
         const data = await response.json();
         pricingMap[ageGroupId] = data; // {classePlaceId: {price, hasDiscount, percentage}}
@@ -185,6 +215,11 @@ async function updateSelectedSeats() {
     
     countSeatClasses();
     updateRemainingAmount(); // Safe to call here (no recursion)
+
+    // Keep the numeric input in sync
+    if (inputNumberPlace) {
+        inputNumberPlace.value = selected.length > 0 ? selected.length : '';
+    }
 }
 
 function calculateTotal() {
@@ -220,6 +255,42 @@ function calculateTotal() {
 seatCheckboxes.forEach(cb => {
     cb.addEventListener('change', updateSelectedSeats);
 });
+
+// Apply number-based quick selection: check first N available seats
+if (inputNumberPlace) {
+    inputNumberPlace.addEventListener('input', function() {
+        const v = parseInt(this.value) || 0;
+        const max = parseInt(this.max) || Infinity;
+        const toSelect = Math.max(0, Math.min(v, max));
+
+        // build list of available checkboxes (not disabled)
+        const available = Array.from(seatCheckboxes).filter(cb => !cb.disabled);
+
+        // uncheck all
+        available.forEach(cb => cb.checked = false);
+
+        // check first toSelect items
+        for (let i = 0; i < toSelect && i < available.length; i++) {
+            available[i].checked = true;
+        }
+
+        updateSelectedSeats();
+    });
+}
+
+// Bulk class apply: set all seat-class-select values and trigger change
+if (bulkClasseSelect) {
+    bulkClasseSelect.addEventListener('change', function() {
+        const val = this.value;
+        if (!val) return;
+        const selects = document.querySelectorAll('.seat-class-select');
+        selects.forEach(s => {
+            s.value = val;
+            s.dispatchEvent(new Event('change', {bubbles: true}));
+        });
+        calculateTotal();
+    });
+}
 
 // Update prices when client changes
 clientSelect.addEventListener('change', function() {

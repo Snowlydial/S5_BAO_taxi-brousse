@@ -38,6 +38,11 @@ public class ClasseAgeConf {
     @JoinColumn(name = "id_classeplace", nullable = false)
     private ClassePlace classePlace;
     
+    //*-- NEW: Link to specific Voyage for voyage-specific pricing
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_voyage")
+    private Voyage voyage;
+    
     //?== Check if this configuration is active for a given date
     public boolean isActiveOn(LocalDate date) {
         if (date == null) {
