@@ -46,7 +46,7 @@ dateReservationInput.max = busVoyageDate;
 async function fetchPricing(ageGroupId, date) {
     if (!ageGroupId || !date) return;
     // Prefer voyage-aware pricing when possible
-    const voyageId = window.RESERVATION_CONFIG?.busVoyageId;
+    const voyageId = window.RESERVATION_CONFIG?.voyageId;
     try {
         if (voyageId) {
             const response = await fetch(`/api/pricing/voyage/${voyageId}?date=${date}`);

@@ -347,6 +347,7 @@
             // Only pass server-side data to the JS file
             window.RESERVATION_CONFIG = {
                 busVoyageId: /*[[${busVoyage.id}]]*/ 0,
+                voyageId: /*[[${busVoyage.voyage.id}]]*/ 0,
                 busVoyageDate: /*[[${#temporals.format(busVoyage.dateDepart, 'yyyy-MM-dd')}]]*/ '',
                 classePlaces: /*[[${classePlaces}]]*/ [],
                 availableSeatsByType: /*[[${availableSeatsByType}]]*/ {}

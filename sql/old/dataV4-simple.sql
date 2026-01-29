@@ -125,7 +125,6 @@ INSERT INTO Diffusion (date_diffusion, heure_diffusion, id_societe, id_bus_voyag
 ('2026-01-20', '09:30:00', 2, 1, 'Pub Lewis - 1er voyage');
 
 --?=== 2eme Bus Voyage: 30 Reservations + 3 Diffusions (2 Socobis, 1 Jejoo)
-
 -- 30 Reservations (places 1-30)
 INSERT INTO Reservation (numero_place, id_classeplace, id_client, id_bus_voyage)
 SELECT 
@@ -161,7 +160,6 @@ INSERT INTO Diffusion (date_diffusion, heure_diffusion, id_societe, id_bus_voyag
 ('2026-01-21', '09:30:00', 4, 2, 'Pub Jejoo - 2eme voyage');
 
 --?=== 3eme Bus Voyage: 50 Reservations + 0 Diffusions
-
 -- 50 Reservations (places 1-50)
 INSERT INTO Reservation (numero_place, id_classeplace, id_client, id_bus_voyage)
 SELECT 
