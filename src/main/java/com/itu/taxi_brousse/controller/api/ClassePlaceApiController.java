@@ -17,7 +17,8 @@ public class ClassePlaceApiController {
     
     private final ClassePlaceRepository classePlaceRepository;
     
-    //?=== Get price for a specific place type (case-insensitive)
+    //?=== Get fallback price for a specific place type (case-insensitive)
+    // NOTE: This is now a FALLBACK price - primary pricing comes from ClasseAgeConf
     @GetMapping("/price")
     public ResponseEntity<Map<String, Object>> getPrice(@RequestParam String type) {
         Optional<ClassePlace> classePlaceOpt = classePlaceRepository
@@ -27,22 +28,27 @@ public class ClassePlaceApiController {
             ClassePlace classePlace = classePlaceOpt.get();
             Map<String, Object> response = new HashMap<>();
             response.put("type", classePlace.getLibelle());
-            response.put("prix", classePlace.getPrixPlace());
+            response.put("prix", classePlace.getPrixPlace()); // Fallback price
+            response.put("isFallback", true);
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.notFound().build();
         }
     }
     
-    //?=== Get all ClassePlace types and prices
+    //?=== Get all ClassePlace types and fallback prices
     @GetMapping("/all")
-    public ResponseEntity<Map<String, Double>> getAllPrices() {
+    public ResponseEntity<Map<String, Object>> getAllPrices() {
         Map<String, Double> prices = new HashMap<>();
         
         classePlaceRepository.findAll().forEach(cp -> {
             prices.put(cp.getLibelle(), cp.getPrixPlace());
         });
         
-        return ResponseEntity.ok(prices);
+        Map<String, Object> response = new HashMap<>();
+        response.put("prices", prices);
+        response.put("note", "These are fallback prices. Use /api/pricing/voyage/{voyageId}/ranges for actual pricing.");
+        
+        return ResponseEntity.ok(response);
     }
 }

@@ -1,7 +1,6 @@
 \c taxibroussedb;
 
 --?=== Base Configuration Data
-
 INSERT INTO ClassePlace (libelle, prix_place) VALUES 
 ('Standard', 80000),
 ('Premium', 140000),
@@ -21,43 +20,19 @@ INSERT INTO CategorieGroupeAge (libelle) VALUES
 ('Adulte (18-59 ans)'),
 ('Senior (60+ ans)');
 
--- ADULTE prices
-INSERT INTO ClasseAge_Conf (valeur_override, est_pourcentage, date_debut, date_fin, id_categoriegroupeage, id_classeplace) 
-VALUES 
-(50000, FALSE, NULL, NULL, 2, 1),
-(60000, FALSE, NULL, NULL, 2, 2),
-(70000, FALSE, NULL, NULL, 2, 3);
-
--- ENFANT pricing
-INSERT INTO ClasseAge_Conf (valeur_override, est_pourcentage, date_debut, date_fin, id_categoriegroupeage, id_classeplace) 
-VALUES 
-(40000, FALSE, NULL, NULL, 1, 1),
-(50000, FALSE, NULL, NULL, 1, 2),
-(65000, FALSE, NULL, NULL, 1, 3);
-
--- SENIOR pricing 
-INSERT INTO ClasseAge_Conf (valeur_override, est_pourcentage, date_debut, date_fin, id_categoriegroupeage, id_classeplace) 
-VALUES 
-(-0.20, TRUE, NULL, NULL, 3, 1),
-(-0.20, TRUE, NULL, NULL, 3, 2),
-(-0.20, TRUE, NULL, NULL, 3, 3);
-
 --?=== Gares
-
 INSERT INTO Gare (libelle) VALUES 
 ('Antananarivo'),
 ('Toamasina'),
 ('Majunga');
 
 --?=== Bus Configuration
-
 INSERT INTO BusConf (libelle, valeur) VALUES 
 ('nb_place_standard', '100'),
 ('climatisation', 'oui'),
 ('wifi', 'oui');
 
 --?=== Bus
-
 INSERT INTO Bus (immatriculation) VALUES ('TBK1224');
 
 -- Associate Bus with configuration (100 standard places, AC, wifi)
@@ -67,31 +42,48 @@ INSERT INTO Bus_BusConf (id_bus, id_busConf) VALUES
 (1, 3);  -- wifi
 
 --?=== Voyages
-
 INSERT INTO Voyage (duree, prix_voyage, id_gare_1, id_gare_2) VALUES 
 (2.0, 40000.00, 1, 2);  -- TNR -> Toamasina (2h)
 
---?=== Bus Voyages
+--?=== ClasseAge_Conf
+-- ADULTE prices for TNR -> Toamasina (voyage_id = 1)
+INSERT INTO ClasseAge_Conf (valeur_override, est_pourcentage, date_debut, date_fin, id_categoriegroupeage, id_classeplace, id_voyage) 
+VALUES 
+(50000, FALSE, NULL, NULL, 2, 1, 1),  -- Adult Standard for TNR->Toamasina
+(60000, FALSE, NULL, NULL, 2, 2, 1),  -- Adult Premium for TNR->Toamasina
+(70000, FALSE, NULL, NULL, 2, 3, 1);  -- Adult VIP for TNR->Toamasina
 
+-- ENFANT pricing for TNR -> Toamasina (voyage_id = 1)
+INSERT INTO ClasseAge_Conf (valeur_override, est_pourcentage, date_debut, date_fin, id_categoriegroupeage, id_classeplace, id_voyage) 
+VALUES 
+(40000, FALSE, NULL, NULL, 1, 1, 1),  -- Child Standard for TNR->Toamasina
+(50000, FALSE, NULL, NULL, 1, 2, 1),  -- Child Premium for TNR->Toamasina
+(65000, FALSE, NULL, NULL, 1, 3, 1);  -- Child VIP for TNR->Toamasina
+
+-- SENIOR pricing for TNR -> Toamasina (voyage_id = 1) - 20% discount
+INSERT INTO ClasseAge_Conf (valeur_override, est_pourcentage, date_debut, date_fin, id_categoriegroupeage, id_classeplace, id_voyage) 
+VALUES 
+(-0.20, TRUE, NULL, NULL, 3, 1, 1),  -- Senior Standard for TNR->Toamasina (20% off adult price)
+(-0.20, TRUE, NULL, NULL, 3, 2, 1),  -- Senior Premium for TNR->Toamasina (20% off adult price)
+(-0.20, TRUE, NULL, NULL, 3, 3, 1);  -- Senior VIP for TNR->Toamasina (20% off adult price)
+
+--?=== Bus Voyages
 INSERT INTO Bus_Voyage (heure_depart, date_depart, prix_specifique, id_bus, id_voyage) VALUES
 ('10:00:00', '2026-01-20', NULL, 1, 1),  -- 1er busVoyage: 20-01-26, 10h
 ('10:00:00', '2026-01-21', NULL, 1, 1),  -- 2eme busVoyage: 21-01-26, 10h
 ('15:00:00', '2026-01-21', NULL, 1, 1);  -- 3eme busVoyage: 21-01-26, 15h
 
 --?=== Clients (sample adults for reservations)
-
 INSERT INTO Client (nom, prenom, id_categorieGenre, id_categorieGroupeAge) VALUES 
 ('Adulte1', 'Test', 1, 2),
 ('Adulte2', 'Test', 2, 2),
 ('Adulte3', 'Test', 1, 2);
 
 --?=== Diffusion Configuration
-
 INSERT INTO DiffusionConf (prix, date_debut, date_fin) VALUES 
 (100000, '2026-01-01', '2026-12-31');
 
 --?=== Societes
-
 INSERT INTO Societe (nom) VALUES 
 ('Vaniala'),
 ('Lewis'),
@@ -99,7 +91,6 @@ INSERT INTO Societe (nom) VALUES
 ('Jejoo');
 
 --?=== 1er Bus Voyage: 40 Reservations + 2 Diffusions (Vaniala, Lewis)
-
 -- 40 Reservations (places 1-40)
 INSERT INTO Reservation (numero_place, id_classeplace, id_client, id_bus_voyage)
 SELECT 

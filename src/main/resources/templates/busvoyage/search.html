@@ -169,24 +169,48 @@
                                                 <span th:text="${result.busVoyage.voyage.duree}"></span>h
                                             </div>
                                             
-                                            <!-- Place Types and Prices -->
+                                            <!-- Place Types and Prices with Age Category Dropdown -->
                                             <div class="col-12 mt-2">
                                                 <small class="text-muted d-block mb-1">Types de places disponibles:</small>
                                                 <div th:if="${result.placeTypeCapacities != null and !result.placeTypeCapacities.isEmpty()}">
                                                     <div th:each="entry : ${result.placeTypeCapacities}" 
                                                          th:with="placeType=${entry.key},
                                                                  capacity=${entry.value},
-                                                                 available=${result.placeTypeAvailableSeats.get(entry.key)},
-                                                                 price=${result.placeTypePrices.get(entry.key)}"
-                                                         class="d-flex justify-content-between align-items-center mb-1 p-2 bg-light rounded">
-                                                        <div>
-                                                            <strong th:text="${placeType}"></strong>
-                                                            <small class="text-muted ms-2">
-                                                                (<span th:text="${available}"></span>/<span th:text="${capacity}"></span>)
-                                                            </small>
+                                                                 available=${result.placeTypeAvailableSeats.get(entry.key)}"
+                                                         class="mb-2">
+                                                        <!-- Place Type Header (Collapsible) -->
+                                                        <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded border place-type-header"
+                                                             style="cursor: pointer;"
+                                                             data-bs-toggle="collapse" 
+                                                             th:data-bs-target="'#priceDetails_' + ${result.busVoyage.id} + '_' + ${placeType.replace(' ', '_')}"
+                                                             aria-expanded="false">
+                                                            <div>
+                                                                <strong th:text="${placeType}"></strong>
+                                                                <small class="text-muted ms-2">
+                                                                    (<span th:text="${available}"></span>/<span th:text="${capacity}"></span>)
+                                                                </small>
+                                                            </div>
+                                                            <div>
+                                                                <i class="bi bi-chevron-down chevron-icon"></i>
+                                                            </div>
                                                         </div>
-                                                        <div class="text-success fw-bold">
-                                                            <span th:text="${#numbers.formatDecimal(price, 0, 'COMMA', 0, 'POINT')}"></span> Ar
+                                                        
+                                                        <!-- Price Details by Age Category (Collapsed by default) -->
+                                                        <div class="collapse" 
+                                                             th:id="'priceDetails_' + ${result.busVoyage.id} + '_' + ${placeType.replace(' ', '_')}">
+                                                            <div class="border border-top-0 rounded-bottom p-2 bg-white">
+                                                                <div class="pricing-container" 
+                                                                     th:attr="data-voyage-id=${result.busVoyage.voyage.id},
+                                                                             data-place-type=${placeType},
+                                                                             data-date=${result.busVoyage.dateDepart}">
+                                                                    <div class="text-center py-2">
+                                                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                                                            <span class="visually-hidden">Chargement...</span>
+                                                                        </div>
+                                                                        <small class="text-muted d-block mt-1">Chargement des tarifs...</small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -258,6 +282,120 @@
                 
                 // Initialize on page load
                 toggleInputs();
+                
+                //?=== Load pricing data when collapse is opened
+                document.querySelectorAll('.place-type-header').forEach(header => {
+                    header.addEventListener('click', function() {
+                        const icon = this.querySelector('.chevron-icon');
+                        const targetId = this.getAttribute('data-bs-target');
+                        const collapseElement = document.querySelector(targetId);
+                        
+                        //*-- Toggle chevron icon
+                        setTimeout(() => {
+                            if (collapseElement.classList.contains('show')) {
+                                icon.classList.remove('bi-chevron-down');
+                                icon.classList.add('bi-chevron-up');
+                            } else {
+                                icon.classList.remove('bi-chevron-up');
+                                icon.classList.add('bi-chevron-down');
+                            }
+                        }, 10);
+                        
+                        //*-- Load pricing if not already loaded
+                        const pricingContainer = collapseElement.querySelector('.pricing-container');
+                        if (pricingContainer && !pricingContainer.dataset.loaded) {
+                            loadPricingData(pricingContainer);
+                        }
+                    });
+                });
+                
+                //?=== Fetch and display pricing for a specific place type
+                async function loadPricingData(container) {
+                    const voyageId = container.dataset.voyageId;
+                    const placeType = container.dataset.placeType;
+                    const date = container.dataset.date;
+                    
+                    try {
+                        const response = await fetch(`/api/pricing/voyage/${voyageId}/ranges?date=${date}`);
+                        if (!response.ok) throw new Error('Failed to fetch pricing');
+                        
+                        const data = await response.json();
+                        
+                        //*-- Find pricing for this specific place type
+                        let placeTypeData = null;
+                        for (const [classePlaceId, priceInfo] of Object.entries(data)) {
+                            if (priceInfo.placeTypeLabel === placeType) {
+                                placeTypeData = priceInfo;
+                                break;
+                            }
+                        }
+                        
+                        if (placeTypeData && placeTypeData.pricesByAge && placeTypeData.pricesByAge.length > 0) {
+                            displayPricing(container, placeTypeData);
+                        } else {
+                            displayFallbackMessage(container);
+                        }
+                        
+                        container.dataset.loaded = 'true';
+                    } catch (error) {
+                        console.error('Error loading pricing:', error);
+                        displayErrorMessage(container);
+                    }
+                }
+                
+                //?=== Display pricing breakdown by age category
+                function displayPricing(container, priceData) {
+                    const html = `
+                        <div class="row g-2">
+                            ${priceData.pricesByAge.map(item => `
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between align-items-center py-1">
+                                        <div>
+                                            <i class="bi bi-person-fill text-primary me-1"></i>
+                                            <span class="fw-medium">${item.ageGroup}</span>
+                                        </div>
+                                        <div class="text-success fw-bold">
+                                            ${formatPrice(item.price)} Ar
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            <div class="col-12">
+                                <hr class="my-1">
+                                <div class="d-flex justify-content-between align-items-center text-muted small">
+                                    <span>Fourchette de prix</span>
+                                    <span>${formatPrice(priceData.minPrice)} - ${formatPrice(priceData.maxPrice)} Ar</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML = html;
+                }
+                
+                //?=== Display fallback message when no specific pricing exists
+                function displayFallbackMessage(container) {
+                    container.innerHTML = `
+                        <div class="alert alert-light mb-0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <small>Aucune tarification spécifique configurée. Prix standard appliqué.</small>
+                        </div>
+                    `;
+                }
+                
+                //?=== Display error message
+                function displayErrorMessage(container) {
+                    container.innerHTML = `
+                        <div class="alert alert-warning mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <small>Impossible de charger les tarifs. Veuillez réessayer.</small>
+                        </div>
+                    `;
+                }
+                
+                //?=== Format price with thousand separators
+                function formatPrice(price) {
+                    return new Intl.NumberFormat('fr-FR').format(Math.round(price));
+                }
             });
         </script>
     </div>
