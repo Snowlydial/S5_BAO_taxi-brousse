@@ -23,8 +23,10 @@ public class FactureService {
     private final FactureLigneRepository factureLigneRepository;
     private final ReservationRepository reservationRepository;
     private final DiffusionRepository diffusionRepository;
+    private final ProduitCommandeRepository produitCommandeRepository;
     private final PricingService pricingService;
     private final DiffusionService diffusionService;
+    private final ProduitCommandeService produitCommandeService;
     
     //?=== Generate facture for a specific Bus_Voyage
     @Transactional
@@ -93,6 +95,24 @@ public class FactureService {
             }
         }
 
+        //*-- Create facture lignes for product orders
+        List<ProduitCommande> commandes = produitCommandeRepository.findByBusVoyage(busVoyage);
+        for (ProduitCommande commande : commandes) {
+            Double montant = commande.getProduitSociete().getPrixUnitaire() * commande.getQuantite();
+            
+            FactureLigne ligne = FactureLigne.builder()
+                .typeLigne("PRODUIT_COMMANDE")
+                .montant(montant)
+                .description("Produit - " + commande.getProduitSociete().getProduit().getLibelle() + 
+                           " x" + commande.getQuantite() + " (" + commande.getProduitSociete().getSociete().getNom() + ")")
+                .facture(facture)
+                .produitCommande(commande)
+                .build();
+            
+            factureLigneRepository.save(ligne);
+            facture.getLignes().add(ligne);
+        }
+
         // Totals are computed on demand; lines are saved and facture returned
         return factureRepository.save(facture);
     }
@@ -130,6 +150,11 @@ public class FactureService {
         return reservations.stream()
             .mapToDouble(r -> pricingService.calculatePrice(r, busVoyage.getDateDepart()))
             .sum();
+    }
+    
+    //?=== Get total amount for product orders in a facture
+    public Double getTotalProductsForFacture(Facture facture) {
+        return produitCommandeService.getChiffreAffaireProduitBusVoyage(facture.getBusVoyage());
     }
     
     //?=== Get total due amount for diffusions in a facture
@@ -211,6 +236,24 @@ public class FactureService {
                 factureLigneRepository.save(ligne);
                 facture.getLignes().add(ligne);
             }
+        }
+        
+        //*-- Product orders
+        List<ProduitCommande> commandes = produitCommandeRepository.findByBusVoyage(busVoyage);
+        for (ProduitCommande commande : commandes) {
+            Double montant = commande.getProduitSociete().getPrixUnitaire() * commande.getQuantite();
+            
+            FactureLigne ligne = FactureLigne.builder()
+                .typeLigne("PRODUIT_COMMANDE")
+                .montant(montant)
+                .description("Produit - " + commande.getProduitSociete().getProduit().getLibelle() + 
+                           " x" + commande.getQuantite() + " (" + commande.getProduitSociete().getSociete().getNom() + ")")
+                .facture(facture)
+                .produitCommande(commande)
+                .build();
+            
+            factureLigneRepository.save(ligne);
+            facture.getLignes().add(ligne);
         }
         
         // Totals are computed on demand; facture lignes recreated and facture saved

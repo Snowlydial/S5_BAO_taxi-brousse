@@ -185,6 +185,18 @@ SELECT
 FROM Reservation 
 WHERE id_bus_voyage = 3;
 
+--?=== Products
+-- Produit: Eau
+INSERT INTO Produit (libelle, description) VALUES 
+('Eau', 'Bouteille d''eau 1.5L');
+
+-- Produit_Societe: All societies sell Eau at 5000 Ar
+INSERT INTO Produit_Societe (id_produit, id_societe, prix_unitaire) VALUES 
+(1, 1, 5000.00),  -- Vaniala
+(1, 2, 5000.00),  -- Lewis
+(1, 3, 5000.00),  -- Socobis
+(1, 4, 5000.00);  -- Jejoo
+
 --?=== Summary
 -- 1er Bus Voyage (20-01-26 10h): 40 reservations, 2 diffusions (Vaniala, Lewis)
 -- 2eme Bus Voyage (21-01-26 10h): 30 reservations, 3 diffusions (2 Socobis, 1 Jejoo)

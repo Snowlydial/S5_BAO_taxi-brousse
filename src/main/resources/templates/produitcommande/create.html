@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Ajouter Commande Produit</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.css}" />
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-heading">
+            <div class="page-title">
+                <div class="row">
+                    <div class="col-12 col-md-6 order-md-1 order-last">
+                        <h3>Ajouter Commande Produit</h3>
+                        <p class="text-subtitle text-muted">Enregistrer une nouvelle commande de produit pour un bus voyage</p>
+                    </div>
+                    <div class="col-12 col-md-6 order-md-2 order-first">
+                        <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de Bord</a></li>
+                                <li class="breadcrumb-item"><a th:href="@{/produitcommande/list}">Commandes Produits</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Ajouter</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section class="section">
+            <div class="row">
+                <div class="col-md-8 offset-md-2">
+                    <div class="card shadow-sm">
+                        <div class="card-header py-3 bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-plus-circle me-2"></i>
+                                Nouvelle Commande Produit
+                            </h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <!-- Flash Messages -->
+                            <div th:if="${session.SPRING_SECURITY_CONTEXT != null}" class="mb-3">
+                                <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    <span th:text="${success}"></span>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-exclamation-circle me-2"></i>
+                                    <span th:text="${error}"></span>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            </div>
+
+                            <form th:action="@{/produitcommande/create}" method="post" class="needs-validation" novalidate>
+                                <!-- Bus Voyage Selection -->
+                                <div class="mb-3">
+                                    <label for="busVoyageSelect" class="form-label">
+                                        <i class="bi bi-bus-front me-1"></i>
+                                        Bus Voyage <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="busVoyageSelect" name="busVoyageId" required>
+                                        <option value="">-- Sélectionner un bus voyage --</option>
+                                        <option th:each="bv : ${busVoyages}" 
+                                                th:value="${bv.id}"
+                                                th:text="|${bv.voyage.gareDepart.libelle} → ${bv.voyage.gareArrivee.libelle} (${bv.bus.immatriculation}) - ${#temporals.format(bv.dateDepart, 'dd/MM/yyyy HH:mm')}|">
+                                        </option>
+                                    </select>
+                                    <div class="invalid-feedback">Veuillez sélectionner un bus voyage.</div>
+                                </div>
+
+                                <!-- Produit Societe Selection -->
+                                <div class="mb-3">
+                                    <label for="produitSocieteSelect" class="form-label">
+                                        <i class="bi bi-basket me-1"></i>
+                                        Produit (Societe) <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="produitSocieteSelect" name="produitSocieteId" required>
+                                        <option value="">-- Sélectionner un produit --</option>
+                                        <option th:each="ps : ${produitSocietes}" 
+                                                th:value="${ps.id}"
+                                                th:text="|${ps.produit.libelle} (${ps.societe.nom}) - ${#numbers.formatDecimal(ps.prixUnitaire, 0, 'COMMA', 0, 'POINT')} Ar|">
+                                        </option>
+                                    </select>
+                                    <div class="invalid-feedback">Veuillez sélectionner un produit.</div>
+                                </div>
+
+                                <!-- Quantity Input -->
+                                <div class="mb-3">
+                                    <label for="quantite" class="form-label">
+                                        <i class="bi bi-123 me-1"></i>
+                                        Quantité <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="number" 
+                                           class="form-control" 
+                                           id="quantite" 
+                                           name="quantite" 
+                                           min="1" 
+                                           value="1"
+                                           required>
+                                    <div class="invalid-feedback">Veuillez entrer une quantité valide (minimum 1).</div>
+                                </div>
+
+                                <!-- Date Command -->
+                                <div class="mb-3">
+                                    <label for="dateCommande" class="form-label">
+                                        <i class="bi bi-calendar-event me-1"></i>
+                                        Date Commande <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="date" 
+                                           class="form-control" 
+                                           id="dateCommande" 
+                                           name="dateCommande" 
+                                           th:value="${#temporals.format(today, 'yyyy-MM-dd')}"
+                                           required>
+                                    <div class="invalid-feedback">Veuillez entrer une date valide.</div>
+                                </div>
+
+                                <!-- Info Box -->
+                                <div class="alert alert-info" role="alert">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <strong>Montant Total:</strong>
+                                    <span id="montantTotal">0</span> Ar
+                                </div>
+
+                                <!-- Form Actions -->
+                                <div class="mt-4 d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check-circle me-2"></i>
+                                        Enregistrer
+                                    </button>
+                                    <a th:href="@{/produitcommande/list}" class="btn btn-secondary">
+                                        <i class="bi bi-arrow-left me-2"></i>
+                                        Annuler
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            // Bootstrap form validation
+            (function() {
+                'use strict';
+                window.addEventListener('load', function() {
+                    const forms = document.querySelectorAll('.needs-validation');
+                    Array.prototype.slice.call(forms).forEach(function(form) {
+                        form.addEventListener('submit', function(event) {
+                            if (!form.checkValidity()) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }
+                            form.classList.add('was-validated');
+                        }, false);
+                    });
+                });
+            })();
+
+            // Calculate montant total
+            const quantiteInput = document.getElementById('quantite');
+            const produitSelect = document.getElementById('produitSocieteSelect');
+            const montantTotalSpan = document.getElementById('montantTotal');
+
+            // Produit prices map (populated from server)
+            const produitPrices = {};
+            <th:block th:each="ps : ${produitSocietes}">
+            produitPrices[<span th:text="${ps.id}">0</span>] = <span th:text="${ps.prixUnitaire}">0</span>;
+            </th:block>
+
+            function updateMontantTotal() {
+                const selectedId = parseInt(produitSelect.value);
+                const quantite = parseInt(quantiteInput.value) || 1;
+                
+                if (selectedId && produitPrices[selectedId]) {
+                    const montant = produitPrices[selectedId] * quantite;
+                    const formattedMontant = new Intl.NumberFormat('fr-FR').format(Math.round(montant));
+                    montantTotalSpan.textContent = formattedMontant;
+                } else {
+                    montantTotalSpan.textContent = '0';
+                }
+            }
+
+            quantiteInput.addEventListener('input', updateMontantTotal);
+            produitSelect.addEventListener('change', updateMontantTotal);
+
+            // Initialize montant on page load
+            updateMontantTotal();
+        </script>
+    </div>
+</body>
+</html>
