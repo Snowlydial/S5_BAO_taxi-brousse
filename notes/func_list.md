@@ -26,3 +26,7 @@
 2b. New column in list facture:
 - Montant Payé Total pour Diffusion
 - Reste à payer pour diffusion
+
+# Week of [30/01/26]
+1. Societe sell product to client:
+    ex: Water 5000ar

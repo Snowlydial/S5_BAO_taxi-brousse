@@ -274,9 +274,9 @@ public class DiffusionService {
             }
         }
 
-        if (!affectedBusVoyageIds.isEmpty()) {
-            refreshFacturesForBusVoyageIds(affectedBusVoyageIds);
-        }
+        // if (!affectedBusVoyageIds.isEmpty()) {
+        //     refreshFacturesForBusVoyageIds(affectedBusVoyageIds);
+        // }
     }
 
     //?=== Helper: refresh (generate if needed) factures for a set of BusVoyage ids

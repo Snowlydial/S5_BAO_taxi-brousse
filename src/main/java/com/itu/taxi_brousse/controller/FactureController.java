@@ -40,10 +40,12 @@ public class FactureController {
         Map<Integer, Double> reservationCAMap = new LinkedHashMap<>();
         Map<Integer, Double> diffusionPaidMap = new LinkedHashMap<>();
         Map<Integer, Double> diffusionRemainingMap = new LinkedHashMap<>();
+        Map<Integer, Double> productCAMap = new LinkedHashMap<>();
 
         Double totalCAReservations = 0.0;
         Double totalCADiffusions = 0.0;
         Double totalRemainingDiffusions = 0.0;
+        Double totalCAProducts = 0.0;
         Double totalGeneral = 0.0;
 
         for (Facture f : factures) {
@@ -52,15 +54,18 @@ public class FactureController {
             Double caRes = p != null && p.getTotalReservations() != null ? p.getTotalReservations() : factureService.getTotalReservationsForFacture(f);
             Double paid = p != null && p.getTotalPaidDiffusions() != null ? p.getTotalPaidDiffusions() : factureService.getTotalPaidForDiffusions(f);
             Double remaining = p != null && p.getTotalRemainingDiffusions() != null ? p.getTotalRemainingDiffusions() : factureService.getRemainingForDiffusions(f);
-            Double montant = p != null && p.getMontantTotal() != null ? p.getMontantTotal() : (caRes + paid);
+            Double products = factureService.getTotalProductsForFacture(f);
+            Double montant = p != null && p.getMontantTotal() != null ? p.getMontantTotal() : (caRes + paid + products);
 
             reservationCAMap.put(f.getId(), caRes != null ? caRes : 0.0);
             diffusionPaidMap.put(f.getId(), paid != null ? paid : 0.0);
             diffusionRemainingMap.put(f.getId(), remaining != null ? remaining : 0.0);
+            productCAMap.put(f.getId(), products != null ? products : 0.0);
 
             totalCAReservations += (caRes != null ? caRes : 0.0);
             totalCADiffusions += (paid != null ? paid : 0.0);
             totalRemainingDiffusions += (remaining != null ? remaining : 0.0);
+            totalCAProducts += (products != null ? products : 0.0);
             totalGeneral += (montant != null ? montant : 0.0);
         }
 
@@ -68,10 +73,12 @@ public class FactureController {
         model.addAttribute("factures", factures);
         model.addAttribute("totalCAReservations", totalCAReservations);
         model.addAttribute("totalCADiffusions", totalCADiffusions);
+        model.addAttribute("totalCAProducts", totalCAProducts);
         model.addAttribute("totalGeneral", totalGeneral);
         model.addAttribute("reservationCAMap", reservationCAMap);
         model.addAttribute("diffusionPaidMap", diffusionPaidMap);
         model.addAttribute("diffusionRemainingMap", diffusionRemainingMap);
+        model.addAttribute("productCAMap", productCAMap);
         model.addAttribute("totalRemainingDiffusions", totalRemainingDiffusions);
         List<BusVoyage> availableBusVoyages = busVoyageRepository.findAll().stream()
             .filter(bv -> !factureService.hasFactureForBusVoyage(bv))
@@ -128,11 +135,13 @@ public class FactureController {
         model.addAttribute("diffusionTotalPaid", diffusionTotalPaid);
         model.addAttribute("diffusionTotalRemaining", diffusionTotalRemaining);
 
-        // Reservation CA (assumed paid) and facture expected total (reservations + total diffusion price)
+        // Reservation CA (assumed paid) and facture expected total (reservations + total diffusion price + products)
         double caReservations = factureService.getTotalReservationsForFacture(facture);
+        double caProducts = factureService.getTotalProductsForFacture(facture);
         model.addAttribute("caReservations", caReservations);
         model.addAttribute("caDiffusions", diffusionTotalPrice);
-        model.addAttribute("montantTotal", (caReservations + diffusionTotalPrice));
+        model.addAttribute("caProducts", caProducts);
+        model.addAttribute("montantTotal", (caReservations + diffusionTotalPrice + caProducts));
         
         return "facture/view";
     }
@@ -148,10 +157,12 @@ public class FactureController {
         Map<Integer, Double> reservationCAMap = new LinkedHashMap<>();
         Map<Integer, Double> diffusionPaidMap = new LinkedHashMap<>();
         Map<Integer, Double> diffusionRemainingMap = new LinkedHashMap<>();
+        Map<Integer, Double> productCAMap = new LinkedHashMap<>();
 
         Double totalCAReservations = 0.0;
         Double totalCADiffusions = 0.0;
         Double totalRemainingDiffusions = 0.0;
+        Double totalCAProducts = 0.0;
         Double totalGeneral = 0.0;
 
         for (Facture f : factures) {
@@ -160,15 +171,18 @@ public class FactureController {
             Double caRes = p != null && p.getTotalReservations() != null ? p.getTotalReservations() : factureService.getTotalReservationsForFacture(f);
             Double paid = p != null && p.getTotalPaidDiffusions() != null ? p.getTotalPaidDiffusions() : factureService.getTotalPaidForDiffusions(f);
             Double remaining = p != null && p.getTotalRemainingDiffusions() != null ? p.getTotalRemainingDiffusions() : factureService.getRemainingForDiffusions(f);
-            Double montant = p != null && p.getMontantTotal() != null ? p.getMontantTotal() : (caRes + paid);
+            Double products = factureService.getTotalProductsForFacture(f);
+            Double montant = p != null && p.getMontantTotal() != null ? p.getMontantTotal() : (caRes + paid + products);
 
             reservationCAMap.put(f.getId(), caRes != null ? caRes : 0.0);
             diffusionPaidMap.put(f.getId(), paid != null ? paid : 0.0);
             diffusionRemainingMap.put(f.getId(), remaining != null ? remaining : 0.0);
+            productCAMap.put(f.getId(), products != null ? products : 0.0);
 
             totalCAReservations += (caRes != null ? caRes : 0.0);
             totalCADiffusions += (paid != null ? paid : 0.0);
             totalRemainingDiffusions += (remaining != null ? remaining : 0.0);
+            totalCAProducts += (products != null ? products : 0.0);
             totalGeneral += (montant != null ? montant : 0.0);
         }
 
@@ -176,9 +190,11 @@ public class FactureController {
         result.put("reservationCAMap", reservationCAMap);
         result.put("diffusionPaidMap", diffusionPaidMap);
         result.put("diffusionRemainingMap", diffusionRemainingMap);
+        result.put("productCAMap", productCAMap);
         result.put("totalCAReservations", totalCAReservations);
         result.put("totalCADiffusions", totalCADiffusions);
         result.put("totalRemainingDiffusions", totalRemainingDiffusions);
+        result.put("totalCAProducts", totalCAProducts);
         result.put("totalGeneral", totalGeneral);
 
         return result;

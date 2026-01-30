@@ -173,9 +173,9 @@ public class DisponibilitePlaceService {
             Integer capacity = entry.getValue();
             
             // Find corresponding ClassePlace
-            Optional<ClassePlace> classePlaceOpt = classePlaceRepository
-                .findByLibelleIgnoreCase(placeType);
+            Optional<ClassePlace> classePlaceOpt = classePlaceRepository.findByLibelleIgnoreCase(placeType);
             
+            // Still using the prixPlace of the place type instead of new hierarchy
             if (classePlaceOpt.isPresent() && classePlaceOpt.get().getPrixPlace() != null) {
                 totalRevenue += capacity * classePlaceOpt.get().getPrixPlace();
             }

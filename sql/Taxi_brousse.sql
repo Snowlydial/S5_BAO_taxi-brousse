@@ -208,11 +208,40 @@ CREATE TABLE FactureLigne(
    id_facture INTEGER NOT NULL,
    id_reservation INTEGER,
    id_diffusion INTEGER,
+   id_produitCommande INTEGER,
    FOREIGN KEY(id_facture) REFERENCES Facture(id_facture),
    FOREIGN KEY(id_reservation) REFERENCES Reservation(id_reservation),
    FOREIGN KEY(id_diffusion) REFERENCES Diffusion(id_diffusion),
    CHECK (
        (type_ligne = 'RESERVATION' AND id_reservation IS NOT NULL AND id_diffusion IS NULL) OR
-       (type_ligne = 'DIFFUSION' AND id_diffusion IS NOT NULL AND id_reservation IS NULL)
+       (type_ligne = 'DIFFUSION' AND id_diffusion IS NOT NULL AND id_reservation IS NULL) OR
+       (type_ligne = 'PRODUIT_COMMANDE' AND id_produitCommande IS NOT NULL)
    )
+);
+
+--? Alea Week 4 - Product Management for Societies
+CREATE TABLE Produit(
+   id_produit SERIAL PRIMARY KEY,
+   libelle VARCHAR(100) NOT NULL,
+   description TEXT
+);
+
+CREATE TABLE Produit_Societe(
+   id_produit_societe SERIAL PRIMARY KEY,
+   id_produit INTEGER NOT NULL,
+   id_societe INTEGER NOT NULL,
+   prix_unitaire DOUBLE PRECISION NOT NULL,
+   FOREIGN KEY(id_produit) REFERENCES Produit(id_produit),
+   FOREIGN KEY(id_societe) REFERENCES Societe(id_societe),
+   UNIQUE(id_produit, id_societe)
+);
+
+CREATE TABLE ProduitCommande(
+   id_produitCommande SERIAL PRIMARY KEY,
+   id_bus_voyage INTEGER NOT NULL,
+   id_produit_societe INTEGER NOT NULL,
+   quantite INTEGER NOT NULL,
+   date_commande DATE NOT NULL,
+   FOREIGN KEY(id_bus_voyage) REFERENCES Bus_Voyage(id_bus_voyage),
+   FOREIGN KEY(id_produit_societe) REFERENCES Produit_Societe(id_produit_societe)
 );

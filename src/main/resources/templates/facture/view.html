@@ -136,13 +136,32 @@
                                 <i class="bi bi-cash-stack me-2"></i>
                                 Montant Payé Total
                             </h6>
-                            <small class="text-muted d-block mb-2">Réservations + Diffusions payées</small>
+                            <small class="text-muted d-block mb-2">Réservations + Diffusions payées + Produits</small>
                             <h3 class="mb-0 text-success">
-                                <span th:text="${#numbers.formatDecimal(caReservations + diffusionTotalPaid, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                <span th:text="${#numbers.formatDecimal(caReservations + diffusionTotalPaid + caProducts, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                             </h3>
                             <div class="mt-2">
                                 <small class="text-muted">
                                     Reste: <strong class="text-danger" th:text="${#numbers.formatDecimal(diffusionTotalRemaining, 0, 'COMMA', 0, 'POINT')}">0</strong> Ar
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card shadow-sm bg-light-primary">
+                        <div class="card-body py-3">
+                            <h6 class="mb-1 text-muted">
+                                <i class="bi bi-basket me-2"></i>
+                                CA Produits
+                            </h6>
+                            <small class="text-muted d-block mb-2">Vente de produits extra</small>
+                            <h3 class="mb-0 text-primary">
+                                <span th:text="${#numbers.formatDecimal(caProducts, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                            </h3>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    Nombre: <strong th:text="${facture.lignes.?[typeLigne == 'PRODUIT_COMMANDE'].size()}">0</strong>
                                 </small>
                             </div>
                         </div>
@@ -259,6 +278,43 @@
                                         </tr>
                                     </th:block>
 
+                                    <!-- Products Group Header (Collapsible) -->
+                                    <tr class="table-light collapse-row" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target=".productsGroup"
+                                        th:if="${facture.lignes.?[typeLigne == 'PRODUIT_COMMANDE'].size() > 0}">
+                                        <td colspan="6" class="fw-bold">
+                                            <i class="bi bi-chevron-right collapse-icon" id="productsIcon"></i>
+                                            <span class="badge bg-primary me-2">Produits</span>
+                                            <span th:text="${facture.lignes.?[typeLigne == 'PRODUIT_COMMANDE'].size() + ' ligne(s)'}"></span>
+                                            <span class="float-end me-3">
+                                                Total: <span th:text="${#numbers.formatDecimal(caProducts, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </span>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Product Detail Rows (Collapsible) -->
+                                    <th:block th:if="${facture.lignes.?[typeLigne == 'PRODUIT_COMMANDE'].size() > 0}">
+                                        <tr th:each="ligne, iterStat : ${facture.lignes.?[typeLigne == 'PRODUIT_COMMANDE']}" 
+                                            th:class="'detail-row collapse show productsGroup'">
+                                            <td th:text="${iterStat.index + 1}"></td>
+                                            <td>
+                                                <span class="badge bg-primary">Produit</span>
+                                            </td>
+                                            <td>
+                                                <div th:text="${ligne.produitCommande.produitSociete.produit.libelle}"></div>
+                                                <small class="text-muted" th:text="${'Qté: ' + ligne.produitCommande.quantite + ' (' + ligne.produitCommande.produitSociete.societe.nom + ')'}"></small>
+                                            </td>
+                                            <td class="text-end">
+                                                <span th:text="${#numbers.formatDecimal(ligne.produitCommande.produitSociete.prixUnitaire, 0, 'COMMA', 0, 'POINT')}">0</span> Ar × <span th:text="${ligne.produitCommande.quantite}">1</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <span th:text="${#numbers.formatDecimal(ligne.montant, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </td>
+                                            <td class="text-end text-success fw-bold">0 Ar</td>
+                                        </tr>
+                                    </th:block>
+
                                     <!-- Subtotals Section -->
                                     <tr class="table-light">
                                         <td colspan="6"></td>
@@ -288,6 +344,17 @@
                                             <span th:text="${#numbers.formatDecimal(diffusionTotalRemaining, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                         </td>
                                     </tr>
+                                    <tr class="table-secondary fw-bold">
+                                        <td colspan="2"></td>
+                                        <td>Sous-total Produits</td>
+                                        <td class="text-end">
+                                            <span th:text="${#numbers.formatDecimal(caProducts, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </td>
+                                        <td class="text-end">
+                                            <span th:text="${#numbers.formatDecimal(caProducts, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </td>
+                                        <td class="text-end text-success">0 Ar</td>
+                                    </tr>
                                     
                                     <!-- Grand Total -->
                                     <tr class="table-success fw-bold">
@@ -300,7 +367,7 @@
                                             <span th:text="${#numbers.formatDecimal(montantTotal, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                         </td>
                                         <td class="text-end fs-5">
-                                            <span th:text="${#numbers.formatDecimal(caReservations + diffusionTotalPaid, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            <span th:text="${#numbers.formatDecimal(caReservations + diffusionTotalPaid + caProducts, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                         </td>
                                         <td class="text-end fs-5" 
                                             th:classappend="${diffusionTotalRemaining > 0 ? 'text-danger' : 'text-success'}">
@@ -343,6 +410,18 @@
                     
                     //*-- Initial state (start expanded)
                     diffusionsIcon.classList.add('rotated');
+                }
+                
+                //*-- Handle products collapse
+                const productsIcon = document.getElementById('productsIcon');
+                
+                if (productsIcon) {
+                    document.querySelector('[data-bs-target=".productsGroup"]').addEventListener('click', function() {
+                        productsIcon.classList.toggle('rotated');
+                    });
+                    
+                    //*-- Initial state (start expanded)
+                    productsIcon.classList.add('rotated');
                 }
             });
         </script>

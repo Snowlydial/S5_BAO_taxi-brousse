@@ -18,7 +18,7 @@ public class FactureLigne {
     private Integer id;
     
     @Column(name = "type_ligne", nullable = false, length = 20)
-    private String typeLigne; // "RESERVATION" or "DIFFUSION"
+    private String typeLigne; // "RESERVATION", "DIFFUSION", or "PRODUIT_COMMANDE"
     
     @Column(name = "montant", nullable = false)
     private Double montant;
@@ -37,4 +37,8 @@ public class FactureLigne {
     @ManyToOne
     @JoinColumn(name = "id_diffusion")
     private Diffusion diffusion;
+    
+    @ManyToOne
+    @JoinColumn(name = "id_produitcommande")
+    private ProduitCommande produitCommande;
 }

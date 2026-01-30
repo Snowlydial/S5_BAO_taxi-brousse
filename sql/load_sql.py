@@ -29,7 +29,7 @@ def run_psql(sql_path: Path, user: str, host: str, port: int, password: str) -> 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run project SQL files against Postgres (sequentially)")
-    parser.add_argument('--data-file', default='dataV5-simple.sql', help='Data SQL filename located in `sql` folder (default: dataV5-simple.sql)')
+    parser.add_argument('--data-file', default='dataV4-simple.sql', help='Data SQL filename located in `sql` folder (default: dataV5-simple.sql)')
     parser.add_argument('--db-user', default='postgres', help='Postgres user (default: postgres)')
     parser.add_argument('--db-name', default='taxibroussedb', help='Postgres database name (default: taxibroussedb)')
     parser.add_argument('--host', default='localhost', help='Postgres host (default: localhost)')

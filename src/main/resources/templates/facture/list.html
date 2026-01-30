@@ -69,6 +69,20 @@
                             </div>
                             
                             <div class="col-md-3">
+                                <div class="card shadow-sm bg-light-primary">
+                                    <div class="card-body py-3">
+                                        <h6 class="mb-1 text-muted">
+                                            <i class="bi bi-bag me-2"></i>
+                                            CA Total Produits
+                                        </h6>
+                                        <h3 class="mb-0 text-primary">
+                                            <span id="totalCAProducts" th:text="${#numbers.formatDecimal(totalCAProducts, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
                                 <div class="card shadow-sm bg-light-danger">
                                     <div class="card-body py-3">
                                         <h6 class="mb-1 text-muted">
@@ -90,7 +104,21 @@
                                             Montant Général Total
                                         </h6>
                                         <h3 class="mb-0 text-success">
-                                            <span th:text="${#numbers.formatDecimal(totalGeneral, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            <span id="totalGeneral" th:text="${#numbers.formatDecimal(totalGeneral, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="card shadow-sm bg-light-info border-info">
+                                    <div class="card-body py-3">
+                                        <h6 class="mb-1 text-muted">
+                                            <i class="bi bi-graph-up me-2"></i>
+                                            Total Théorique Général
+                                        </h6>
+                                        <h3 class="mb-0 text-info">
+                                            <span id="totalTheorique" th:text="${#numbers.formatDecimal(totalTheorique, 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                         </h3>
                                     </div>
                                 </div>
@@ -132,8 +160,10 @@
                                         <th>Heure Départ</th>
                                         <th>CA Réservations</th>
                                         <th>Montant Payé Diffusions</th>
+                                        <th>CA Produits</th>
                                         <th>Reste à Payer Diffusions</th>
                                         <th>Montant Total</th>
+                                        <th>Total Théorique</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -166,13 +196,23 @@
                                             </span>
                                         </td>
                                         <td>
+                                            <span class="text-info fw-bold">
+                                                <span class="product-ca" th:attr="data-facture-id=${facture.id}" th:text="${#numbers.formatDecimal(productCAMap[facture.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </span>
+                                        </td>
+                                        <td>
                                             <span class="text-danger fw-bold">
                                                 <span class="remaining-diffusions" th:attr="data-facture-id=${facture.id}" th:text="${#numbers.formatDecimal(diffusionRemainingMap[facture.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                             </span>
                                         </td>
                                         <td>
                                             <span class="text-success fw-bold">
-                                                <span class="montant-total" th:attr="data-facture-id=${facture.id}" th:text="${#numbers.formatDecimal(reservationCAMap[facture.id] + diffusionPaidMap[facture.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                                <span class="montant-total" th:attr="data-facture-id=${facture.id}" th:text="${#numbers.formatDecimal(reservationCAMap[facture.id] + diffusionPaidMap[facture.id] + productCAMap[facture.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="text-primary fw-bold">
+                                                <span class="total-theorique" th:attr="data-facture-id=${facture.id}" th:text="${#numbers.formatDecimal(reservationCAMap[facture.id] + diffusionPaidMap[facture.id] + diffusionRemainingMap[facture.id] + productCAMap[facture.id], 0, 'COMMA', 0, 'POINT')}">0</span> Ar
                                             </span>
                                         </td>
                                         <td>
@@ -295,17 +335,29 @@
                     // Update top summary
                     const totalCADiffusions = document.getElementById('totalCADiffusions');
                     const totalRemaining = document.getElementById('totalRemainingDiffusions');
+                    const totalCAProducts = document.getElementById('totalCAProducts');
+                    const totalGeneral = document.getElementById('totalGeneral');
+                    const totalTheorique = document.getElementById('totalTheorique');
+                    
                     if (totalCADiffusions && data.totalCADiffusions != null) {
                         totalCADiffusions.textContent = new Intl.NumberFormat('fr-FR').format(Math.round(data.totalCADiffusions));
                     }
                     if (totalRemaining && data.totalRemainingDiffusions != null) {
                         totalRemaining.textContent = new Intl.NumberFormat('fr-FR').format(Math.round(data.totalRemainingDiffusions));
                     }
+                    if (totalCAProducts && data.totalCAProducts != null) {
+                        totalCAProducts.textContent = new Intl.NumberFormat('fr-FR').format(Math.round(data.totalCAProducts));
+                    }
 
                     // Update per-row values
                     const paidMap = data.diffusionPaidMap || {};
                     const remainingMap = data.diffusionRemainingMap || {};
                     const reservationMap = data.reservationCAMap || {};
+                    const productMap = data.productCAMap || {};
+
+                    // Calculate totals for cards
+                    let sumGeneral = 0;
+                    let sumTheorique = 0;
 
                     document.querySelectorAll('.paid-diffusions').forEach(el => {
                         const id = el.dataset.factureId;
@@ -321,6 +373,14 @@
                         }
                     });
 
+                    // Update product CA
+                    document.querySelectorAll('.product-ca').forEach(el => {
+                        const id = el.dataset.factureId;
+                        if (id && productMap[id] != null) {
+                            el.textContent = new Intl.NumberFormat('fr-FR').format(Math.round(productMap[id]));
+                        }
+                    });
+
                     // Update reservation CA and total per row
                     document.querySelectorAll('.reservation-ca').forEach(el => {
                         const id = el.dataset.factureId;
@@ -333,9 +393,31 @@
                         const id = el.dataset.factureId;
                         const res = id && reservationMap[id] != null ? reservationMap[id] : 0;
                         const paid = id && paidMap[id] != null ? paidMap[id] : 0;
-                        const total = Math.round(res + paid);
+                        const products = id && productMap[id] != null ? productMap[id] : 0;
+                        const total = Math.round(res + paid + products);
                         el.textContent = new Intl.NumberFormat('fr-FR').format(total);
+                        sumGeneral += total;
                     });
+
+                    // Update total théorique (includes remaining diffusions)
+                    document.querySelectorAll('.total-theorique').forEach(el => {
+                        const id = el.dataset.factureId;
+                        const res = id && reservationMap[id] != null ? reservationMap[id] : 0;
+                        const paid = id && paidMap[id] != null ? paidMap[id] : 0;
+                        const remaining = id && remainingMap[id] != null ? remainingMap[id] : 0;
+                        const products = id && productMap[id] != null ? productMap[id] : 0;
+                        const totalTheorique = Math.round(res + paid + remaining + products);
+                        el.textContent = new Intl.NumberFormat('fr-FR').format(totalTheorique);
+                        sumTheorique += totalTheorique;
+                    });
+
+                    // Update summary cards
+                    if (totalGeneral) {
+                        totalGeneral.textContent = new Intl.NumberFormat('fr-FR').format(sumGeneral);
+                    }
+                    if (totalTheorique) {
+                        totalTheorique.textContent = new Intl.NumberFormat('fr-FR').format(sumTheorique);
+                    }
 
                 } catch (err) {
                     console.error('Error fetching facture summary', err);
