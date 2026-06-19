@@ -25,7 +25,7 @@
                 <div class="sidebar-header">
                     <div class="d-flex justify-content-between">
                         <div class="logo">
-                            <a th:href="@{/dashboard}"><img th:src="@{/images/logo/x.png}" alt="Taxi Buh :["></a>
+                            <a th:href="@{/dashboard}">Taxi Buh :[</a>
                         </div>
                         <div class="toggler">
                             <a href="#" class="sidebar-hide d-xl-none d-block"><i class="bi bi-x bi-middle"></i></a>
@@ -66,6 +66,9 @@
                                 <span>Gestion Diffusion</span>
                             </a>
                             <ul class="submenu">
+                                <li class="submenu-item">
+                                    <a th:href="@{/diffusionconf/list}">Configuration Tarifs</a>
+                                </li>
                                 <li class="submenu-item">
                                     <a th:href="@{/diffusion/list}">Liste des Diffusions</a>
                                 </li>

@@ -23,12 +23,113 @@ Built as a database-oriented project, the focus was on modeling realistic busine
 - The database schema had to handle many-to-many relationships between buses, routes, and time slots without allowing impossible configurations
 - Invoice and payment tracking added a second domain on top of the reservation system
 
+## Screenshots
+
+### Tableau de Bord
+
+![Dashboard with revenue charts and demographics](docs/screenshots/Dashboard.png)
+
+Central dashboard displaying real-time statistics: global revenue evolution, revenue by caisse (payment method), top 5 most reserved routes, top 10 most profitable clients, and passenger demographics by gender and age group. Period and revenue type filters allow dynamic analysis.
+
+### Rechercher Voyage
+
+![Voyage search criteria and results](docs/screenshots/RechercheVoyage.png)
+
+Search interface for finding available bus routes by departure/arrival stations, date, and time. Results display bus details, available seat classes, and direct booking access.
+
+### Nouvelle Réservation
+#### Reservation Booking Flow (Step 1)
+
+![Reservation creation with voyage and client selection](docs/screenshots/NewReservation_1.png)
+
+Booking workflow: voyage details display, client selection, and reservation date/time configuration.
+
+#### Seat Selection & Payment (Step 2)
+
+![Seat selection grid and payment method configuration](docs/screenshots/NewReservation_2.png)
+
+Continuation of booking: individual seat selection with visual grid layout, batch seat application, and multi-method payment (cash, Mobile Money, card).
+
+### Liste Réservations
+
+![Reservations list with filters and summary cards](docs/screenshots/ReservationList.png)
+
+Complete view of all passenger reservations with revenue summaries. Filterable by client, bus, route, date, status, and seat class. Displays pricing and payment information per reservation.
+
+### Gestion Bus
+
+![Bus list showing configurations and revenue](docs/screenshots/BusList.png)
+
+Fleet overview with bus immatriculation, configured seat classes, total capacity, and maximum revenue potential. Each bus card shows all active configurations.
+
+### Ajouter Bus
+
+![Bus creation form with place configuration](docs/screenshots/BusCreation.png)
+
+Add new buses with unique immatriculation number. Configure seat types (Standard, Premium, VIP) with their quantities (each type has their own price, only editable via SQL so far).
+
+### Bus Configuration
+
+![Bus configuration list with types and values](docs/screenshots/BusConfList.png)
+
+Define bus seat class types available across the fleet. Edit or delete configurations with constraints on deletion if buses are using them.
+
+### Trajets/Voyages
+
+![Routes list with duration and pricing](docs/screenshots/TrajetList.png)
+
+Define available travel routes between stations. Each route has departure/arrival stations, duration, and base price.
+
+### Gestion Bus-Voyage
+
+![Bus-voyage assignments with filters and date scheduling](docs/screenshots/BusVoyageList.png)
+
+Assign specific buses to specific routes with date/time scheduling. Manage voyage plannings by bus, route, and departure gates.
+
+### Liste Diffusions
+
+![Diffusion list with price config, payments, and remaining balance](docs/screenshots/DiffusionList.png)
+
+Track all advertising slots with their configured pricing, paid amounts, and remaining balances. Filter by society, bus, route, date, and payment status.
+
+### Configuration des Tarifs Diffusion
+
+![Diffusion tariff configuration with date ranges](docs/screenshots/DiffusionTarifConf.png)
+
+Define advertising pricing configurations with date ranges and price per slot. Prevent overlapping date periods to ensure consistent pricing.
+
+### Liste Factures
+
+![Invoices with summary metrics and line details](docs/screenshots/FactureList.png)
+
+Generated invoices combining reservation revenue, advertising revenue (diffusions), and product orders. Summary cards display revenue breakdowns and remaining balances.
+
+### Détails Facture
+
+![Invoice detail showing reservations, diffusions, and products](docs/screenshots/FactureDetail.png)
+
+Full invoice breakdown with separate sections for reservations, diffusions, and products. Displays per-line pricing and payment status with subtotals.
+
+### Commandes Produits
+
+![Product commands list interface](docs/screenshots/ProduitCommandeList.png)
+
+View all product orders for societies on specific bus-voyages. Tracks orders and integrates into facture totals.
+
+### Ajouter Commande Produit
+
+![Product command creation form](docs/screenshots/ProduitCommandeAdd.png)
+
+Add products to specific bus-voyages with unit pricing and quantity configuration.
+
 ## Tech Stack
+
 
 - Backend: Java + Spring Boot
 - Frontend: Thymeleaf
 - Database: PostgreSQL
 - Build: Maven (wrapper included)
+
 
 ## Database
 
