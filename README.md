@@ -178,4 +178,4 @@ The application will be available at http://localhost:8080
 
 ## Academic context
 
-Built during Semester 5 at IT University as a business application and object-oriented design project.
+Built during Semester 5 at university as a business application, serving as a practical exercise in team leadership and project management.
