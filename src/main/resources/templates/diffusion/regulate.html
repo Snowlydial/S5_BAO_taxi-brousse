@@ -11,10 +11,20 @@
     <section class="section">
         <div class="card">
             <div class="card-body">
+                <!-- Success/Error Messages -->
+                <div th:if="${session.success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <span th:text="${session.success}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div th:if="${session.error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <span th:text="${session.error}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+
                 <form th:action="@{/diffusion/regulate}" method="post" class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Société</label>
-                        <select name="societeId" class="form-select" required>
+                        <select id="societeSelect" name="societeId" class="form-select" required>
                             <option value="">-- Choisir --</option>
                             <option th:each="s : ${societes}" th:value="${s.id}" th:text="${s.nom}"></option>
                         </select>
@@ -28,12 +38,66 @@
                         <a th:href="@{/diffusion/list}" class="btn btn-secondary ms-2">Retour</a>
                     </div>
                 </form>
-                <div class="mt-4" th:if="${remainingInfo != null}">
-                    <h5>Reste à payer pour la société: <span th:text="${#numbers.formatDecimal(remainingInfo, 0, 'COMMA', 0, 'POINT')}">0</span> Ar</h5>
+
+                <!-- Remaining Info Card -->
+                <div id="remainingInfo" class="mt-4" style="display: none;">
+                    <div class="card bg-light-info">
+                        <div class="card-body">
+                            <h5 class="card-title">Reste à payer</h5>
+                            <div class="d-flex align-items-baseline gap-2">
+                                <h3 class="mb-0 text-info">
+                                    <span id="remainingAmount">0</span> Ar
+                                </h3>
+                                <small class="text-muted" id="remainingStatus"></small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
+</div>
+
+<div layout:fragment="scripts">
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            const societeSelect = document.getElementById('societeSelect');
+            const remainingInfo = document.getElementById('remainingInfo');
+            const remainingAmount = document.getElementById('remainingAmount');
+            const remainingStatus = document.getElementById('remainingStatus');
+
+            function updateRemaining() {
+                const societeId = societeSelect.value;
+                if (!societeId) {
+                    remainingInfo.style.display = 'none';
+                    return;
+                }
+
+                fetch('/diffusion/api/remaining?societeId=' + societeId)
+                    .then(response => response.json())
+                    .then(data => {
+                        const remaining = data.remaining || 0;
+                        remainingAmount.textContent = new Intl.NumberFormat('fr-FR').format(Math.round(remaining));
+
+                        if (remaining > 0) {
+                            remainingStatus.textContent = 'à récupérer';
+                            remainingStatus.className = 'text-danger';
+                        } else {
+                            remainingStatus.textContent = 'Entièrement réglé';
+                            remainingStatus.className = 'text-success';
+                        }
+
+                        remainingInfo.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error fetching remaining:', error);
+                        remainingInfo.style.display = 'none';
+                    });
+            }
+
+            societeSelect.addEventListener('change', updateRemaining);
+        });
+    </script>
 </div>
 </body>
 </html>

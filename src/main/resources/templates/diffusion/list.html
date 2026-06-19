@@ -148,7 +148,9 @@
                                 <tr>
                                     <th>Societe</th>
                                     <th>Bus</th>
+                                    <th>Prix Config</th>
                                     <th>Montant payé</th>
+                                    <th>Reste</th>
                                     <th>Status</th>
                                     <th>Trajet</th>
                                     <th>Description</th>
@@ -168,7 +170,12 @@
                                              data-societe=${diff.societe != null ? diff.societe.nom : ''}">
                                     <td th:text="${diff.societe != null ? diff.societe.nom : '-'}">Societe</td>
                                     <td th:text="${diff.busVoyage != null && diff.busVoyage.bus != null ? diff.busVoyage.bus.immatriculation : '-'}">Bus</td>
+                                    <td th:text="${#numbers.formatDecimal(price, 0, 'COMMA', 0, 'POINT')}">0</td>
                                     <td th:text="${#numbers.formatDecimal(paid, 0, 'COMMA', 0, 'POINT')}">0</td>
+                                    <td>
+                                        <span th:if="${remain > 0}" th:text="${#numbers.formatDecimal(remain, 0, 'COMMA', 0, 'POINT')}" class="badge bg-danger">0</span>
+                                        <span th:if="${remain <= 0}" class="badge bg-success">Réglé</span>
+                                    </td>
                                     <td th:text="${remain <= 0 ? 'Regulé' : 'Paiement incomplet'}"></td>
                                     <td th:text="${(diff.busVoyage != null && diff.busVoyage.voyage != null) ? (diff.busVoyage.voyage.gareDepart.libelle + ' -> ' + diff.busVoyage.voyage.gareArrivee.libelle) : '-'}">Trajet</td>
                                     <td th:text="${diff.description}">Description</td>

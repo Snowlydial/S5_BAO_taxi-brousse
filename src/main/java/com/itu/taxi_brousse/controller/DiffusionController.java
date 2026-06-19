@@ -24,6 +24,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.http.ResponseEntity;
 
 @Controller
 @RequestMapping("/diffusion")
@@ -130,5 +131,15 @@ public class DiffusionController {
 			redir.addFlashAttribute("error", "Erreur: " + e.getMessage());
 		}
 		return "redirect:/diffusion/regulate";
+	}
+
+	@GetMapping("/api/remaining")
+	public ResponseEntity<Map<String, Double>> getRemaining(
+			@RequestParam(value = "societeId", required = false) Integer societeId) {
+		if (societeId == null) {
+			return ResponseEntity.ok(Map.of("remaining", 0.0));
+		}
+		double remaining = diffusionService.getRemainingForSociety(societeId);
+		return ResponseEntity.ok(Map.of("remaining", remaining));
 	}
 }
