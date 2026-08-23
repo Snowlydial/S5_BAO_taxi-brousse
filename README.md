@@ -25,6 +25,7 @@ It was built as a database-oriented project, and the interesting part turned out
 - **Discounts are derived, never stored.** There is no discount column anywhere. A discount exists when the resolved price for a passenger comes out below the adult baseline for the same seat and voyage, and the displayed percentage is computed from that gap. One source of truth, so a price and its "20% off" label cannot disagree.
 - **Price history records changes, not saves.** Updating a departure's price compares old against new (with a float tolerance) and only writes a history row when the value actually moved. The audit trail is therefore a log of real decisions rather than a log of times someone opened the edit form.
 - **Prices are resolved as of a date, not as of now.** Every lookup takes a pricing date and filters configurations by their active period, which is what lets a past reservation still be explained at the fare that applied when it was made.
+- **Overlapping date ranges are resolved rather than forbidden.** Advertising tariffs are looked up by "active on this date, most recently started first", so publishing a new tariff supersedes an older overlapping one without requiring anyone to go back and close the previous period. Same instinct as the fare chain: define a resolution order instead of a constraint that has to be maintained by hand.
 - **Invoice generation is idempotent.** Asking for a departure's invoice returns the existing one if there is one rather than issuing a duplicate, because "generate invoice" is a button a user will press twice.
 - **Bus capacity is summed from configuration rows rather than stored as a number.** A bus carries `nb_place_*` entries per seat class, and total capacity is their sum, so adding a new seat class doesn't require a schema change. The honest cost is that these are string-keyed values needing parsing and case normalisation, and a missing configuration surfaces as a thrown `CapacityConfigurationException` rather than a compile-time error.
 
@@ -69,7 +70,7 @@ Routes define the station pair, duration, and base price. Assigning a bus to a r
 ![Diffusion list with price config, payments, and remaining balance](docs/screenshots/DiffusionList.png)
 ![Diffusion tariff configuration with date ranges](docs/screenshots/DiffusionTarifConf.png)
 
-Companies book advertising slots against specific departures. Tariffs are configured over date ranges, with overlapping periods rejected so a slot can never resolve to two prices. Payments are tracked against each booking, leaving a visible outstanding balance.
+Companies book advertising slots against specific departures. Tariffs are configured over date ranges, and when ranges overlap the one that started most recently wins, so a newer tariff supersedes an older one without anyone having to close the old period first. Payments are tracked against each booking, leaving a visible outstanding balance.
 
 ### Invoicing
 
