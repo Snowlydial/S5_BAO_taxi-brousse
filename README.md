@@ -1,172 +1,126 @@
 # S5_BAO_taxi-brousse
 
-A Spring Boot web application for managing intercity bus (taxi-brousse) operations in Madagascar. It covers the full lifecycle from scheduling routes and assigning buses, to passenger reservations, dynamic fare calculation, payment processing, and advertising revenue.
+A management system for intercity bus (taxi-brousse) operations in Madagascar, covering the full lifecycle: scheduling routes, assigning buses, taking reservations, resolving fares, processing payments, and invoicing both ticket and advertising revenue.
 
-Built as a database-oriented project, the focus was on modeling realistic business rules — multi-dimensional pricing, age-based discounts, seat class management — and exposing them through a clean Thymeleaf interface.
+It was built as a database-oriented project, and the interesting part turned out to be pricing. A fare here is not a number on a route: it depends on which bus is running the trip, which seat class was booked, which age group the passenger falls into, and which date you're asking about. Getting that to resolve predictably, and to stay auditable when prices change, was the actual work.
 
 ## Features
 
 ### What it does
 
-- Bus and route management: define voyages between stations (gares), assign buses to specific departures
-- Seat class configuration (Standard, Premium, VIP) with per-class pricing
-- Age-based fare rules: child and senior discounts applied automatically on top of base fares
-- Passenger reservation workflow: seat selection, booking confirmation, and status tracking
-- Multi-method payment: cash, Mobile Money, and card, logged through a caisse system
-- Invoice generation (facture + facture lines) with payment history
-- Advertising diffusion: companies can book ad slots on specific voyages with advance payments tracked
-- Price history: all fare changes are logged for audit purposes
+- Fleet and route management: define voyages between stations, configure seat classes per bus, assign buses to specific dated departures
+- Multi-dimensional fare resolution across voyage, bus, seat class, passenger age group, and date
+- Age-based discounts expressed as either an absolute override or a percentage of the adult fare
+- Reservation workflow with visual seat selection and status tracking
+- Payments in cash, Mobile Money, or card, logged through a caisse system
+- Advertising slots sold to companies against specific departures, with advance payments and outstanding balances tracked
+- Invoices combining ticket revenue, advertising revenue, and onboard product orders
+- Price history: every fare change is recorded for audit
+- Dashboard with revenue trends, top routes, top clients, and passenger demographics
 
-### Why this project matters
+### A few decisions worth explaining
 
-- It models the kind of pricing logic that looks straightforward on paper but gets complicated fast (overlapping rules, class-specific overrides, age groups)
-- The database schema had to handle many-to-many relationships between buses, routes, and time slots without allowing impossible configurations
-- Invoice and payment tracking added a second domain on top of the reservation system
+- **Fares resolve through an explicit priority chain rather than a single lookup.** The order is: an age-and-class configuration scoped to that voyage and active on that date, then the price specific to that bus on that departure, then the route's own price, then the seat class's fallback price. First match wins. Modelling it as a chain rather than one table means a route can carry a general price while a single busy departure overrides it, without either needing to know about the other.
+- **A fare configuration is either an absolute amount or a percentage of a baseline.** Percentages resolve by first finding the adult absolute price for the same class and voyage, then applying the modifier. Storing "child pays 50%" as a percentage rather than a fixed amount means raising the adult fare doesn't silently leave child fares stale.
+- **Discounts are derived, never stored.** There is no discount column anywhere. A discount exists when the resolved price for a passenger comes out below the adult baseline for the same seat and voyage, and the displayed percentage is computed from that gap. One source of truth, so a price and its "20% off" label cannot disagree.
+- **Price history records changes, not saves.** Updating a departure's price compares old against new (with a float tolerance) and only writes a history row when the value actually moved. The audit trail is therefore a log of real decisions rather than a log of times someone opened the edit form.
+- **Prices are resolved as of a date, not as of now.** Every lookup takes a pricing date and filters configurations by their active period, which is what lets a past reservation still be explained at the fare that applied when it was made.
+- **Invoice generation is idempotent.** Asking for a departure's invoice returns the existing one if there is one rather than issuing a duplicate, because "generate invoice" is a button a user will press twice.
+- **Bus capacity is summed from configuration rows rather than stored as a number.** A bus carries `nb_place_*` entries per seat class, and total capacity is their sum, so adding a new seat class doesn't require a schema change. The honest cost is that these are string-keyed values needing parsing and case normalisation, and a missing configuration surfaces as a thrown `CapacityConfigurationException` rather than a compile-time error.
 
 ## Screenshots
 
-### Tableau de Bord
+### Dashboard
 
 ![Dashboard with revenue charts and demographics](docs/screenshots/Dashboard.png)
 
-Central dashboard displaying real-time statistics: global revenue evolution, revenue by caisse (payment method), top 5 most reserved routes, top 10 most profitable clients, and passenger demographics by gender and age group. Period and revenue type filters allow dynamic analysis.
+Revenue evolution over time, revenue split by caisse, the five most reserved routes, the ten most profitable clients, and passenger demographics by gender and age group. Period and revenue-type filters drive all of it.
 
-### Rechercher Voyage
+### Booking Flow
 
 ![Voyage search criteria and results](docs/screenshots/RechercheVoyage.png)
 
-Search interface for finding available bus routes by departure/arrival stations, date, and time. Results display bus details, available seat classes, and direct booking access.
-
-### Nouvelle Réservation
-#### Reservation Booking Flow (Step 1)
+Search by departure and arrival station, date, and time. Results show the assigned bus, its available seat classes, and the fare each class resolves to for the selected passenger, computed through the priority chain before anything is booked.
 
 ![Reservation creation with voyage and client selection](docs/screenshots/NewReservation_1.png)
-
-Booking workflow: voyage details display, client selection, and reservation date/time configuration.
-
-#### Seat Selection & Payment (Step 2)
-
 ![Seat selection grid and payment method configuration](docs/screenshots/NewReservation_2.png)
 
-Continuation of booking: individual seat selection with visual grid layout, batch seat application, and multi-method payment (cash, Mobile Money, card).
-
-### Liste Réservations
+Booking runs in two steps: pick the departure and the client, then select seats on a visual grid and settle payment. The client's age group is what pulls the applicable discount into the fare, so the price shown here is already the price they pay.
 
 ![Reservations list with filters and summary cards](docs/screenshots/ReservationList.png)
 
-Complete view of all passenger reservations with revenue summaries. Filterable by client, bus, route, date, status, and seat class. Displays pricing and payment information per reservation.
+All reservations with revenue summaries, filterable by client, bus, route, date, status, and seat class.
 
-### Gestion Bus
+### Fleet, Routes & Scheduling
 
 ![Bus list showing configurations and revenue](docs/screenshots/BusList.png)
-
-Fleet overview with bus immatriculation, configured seat classes, total capacity, and maximum revenue potential. Each bus card shows all active configurations.
-
-### Ajouter Bus
-
 ![Bus creation form with place configuration](docs/screenshots/BusCreation.png)
-
-Add new buses with unique immatriculation number. Configure seat types (Standard, Premium, VIP) with their quantities (each type has their own price, only editable via SQL so far).
-
-### Bus Configuration
-
 ![Bus configuration list with types and values](docs/screenshots/BusConfList.png)
 
-Define bus seat class types available across the fleet. Edit or delete configurations with constraints on deletion if buses are using them.
-
-### Trajets/Voyages
+Buses carry their seat class configuration as quantities per class, which is where total capacity and maximum revenue potential are derived from. Configurations can't be deleted while a bus still references them.
 
 ![Routes list with duration and pricing](docs/screenshots/TrajetList.png)
-
-Define available travel routes between stations. Each route has departure/arrival stations, duration, and base price.
-
-### Gestion Bus-Voyage
-
 ![Bus-voyage assignments with filters and date scheduling](docs/screenshots/BusVoyageList.png)
 
-Assign specific buses to specific routes with date/time scheduling. Manage voyage plannings by bus, route, and departure gates.
+Routes define the station pair, duration, and base price. Assigning a bus to a route on a given date creates the departure that reservations actually attach to, and that departure can carry its own price override.
 
-### Liste Diffusions
+### Advertising
 
 ![Diffusion list with price config, payments, and remaining balance](docs/screenshots/DiffusionList.png)
-
-Track all advertising slots with their configured pricing, paid amounts, and remaining balances. Filter by society, bus, route, date, and payment status.
-
-### Configuration des Tarifs Diffusion
-
 ![Diffusion tariff configuration with date ranges](docs/screenshots/DiffusionTarifConf.png)
 
-Define advertising pricing configurations with date ranges and price per slot. Prevent overlapping date periods to ensure consistent pricing.
+Companies book advertising slots against specific departures. Tariffs are configured over date ranges, with overlapping periods rejected so a slot can never resolve to two prices. Payments are tracked against each booking, leaving a visible outstanding balance.
 
-### Liste Factures
+### Invoicing
 
 ![Invoices with summary metrics and line details](docs/screenshots/FactureList.png)
-
-Generated invoices combining reservation revenue, advertising revenue (diffusions), and product orders. Summary cards display revenue breakdowns and remaining balances.
-
-### Détails Facture
-
 ![Invoice detail showing reservations, diffusions, and products](docs/screenshots/FactureDetail.png)
 
-Full invoice breakdown with separate sections for reservations, diffusions, and products. Displays per-line pricing and payment status with subtotals.
-
-### Commandes Produits
+An invoice for a departure pulls together three separate revenue streams — ticket reservations, advertising, and onboard product orders — as distinct line groups under one total.
 
 ![Product commands list interface](docs/screenshots/ProduitCommandeList.png)
-
-View all product orders for societies on specific bus-voyages. Tracks orders and integrates into facture totals.
-
-### Ajouter Commande Produit
-
 ![Product command creation form](docs/screenshots/ProduitCommandeAdd.png)
 
-Add products to specific bus-voyages with unit pricing and quantity configuration.
+Product orders placed by companies against a specific departure, priced per unit and folded into that departure's invoice.
 
 ## Tech Stack
-
 
 - Backend: Java + Spring Boot
 - Frontend: Thymeleaf
 - Database: PostgreSQL
 - Build: Maven (wrapper included)
 
-
-## Database
-
-The schema is in `sql/Taxi_brousse.sql`. A simplified dataset for testing is in `sql/dataV4-simple.sql`.
-
-Main entities: `Bus`, `Voyage`, `BusVoyage`, `Gare`, `Reservation`, `Client`, `Paiement`, `ClassePlace`, `ClasseAge_Conf`, `Facture`, `Diffusion`
-
 ## Getting Started
 
 ### Prerequisites
 
 - Java 21+
-- Maven 3.9+ (optional if using wrapper)
 - PostgreSQL
+- Maven 3.9+ (optional, a wrapper is included)
 
 ### Local setup
 
 ```bash
-# 1) Clone the repository
 git clone https://github.com/Snowlydial/S5_BAO_taxi-brousse.git
 cd S5_BAO_taxi-brousse
+```
 
-# 2) Initialize the database
+```bash
 cd sql
 psql -U postgres -f Taxi_brousse.sql
-
-# Optional: load sample data
 psql -U postgres -f dataV4-simple.sql
 cd ..
+```
 
-# 3) Configure your database connection
-# Edit src/main/resources/application.properties:
-# spring.datasource.url=jdbc:postgresql://localhost:5432/your_db
-# spring.datasource.username=your_user
-# spring.datasource.password=your_password
+The second script is optional sample data. Then set your connection details in `src/main/resources/application.properties`:
 
-# 4) Run the application
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/your_db
+spring.datasource.username=your_user
+spring.datasource.password=your_password
+```
+
+```bash
 # Windows
 ./mvnw.cmd spring-boot:run
 
@@ -174,8 +128,16 @@ cd ..
 ./mvnw spring-boot:run
 ```
 
-The application will be available at http://localhost:8080
+Available at http://localhost:8080
+
+## Database
+
+Schema in `sql/Taxi_brousse.sql`, sample dataset in `sql/dataV4-simple.sql`.
+
+The schema splits into three domains that meet at the departure. **Scheduling**: `Gare`, `Voyage` (a route between two stations), `Bus`, and `BusVoyage`, the join that turns a route plus a bus plus a date into an actual departure. **Pricing**: `ClassePlace`, `CategorieGroupeAge`, and `ClasseAgeConf`, which carries the age-and-class overrides with their active date range, backed by `HistoriquePrixVoyage` and `HistoriquePrixSpecifique` for audit. **Revenue**: `Reservation` and `Paiement` for tickets, `Diffusion` and `DiffusionPaiement` for advertising, `ProduitCommande` for onboard sales, all converging on `Facture` and `FactureLigne`.
+
+`PricingService` is where the fare chain lives and is the piece worth reading first.
 
 ## Academic context
 
-Built during Semester 5 at university as a business application, serving as a practical exercise in team leadership and project management.
+Built during Semester 5 at university as a business application, and served as a practical exercise in team leadership and project management alongside the technical work.
